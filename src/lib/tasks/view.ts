@@ -1,0 +1,424 @@
+import type { AppList, AppTask } from '$lib/api/vikunja';
+
+export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'completed';
+
+const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
+	day: '2-digit',
+	month: 'short'
+});
+
+const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
+	weekday: 'long'
+});
+
+export function filterTasksForView(view: TaskViewKey, tasks: AppTask[], lists: AppList[]) {
+	const visibleLists = new Set(getVisibleLists(lists).map((list) => list.id));
+	const inboxList = findInboxList(lists);
+
+	return tasks.filter(
+		(task) =>
+			belongsToVisibleList(task, visibleLists) && matchesTaskView(task, view, inboxList?.id ?? null)
+	);
+}
+
+export function findInboxList(lists: AppList[]) {
+	return lists.find((list) => list.title.trim().toLowerCase() === 'inbox') ?? null;
+}
+
+export function sortTasks(tasks: AppTask[]) {
+	return [...tasks].sort((left, right) => {
+		const leftDueDate = normalizeDueDate(left.dueDate);
+		const rightDueDate = normalizeDueDate(right.dueDate);
+
+		if (left.completed !== right.completed) {
+			return left.completed ? 1 : -1;
+		}
+
+		if (leftDueDate && rightDueDate) {
+			return leftDueDate.localeCompare(rightDueDate);
+		}
+
+		if (leftDueDate) {
+			return -1;
+		}
+
+		if (rightDueDate) {
+			return 1;
+		}
+
+		return right.id - left.id;
+	});
+}
+
+export function groupTasksByDate(tasks: AppTask[]) {
+	const groups = new Map<string, AppTask[]>();
+
+	for (const task of tasks) {
+		const key = normalizeDueDate(task.dueDate) ?? 'no-date';
+		const bucket = groups.get(key);
+
+		if (bucket) {
+			bucket.push(task);
+			continue;
+		}
+
+		groups.set(key, [task]);
+	}
+
+	return Array.from(groups.entries()).map(([key, items]) => ({
+		key,
+		title: formatTaskGroupHeading(key === 'no-date' ? null : key),
+		tasks: items
+	}));
+}
+
+export function formatTaskDate(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return 'No due date';
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return 'No due date';
+	}
+
+	const now = new Date();
+	const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+	if (diffInDays === 0) {
+		return 'today';
+	}
+
+	if (diffInDays === 1) {
+		return 'tomorrow';
+	}
+
+	if (diffInDays > 1 && diffInDays <= 5) {
+		return weekdayFormatter.format(date).toLowerCase();
+	}
+
+	return formatCalendarDate(date);
+}
+
+export function getDueDateTone(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return 'text-muted-foreground';
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return 'text-muted-foreground';
+	}
+
+	const now = new Date();
+	const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+	if (diffInDays === 0) {
+		return 'text-amber-700';
+	}
+
+	if (diffInDays === 1) {
+		return 'text-orange-700';
+	}
+
+	if (diffInDays > 1 && diffInDays <= 5) {
+		return getWeekdayTone(date.getDay());
+	}
+
+	return 'text-muted-foreground';
+}
+
+export function getDueDateBadgeTone(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+	}
+
+	const now = new Date();
+	const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+	if (diffInDays === 0) {
+		return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+	}
+
+	if (diffInDays === 1) {
+		return 'bg-orange-100 text-orange-700 hover:bg-orange-200';
+	}
+
+	if (diffInDays > 1 && diffInDays <= 5) {
+		return getWeekdayBadgeTone(date.getDay());
+	}
+
+	return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+}
+
+export function getDueDateFieldTone(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return 'border-border/70 bg-background';
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return 'border-border/70 bg-background';
+	}
+
+	const now = new Date();
+	const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+	if (diffInDays === 0) {
+		return 'border-amber-200 bg-amber-50/70';
+	}
+
+	if (diffInDays === 1) {
+		return 'border-orange-200 bg-orange-50/70';
+	}
+
+	if (diffInDays > 1 && diffInDays <= 5) {
+		return getWeekdayFieldTone(date.getDay());
+	}
+
+	return 'border-border/70 bg-background';
+}
+
+export function toDateInputValue(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return '';
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return '';
+	}
+
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+
+	return `${year}-${month}-${day}`;
+}
+
+export function fromDateInputValue(value: string) {
+	if (!value) {
+		return null;
+	}
+
+	return `${value}T12:00:00.000Z`;
+}
+
+export function getPriorityLabel(priority: number) {
+	if (priority >= 5) {
+		return 'High';
+	}
+
+	if (priority >= 3) {
+		return 'Medium';
+	}
+
+	if (priority >= 1) {
+		return 'Low';
+	}
+
+	return null;
+}
+
+export function getPriorityCheckboxTone(priority: number) {
+	if (priority >= 5) {
+		return {
+			idle: 'text-rose-600 hover:text-rose-700',
+			completed: 'bg-rose-100 text-rose-700'
+		};
+	}
+
+	if (priority >= 3) {
+		return {
+			idle: 'text-orange-600 hover:text-orange-700',
+			completed: 'bg-orange-100 text-orange-700'
+		};
+	}
+
+	if (priority >= 1) {
+		return {
+			idle: 'text-sky-600 hover:text-sky-700',
+			completed: 'bg-sky-100 text-sky-700'
+		};
+	}
+
+	return {
+		idle: 'text-muted-foreground hover:text-foreground',
+		completed: 'bg-primary/14 text-primary'
+	};
+}
+
+export function formatTaskGroupHeading(isoDate: string | null) {
+	const label = formatTaskDate(isoDate);
+
+	if (label === 'No due date') {
+		return label;
+	}
+
+	return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function getVisibleLists(lists: AppList[]) {
+	return lists.filter((list) => !list.isArchived);
+}
+
+function belongsToVisibleList(task: AppTask, visibleListIds: Set<number>) {
+	return task.listId === null || visibleListIds.size === 0 || visibleListIds.has(task.listId);
+}
+
+function matchesTaskView(task: AppTask, view: TaskViewKey, inboxListId: number | null) {
+	switch (view) {
+		case 'today':
+			return !task.completed && isDueTodayOrEarlier(task.dueDate);
+		case 'inbox':
+			return !task.completed && inboxListId !== null && task.listId === inboxListId;
+		case 'upcoming':
+			return !task.completed && isUpcoming(task.dueDate);
+		case 'active':
+			return !task.completed;
+		case 'completed':
+			return task.completed;
+	}
+}
+
+function isDueTodayOrEarlier(isoDate: string | null) {
+	const diffInDays = getDateDiffInDays(isoDate);
+	return diffInDays !== null && diffInDays <= 0;
+}
+
+function isUpcoming(isoDate: string | null) {
+	const diffInDays = getDateDiffInDays(isoDate);
+	return diffInDays !== null && diffInDays >= 0;
+}
+
+function getDateDiffInDays(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return null;
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return null;
+	}
+
+	const now = new Date();
+	const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+	return Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
+}
+
+function normalizeDueDate(isoDate: string | null) {
+	if (!isoDate) {
+		return null;
+	}
+
+	const trimmed = isoDate.trim();
+
+	if (!trimmed || trimmed.startsWith('0001-01-01')) {
+		return null;
+	}
+
+	return trimmed;
+}
+
+function formatCalendarDate(date: Date) {
+	const formatted = dueDateFormatter.format(date);
+	const [day, month] = formatted.replace(',', '').split(' ');
+
+	return `${day}.${month}`;
+}
+
+function getWeekdayTone(day: number) {
+	switch (day) {
+		case 1:
+			return 'text-sky-700';
+		case 2:
+			return 'text-violet-700';
+		case 3:
+			return 'text-emerald-700';
+		case 4:
+			return 'text-cyan-700';
+		case 5:
+			return 'text-fuchsia-700';
+		case 6:
+			return 'text-rose-700';
+		case 0:
+			return 'text-teal-700';
+		default:
+			return 'text-muted-foreground';
+	}
+}
+
+function getWeekdayBadgeTone(day: number) {
+	switch (day) {
+		case 1:
+			return 'bg-sky-100 text-sky-700 hover:bg-sky-200';
+		case 2:
+			return 'bg-violet-100 text-violet-700 hover:bg-violet-200';
+		case 3:
+			return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+		case 4:
+			return 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200';
+		case 5:
+			return 'bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200';
+		case 6:
+			return 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+		case 0:
+			return 'bg-teal-100 text-teal-700 hover:bg-teal-200';
+		default:
+			return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+	}
+}
+
+function getWeekdayFieldTone(day: number) {
+	switch (day) {
+		case 1:
+			return 'border-sky-200 bg-sky-50/70';
+		case 2:
+			return 'border-violet-200 bg-violet-50/70';
+		case 3:
+			return 'border-emerald-200 bg-emerald-50/70';
+		case 4:
+			return 'border-cyan-200 bg-cyan-50/70';
+		case 5:
+			return 'border-fuchsia-200 bg-fuchsia-50/70';
+		case 6:
+			return 'border-rose-200 bg-rose-50/70';
+		case 0:
+			return 'border-teal-200 bg-teal-50/70';
+		default:
+			return 'border-border/70 bg-background';
+	}
+}

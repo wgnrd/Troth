@@ -1,0 +1,382 @@
+<script lang="ts">
+	import { Check, Circle, X } from '@lucide/svelte';
+	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import { Button } from '$lib/components/ui/button';
+	import { getPriorityCheckboxTone } from '$lib/tasks/view';
+	import { cn, formattedNotesClasses, formatNotesHtml, notesToEditableMarkdown } from '$lib/utils';
+	import TaskMetaFields from './TaskMetaFields.svelte';
+
+	let {
+		task,
+		lists,
+		open = false,
+		saving = false,
+		error = null,
+		onClose,
+		onSave,
+		onDelete
+	}: {
+		task: AppTask | null;
+		lists: AppList[];
+		open?: boolean;
+		saving?: boolean;
+		error?: string | null;
+		onClose?: () => void;
+		onSave?: (input: UpdateTaskInput) => Promise<boolean | void> | boolean | void;
+		onDelete?: (task: AppTask) => Promise<void> | void;
+	} = $props();
+
+	let title = $state('');
+	let description = $state('');
+	let dueDate = $state<string | null>(null);
+	let priority = $state(0);
+	let listId = $state<number | null>(null);
+	let completed = $state(false);
+	let localError = $state<string | null>(null);
+	let syncedTaskId = $state<number | null>(null);
+	let editorEl = $state<HTMLElement | null>(null);
+	let titleInput = $state<HTMLInputElement | null>(null);
+	let previousFocus = $state<HTMLElement | null>(null);
+	let focusedTaskId = $state<number | null>(null);
+
+	const formattedDescription = $derived(formatNotesHtml(description));
+	const priorityTone = $derived(getPriorityCheckboxTone(priority));
+	const savePayload = $derived.by(() => {
+		if (!task || listId === null || !title.trim()) {
+			return null;
+		}
+
+		return {
+			id: task.id,
+			title: title.trim(),
+			description: description.trim(),
+			dueDate,
+			priority,
+			listId,
+			completed
+		} satisfies UpdateTaskInput;
+	});
+	const persistedPayloadKey = $derived.by(() => {
+		if (!task) {
+			return '';
+		}
+
+		return JSON.stringify({
+			title: task.title,
+			description: notesToEditableMarkdown(task.description).trim(),
+			dueDate: task.dueDate,
+			priority: task.priority,
+			listId: task.listId,
+			completed: task.completed
+		});
+	});
+	const draftPayloadKey = $derived(
+		savePayload
+			? JSON.stringify({
+					title: savePayload.title,
+					description: savePayload.description,
+					dueDate: savePayload.dueDate,
+					priority: savePayload.priority,
+					listId: savePayload.listId,
+					completed: savePayload.completed
+				})
+			: ''
+	);
+	const hasPendingChanges = $derived(
+		Boolean(savePayload) && draftPayloadKey !== persistedPayloadKey
+	);
+
+	$effect(() => {
+		if (!task || task.id === syncedTaskId) {
+			return;
+		}
+
+		syncedTaskId = task.id;
+		title = task.title;
+		description = notesToEditableMarkdown(task.description);
+		dueDate = task.dueDate;
+		priority = task.priority;
+		listId = task.listId;
+		completed = task.completed;
+		localError = null;
+	});
+
+	$effect(() => {
+		if (localError && title.trim() && listId !== null) {
+			localError = null;
+		}
+	});
+
+	$effect(() => {
+		if (!open || !task) {
+			if (previousFocus && document.contains(previousFocus)) {
+				previousFocus.focus();
+			}
+			previousFocus = null;
+			focusedTaskId = null;
+			return;
+		}
+
+		if (focusedTaskId === task.id) {
+			return;
+		}
+
+		focusedTaskId = task.id;
+		previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+	});
+
+	$effect(() => {
+		if (!open || !task) {
+			return;
+		}
+
+		function handleKeydown(event: KeyboardEvent) {
+			const activeElement =
+				document.activeElement instanceof HTMLElement ? document.activeElement : null;
+			const isInsideEditor = activeElement ? editorEl?.contains(activeElement) : false;
+
+			if (!isInsideEditor) {
+				return;
+			}
+
+			if (event.key === 'Escape' && !saving) {
+				event.preventDefault();
+				onClose?.();
+				return;
+			}
+
+			if ((event.metaKey || event.ctrlKey) && event.key === 'Enter' && !saving) {
+				const form = editorEl?.querySelector('form');
+				if (!form) {
+					return;
+				}
+
+				event.preventDefault();
+				form.requestSubmit();
+			}
+		}
+
+		document.addEventListener('keydown', handleKeydown);
+
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+		};
+	});
+
+	async function persistDraft() {
+		if (!task) {
+			return true;
+		}
+
+		if (!title.trim()) {
+			localError = 'Title is required.';
+			return false;
+		}
+
+		if (listId === null) {
+			localError = 'Choose a project.';
+			return false;
+		}
+
+		localError = null;
+
+		if (!savePayload || !hasPendingChanges) {
+			return true;
+		}
+
+		const saved = await onSave?.(savePayload);
+		return saved !== false;
+	}
+
+	async function handleDelete() {
+		if (!task || saving) {
+			return;
+		}
+
+		const confirmed = confirm(`Delete "${task.title}"?`);
+
+		if (!confirmed) {
+			return;
+		}
+
+		localError = null;
+		await onDelete?.(task);
+	}
+
+	async function handleClose() {
+		const saved = await persistDraft();
+
+		if (!saved) {
+			return;
+		}
+
+		onClose?.();
+	}
+
+	async function handleFieldBlur(event: FocusEvent) {
+		const nextTarget = event.relatedTarget;
+
+		if (nextTarget instanceof Node && editorEl?.contains(nextTarget)) {
+			return;
+		}
+
+		await persistDraft();
+	}
+
+	async function handleCompletionToggle() {
+		if (saving) {
+			return;
+		}
+
+		completed = !completed;
+		const saved = await persistDraft();
+
+		if (!saved) {
+			completed = task?.completed ?? false;
+		}
+	}
+</script>
+
+{#if open && task}
+	<button
+		type="button"
+		class="fixed inset-0 z-50 bg-stone-950/20 backdrop-blur-[2px]"
+		aria-label="Close task editor"
+		onclick={handleClose}
+	></button>
+
+	<aside
+		bind:this={editorEl}
+		class="fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[44rem] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl"
+		aria-label="Task editor"
+	>
+		<div class="space-y-4">
+			<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
+				<div class="space-y-4">
+					<div class="pb-1">
+						<div class="flex items-start gap-3">
+							<button
+								type="button"
+								class={cn(
+									'mt-2 inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition outline-none focus-visible:border-primary/30 focus-visible:ring-3 focus-visible:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50',
+									completed
+										? 'border-transparent bg-primary text-primary-foreground'
+										: priorityTone.idle
+								)}
+								aria-label={completed ? 'Mark task as incomplete' : 'Mark task as complete'}
+								aria-pressed={completed}
+								disabled={saving}
+								onclick={handleCompletionToggle}
+							>
+								{#if completed}
+									<Check class="size-4" />
+								{:else}
+									<Circle class="size-4.5" />
+								{/if}
+							</button>
+
+							<div class="min-w-0 flex-1">
+								<label class="sr-only" for="task-title">Task title</label>
+								<input
+									id="task-title"
+									bind:this={titleInput}
+									bind:value={title}
+									class={cn(
+										'h-12 w-full border-0 bg-transparent px-0 text-[1.5rem] leading-tight font-semibold tracking-tight text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
+										completed && 'text-muted-foreground line-through decoration-2'
+									)}
+									type="text"
+									placeholder="Untitled task"
+									disabled={saving}
+									onblur={handleFieldBlur}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div class="space-y-3">
+						<label class="text-sm font-medium text-foreground/85" for="task-description"
+							>Notes</label
+						>
+						<textarea
+							id="task-description"
+							bind:value={description}
+							class="min-h-40 w-full rounded-[1.2rem] border border-border/60 bg-stone-50/40 px-4 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground/65 focus:border-primary/30 focus:bg-background focus:ring-3 focus:ring-primary/10"
+							disabled={saving}
+							placeholder="Add notes"
+							onblur={handleFieldBlur}
+						></textarea>
+					</div>
+
+					{#if description.trim()}
+						<div class="space-y-2">
+							<p class="text-xs font-medium text-muted-foreground">Preview</p>
+							<div class="rounded-[1.1rem] border border-border/45 bg-stone-50/35 px-4 py-3">
+								<div class={formattedNotesClasses}>
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+									{@html formattedDescription}
+								</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+
+				<div
+					class="border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:border-border/55 lg:pt-0 lg:pl-4"
+				>
+					<div class="space-y-3">
+						<div class="flex items-center justify-end">
+							<Button
+								variant="ghost"
+								size="sm"
+								class="text-muted-foreground hover:text-foreground"
+								onclick={handleClose}
+							>
+								<X class="size-3.5" />
+								Close
+							</Button>
+						</div>
+						<TaskMetaFields
+							{lists}
+							bind:listId
+							bind:dueDate
+							bind:priority
+							layout="surface"
+							disabled={saving}
+							tintedDueDateField
+							onDueDateChange={async () => {
+								await persistDraft();
+							}}
+							onListChange={async () => {
+								await persistDraft();
+							}}
+							onPriorityChange={async () => {
+								await persistDraft();
+							}}
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div class="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
+				<div>
+					{#if localError || error}
+						<p class="text-sm text-destructive">{localError ?? error}</p>
+					{:else if saving}
+						<p class="text-sm text-muted-foreground">Saving…</p>
+					{/if}
+				</div>
+
+				<Button
+					variant="ghost"
+					size="sm"
+					class="text-destructive/80 hover:bg-destructive/8 hover:text-destructive"
+					onclick={handleDelete}
+					disabled={saving}
+				>
+					Delete task
+				</Button>
+			</div>
+		</div>
+	</aside>
+{/if}

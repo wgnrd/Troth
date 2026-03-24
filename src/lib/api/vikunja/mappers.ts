@@ -1,0 +1,55 @@
+import type {
+	AppList,
+	AppTask,
+	CreateTaskInput,
+	UpdateTaskInput,
+	VikunjaProject,
+	VikunjaTask,
+	VikunjaTaskWrite
+} from './types';
+
+export function mapProjectToList(project: VikunjaProject): AppList {
+	return {
+		id: project.id,
+		title: project.title,
+		description: project.description ?? '',
+		isArchived: project.is_archived ?? false,
+		color: project.hex_color ?? null,
+		identifier: project.identifier ?? null
+	};
+}
+
+export function mapTaskToAppTask(task: VikunjaTask): AppTask {
+	return {
+		id: task.id,
+		title: task.title,
+		description: task.description ?? '',
+		completed: task.done ?? false,
+		completedAt: task.done_at ?? null,
+		dueDate: task.due_date ?? null,
+		priority: task.priority ?? 0,
+		listId: task.project_id ?? null,
+		identifier: task.identifier ?? null,
+		createdAt: task.created ?? null,
+		updatedAt: task.updated ?? null
+	};
+}
+
+export function mapCreateTaskInput(input: CreateTaskInput): VikunjaTaskWrite {
+	return {
+		title: input.title.trim(),
+		due_date: input.dueDate ?? null,
+		priority: input.priority ?? 0
+	};
+}
+
+export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
+	return {
+		title: input.title.trim(),
+		description: input.description.trim(),
+		due_date: input.dueDate,
+		priority: input.priority,
+		project_id: input.listId,
+		done: input.completed
+	};
+}

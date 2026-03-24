@@ -1,0 +1,459 @@
+<script lang="ts">
+	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
+	import { RefreshCcw, Settings2 } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
+	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import { connection } from '$lib/stores/connection';
+	import { lists } from '$lib/stores/lists';
+	import { tasks } from '$lib/stores/tasks';
+	import DueDatePicker from './DueDatePicker.svelte';
+	import {
+		filterTasksForView,
+		findInboxList,
+		groupTasksByDate,
+		sortTasks,
+		type TaskViewKey
+	} from '$lib/tasks/view';
+	import TaskComposer from './TaskComposer.svelte';
+	import TaskEditor from './TaskEditor.svelte';
+	import TaskGroupedList from './TaskGroupedList.svelte';
+	import TaskList from './TaskList.svelte';
+	import TaskListSkeleton from './TaskListSkeleton.svelte';
+
+	let {
+		view,
+		title,
+		meta,
+		emptyState
+	}: {
+		view: TaskViewKey;
+		title: string;
+		meta?: string;
+		emptyState: string;
+	} = $props();
+
+	let selectedTaskId = $state<number | null>(null);
+	let lastLoadKey = $state('');
+	let exitingTaskIds = $state<number[]>([]);
+	let bulkRescheduling = $state(false);
+	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
+
+	const configured = $derived(Boolean($connection.settings));
+	const activeLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const inboxList = $derived(findInboxList(activeLists));
+	const visibleTasks = $derived.by(() => {
+		const filteredTasks = filterTasksForView(view, $tasks.items, activeLists);
+		const exitingTasks = $tasks.items.filter(
+			(task) =>
+				exitingTaskIds.includes(task.id) && !filteredTasks.some((item) => item.id === task.id)
+		);
+
+		return sortTasks([...filteredTasks, ...exitingTasks]);
+	});
+	const selectedTask = $derived(
+		selectedTaskId === null
+			? null
+			: ($tasks.items.find((task) => task.id === selectedTaskId) ?? null)
+	);
+	const isSavingSelectedTask = $derived(
+		selectedTask ? $tasks.mutatingIds.includes(selectedTask.id) : false
+	);
+	const listsById = $derived(new Map(activeLists.map((list) => [list.id, list])));
+	const emptyMessage = $derived(
+		view === 'inbox' && !inboxList ? 'No project named Inbox was found in Vikunja yet.' : emptyState
+	);
+	const quickAddDisabledMessage = $derived(
+		view === 'inbox' && !inboxList
+			? 'Create a project named Inbox in Vikunja to use this view.'
+			: 'Add a project in Vikunja before creating tasks.'
+	);
+	const loadError = $derived($tasks.error ?? $lists.error);
+	const hasVisibleTasks = $derived(visibleTasks.length > 0);
+	const showInitialLoading = $derived(
+		configured && $tasks.loading && !$tasks.loaded && !$lists.loaded
+	);
+	const showEmptyState = $derived(
+		configured && !showInitialLoading && !loadError && !hasVisibleTasks
+	);
+	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
+	const overdueTasks = $derived.by(() => {
+		if (view !== 'today') {
+			return [];
+		}
+
+		const today = new Date();
+		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+		return visibleTasks.filter((task) => {
+			if (task.completed || !task.dueDate) {
+				return false;
+			}
+
+			const taskDate = new Date(task.dueDate);
+
+			if (Number.isNaN(taskDate.getTime())) {
+				return false;
+			}
+
+			const normalizedTaskDate = new Date(
+				taskDate.getFullYear(),
+				taskDate.getMonth(),
+				taskDate.getDate()
+			);
+
+			return normalizedTaskDate.getTime() < todayDate.getTime();
+		});
+	});
+	const todayTasks = $derived.by(() => {
+		if (view !== 'today') {
+			return visibleTasks;
+		}
+
+		const overdueTaskIds = new Set(overdueTasks.map((task) => task.id));
+		return visibleTasks.filter((task) => !overdueTaskIds.has(task.id));
+	});
+	const emptyStateTitle = $derived.by(() => {
+		switch (view) {
+			case 'today':
+				return 'Nothing due today';
+			case 'inbox':
+				return 'Inbox is clear';
+			case 'upcoming':
+				return 'Nothing upcoming';
+			case 'active':
+				return 'No active tasks';
+			case 'completed':
+				return 'No completed tasks';
+		}
+	});
+
+	$effect(() => {
+		if (!browser || !$connection.settings) {
+			lastLoadKey = '';
+			selectedTaskId = null;
+			return;
+		}
+
+		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.token}`;
+
+		if (nextKey !== lastLoadKey) {
+			lastLoadKey = nextKey;
+			void Promise.all([lists.load(), tasks.load()]);
+		}
+	});
+
+	$effect(() => {
+		if (selectedTaskId !== null && !selectedTask) {
+			selectedTaskId = null;
+		}
+	});
+
+	async function handleRefresh() {
+		await Promise.all([lists.refresh(), tasks.refresh()]);
+	}
+
+	async function handleQuickAdd(input: {
+		title: string;
+		listId: number;
+		dueDate?: string | null;
+		priority?: number;
+	}) {
+		const createdTask = await tasks.createTask(input);
+		return Boolean(createdTask);
+	}
+
+	async function handleSave(input: UpdateTaskInput) {
+		const savedTask = await tasks.updateTask(input);
+
+		if (savedTask) {
+			selectedTaskId = savedTask.id;
+		}
+
+		return Boolean(savedTask);
+	}
+
+	async function handleToggleComplete(task: AppTask, completed: boolean) {
+		if (completed && view !== 'completed') {
+			startTaskExit(task.id);
+		} else {
+			clearTaskExit(task.id);
+		}
+
+		await tasks.setCompleted(task.id, completed);
+	}
+
+	function startTaskExit(taskId: number) {
+		clearTaskExit(taskId);
+		exitingTaskIds = [...exitingTaskIds, taskId];
+
+		const timer = setTimeout(() => {
+			exitingTaskIds = exitingTaskIds.filter((id) => id !== taskId);
+			delete exitTimers[taskId];
+		}, 1000);
+
+		exitTimers[taskId] = timer;
+	}
+
+	function clearTaskExit(taskId: number) {
+		const timer = exitTimers[taskId];
+		if (timer) {
+			clearTimeout(timer);
+			delete exitTimers[taskId];
+		}
+
+		exitingTaskIds = exitingTaskIds.filter((id) => id !== taskId);
+	}
+
+	async function handleDueDateChange(task: AppTask, dueDate: string | null) {
+		if (task.listId === null) {
+			return;
+		}
+
+		await tasks.updateTask({
+			id: task.id,
+			title: task.title,
+			description: task.description,
+			dueDate,
+			priority: task.priority,
+			listId: task.listId,
+			completed: task.completed
+		});
+	}
+
+	async function handleListChange(task: AppTask, listId: number) {
+		await tasks.updateTask({
+			id: task.id,
+			title: task.title,
+			description: task.description,
+			dueDate: task.dueDate,
+			priority: task.priority,
+			listId,
+			completed: task.completed
+		});
+	}
+
+	async function handleDelete(task: AppTask) {
+		const deleted = await tasks.deleteTask(task.id);
+
+		if (deleted) {
+			selectedTaskId = null;
+		}
+	}
+
+	async function handleRescheduleOverdue(dueDate: string | null) {
+		if (!dueDate || overdueTasks.length === 0 || bulkRescheduling) {
+			return;
+		}
+
+		const tasksToReschedule = [...overdueTasks].filter((task) => task.listId !== null);
+
+		if (tasksToReschedule.length === 0) {
+			return;
+		}
+
+		bulkRescheduling = true;
+
+		try {
+			await Promise.all(
+				tasksToReschedule.map((task) => {
+					return tasks.updateTask({
+						id: task.id,
+						title: task.title,
+						description: task.description,
+						dueDate,
+						priority: task.priority,
+						listId: task.listId as number,
+						completed: task.completed
+					});
+				})
+			);
+		} finally {
+			bulkRescheduling = false;
+		}
+	}
+</script>
+
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-6">
+	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+		<div class="space-y-1">
+			<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">{title}</h1>
+			{#if meta}
+				<p class="text-sm text-muted-foreground">{meta}</p>
+			{/if}
+		</div>
+
+		{#if configured}
+			<Button
+				variant="outline"
+				size="sm"
+				class="self-start"
+				onclick={handleRefresh}
+				disabled={$tasks.loading || $lists.loading}
+			>
+				<RefreshCcw class="size-3.5" />
+				{$tasks.loading || $lists.loading ? 'Refreshing…' : 'Refresh'}
+			</Button>
+		{/if}
+	</div>
+
+	{#if !configured}
+		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm">
+			<div class="flex items-start gap-3">
+				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
+					<Settings2 class="size-4" />
+				</span>
+
+				<div class="min-w-0 space-y-2">
+					<p class="text-sm font-medium text-foreground">Troth is not connected to Vikunja yet.</p>
+					<p class="text-sm text-muted-foreground">
+						Add your base URL and API token in Settings before loading tasks.
+					</p>
+					<Button href={resolve('/settings')} size="sm">Open Settings</Button>
+				</div>
+			</div>
+		</div>
+	{:else}
+		<TaskComposer
+			lists={activeLists}
+			busy={$tasks.creating}
+			error={$tasks.mutationError}
+			fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
+			placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
+			disabledMessage={quickAddDisabledMessage}
+			onSubmit={handleQuickAdd}
+		/>
+
+		{#if view === 'today' && overdueTasks.length > 0}
+			<section class="space-y-3">
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<div class="space-y-1">
+						<p class="text-sm font-medium text-amber-900">
+							{overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'} still
+							show in Today
+						</p>
+						<p class="text-sm text-amber-800/80">
+							Reschedule them in one step with the calendar.
+						</p>
+					</div>
+
+					<div class="w-full sm:w-48">
+						<DueDatePicker
+							value={null}
+							disabled={bulkRescheduling}
+							tintedField
+							emptyLabel={bulkRescheduling ? 'Rescheduling…' : 'Reschedule to…'}
+							ariaLabel="Reschedule overdue tasks"
+							onChange={handleRescheduleOverdue}
+						/>
+					</div>
+				</div>
+
+				<div class="space-y-2">
+					<p class="px-2 text-xs font-medium tracking-[0.16em] text-amber-800 uppercase">Overdue</p>
+					<TaskList
+						tasks={overdueTasks}
+						lists={activeLists}
+						{listsById}
+						{exitingTaskIds}
+						mutatingIds={$tasks.mutatingIds}
+						class="border-amber-200/90 bg-amber-100/70 shadow-none"
+						rowClass="bg-amber-50/95 hover:bg-amber-50"
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+						onToggleComplete={handleToggleComplete}
+						onDueDateChange={handleDueDateChange}
+						onListChange={handleListChange}
+					/>
+				</div>
+			</section>
+		{/if}
+
+		{#if loadError}
+			<div
+				class="rounded-[1.6rem] border border-destructive/30 bg-destructive/6 px-4 py-3 text-sm text-destructive"
+			>
+				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<p>{loadError}</p>
+					<Button variant="destructive" size="sm" onclick={handleRefresh}>Try again</Button>
+				</div>
+			</div>
+		{/if}
+
+		{#if showInitialLoading}
+			<TaskListSkeleton rows={5} />
+		{:else if showEmptyState}
+			<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
+				<div class="space-y-2 text-center sm:text-left">
+					<p class="text-sm font-medium text-foreground">{emptyStateTitle}</p>
+					<p class="text-sm text-muted-foreground">{emptyMessage}</p>
+				</div>
+			</div>
+		{:else if hasVisibleTasks}
+			{#if view === 'upcoming'}
+				<TaskGroupedList
+					groups={groupedVisibleTasks}
+					lists={activeLists}
+					{listsById}
+					{exitingTaskIds}
+					mutatingIds={$tasks.mutatingIds}
+					onOpen={(task) => {
+						selectedTaskId = task.id;
+						tasks.clearMutationError();
+					}}
+					onToggleComplete={handleToggleComplete}
+					onDueDateChange={handleDueDateChange}
+					onListChange={handleListChange}
+				/>
+			{:else if view === 'today'}
+				{#if todayTasks.length > 0}
+					<TaskList
+						tasks={todayTasks}
+						lists={activeLists}
+						{listsById}
+						{exitingTaskIds}
+						mutatingIds={$tasks.mutatingIds}
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+						onToggleComplete={handleToggleComplete}
+						onDueDateChange={handleDueDateChange}
+						onListChange={handleListChange}
+					/>
+				{/if}
+			{:else}
+				<TaskList
+					tasks={visibleTasks}
+					lists={activeLists}
+					{listsById}
+					{exitingTaskIds}
+					mutatingIds={$tasks.mutatingIds}
+					onOpen={(task) => {
+						selectedTaskId = task.id;
+						tasks.clearMutationError();
+					}}
+					onToggleComplete={handleToggleComplete}
+					onDueDateChange={handleDueDateChange}
+					onListChange={handleListChange}
+				/>
+			{/if}
+		{/if}
+	{/if}
+</section>
+
+<TaskEditor
+	task={selectedTask}
+	lists={activeLists}
+	open={selectedTask !== null}
+	saving={isSavingSelectedTask}
+	error={$tasks.mutationError}
+	onClose={() => {
+		selectedTaskId = null;
+		tasks.clearMutationError();
+	}}
+	onSave={handleSave}
+	onDelete={handleDelete}
+/>

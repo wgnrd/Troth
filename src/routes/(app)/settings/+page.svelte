@@ -1,0 +1,154 @@
+<script lang="ts">
+	import { normalizeVikunjaBaseUrl } from '$lib/api/vikunja';
+	import { connection } from '$lib/stores/connection';
+	import { Button } from '$lib/components/ui/button';
+	import { getRouteMeta } from '$lib/navigation';
+
+	const route = getRouteMeta('/settings');
+
+	let baseUrl = $state($connection.settings?.baseUrl ?? '');
+	let token = $state($connection.settings?.token ?? '');
+	let syncedSettingsKey = $state(
+		$connection.settings ? `${$connection.settings.baseUrl}|${$connection.settings.token}` : ''
+	);
+
+	$effect(() => {
+		const nextKey = $connection.settings
+			? `${$connection.settings.baseUrl}|${$connection.settings.token}`
+			: '';
+
+		if (nextKey !== syncedSettingsKey) {
+			syncedSettingsKey = nextKey;
+			baseUrl = $connection.settings?.baseUrl ?? '';
+			token = $connection.settings?.token ?? '';
+		}
+	});
+
+	const connectionLabel = $derived.by(() => {
+		switch ($connection.status) {
+			case 'checking':
+				return 'Checking connection…';
+			case 'connected':
+				return 'Connected';
+			case 'error':
+				return 'Connection failed';
+			default:
+				return 'Not connected';
+		}
+	});
+
+	const maskedToken = $derived(
+		$connection.settings
+			? `${$connection.settings.token.slice(0, 4)}…${$connection.settings.token.slice(-4)}`
+			: 'Not set'
+	);
+	const resolvedApiUrl = $derived.by(() => {
+		try {
+			return baseUrl.trim() ? normalizeVikunjaBaseUrl(baseUrl) : null;
+		} catch {
+			return null;
+		}
+	});
+
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		await connection.connect({ baseUrl, token });
+	}
+</script>
+
+<section class="mx-auto flex w-full max-w-[42rem] flex-col gap-6">
+	<div class="space-y-1">
+		<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">
+			{route?.label ?? 'Settings'}
+		</h1>
+		<p class="text-sm text-muted-foreground">
+			Connect Troth to your Vikunja instance with a personal API token.
+		</p>
+	</div>
+
+	<div class="grid gap-3 sm:grid-cols-2">
+		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm">
+			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+				Connection
+			</p>
+			<p class="mt-2 text-sm font-medium text-foreground">{connectionLabel}</p>
+			{#if $connection.error}
+				<p class="mt-2 text-sm text-destructive">{$connection.error}</p>
+			{/if}
+		</div>
+
+		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm">
+			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+				Saved token
+			</p>
+			<p class="mt-2 text-sm text-foreground">{maskedToken}</p>
+		</div>
+	</div>
+
+	<form
+		class="space-y-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-4 shadow-sm"
+		onsubmit={handleSubmit}
+	>
+		<div class="space-y-2">
+			<label
+				class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase"
+				for="vikunja-url"
+			>
+				Vikunja base URL
+			</label>
+			<input
+				id="vikunja-url"
+				bind:value={baseUrl}
+				class="h-11 w-full rounded-xl border border-border/70 bg-background/84 px-3 text-sm transition outline-none focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
+				type="url"
+				placeholder="https://vikunja.example.com"
+				autocomplete="url"
+			/>
+			<p class="text-sm text-muted-foreground">
+				Troth accepts either the site URL or the full `/api/v1` URL.
+			</p>
+			{#if resolvedApiUrl}
+				<p class="text-sm text-muted-foreground">API URL Troth will test: {resolvedApiUrl}</p>
+			{/if}
+		</div>
+
+		<div class="space-y-2">
+			<label
+				class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase"
+				for="vikunja-token"
+			>
+				API token
+			</label>
+			<input
+				id="vikunja-token"
+				bind:value={token}
+				class="h-11 w-full rounded-xl border border-border/70 bg-background/84 px-3 text-sm transition outline-none focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
+				type="password"
+				placeholder="Paste your personal access token"
+				autocomplete="off"
+				spellcheck="false"
+			/>
+			<p class="text-sm text-muted-foreground">
+				The token is stored in this browser only for this MVP step.
+			</p>
+		</div>
+
+		<div class="flex flex-wrap items-center gap-2 pt-1">
+			<Button type="submit" disabled={$connection.status === 'checking'}>
+				{$connection.status === 'checking' ? 'Connecting…' : 'Save connection'}
+			</Button>
+
+			<Button
+				type="button"
+				variant="ghost"
+				disabled={!$connection.settings}
+				onclick={() => {
+					connection.disconnect();
+					token = '';
+				}}
+			>
+				Clear connection
+			</Button>
+		</div>
+	</form>
+</section>
