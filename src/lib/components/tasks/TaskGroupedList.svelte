@@ -12,6 +12,7 @@
 		groups,
 		lists,
 		listsById,
+		showDueDateBadge = true,
 		exitingTaskIds = [],
 		mutatingIds = [],
 		onOpen,
@@ -22,6 +23,7 @@
 		groups: TaskGroup[];
 		lists: AppList[];
 		listsById: Map<number, AppList>;
+		showDueDateBadge?: boolean;
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
 		onOpen?: (task: AppTask) => void;
@@ -44,6 +46,7 @@
 						{task}
 						list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
 						{lists}
+						{showDueDateBadge}
 						exiting={exitingTaskIds.includes(task.id)}
 						busy={mutatingIds.includes(task.id)}
 						{onOpen}

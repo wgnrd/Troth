@@ -50,11 +50,31 @@ export function sortTasks(tasks: AppTask[]) {
 	});
 }
 
+export function sortTodayTasks(tasks: AppTask[]) {
+	return [...tasks].sort((left, right) => {
+		if (left.completed !== right.completed) {
+			return left.completed ? 1 : -1;
+		}
+
+		if (left.priority !== right.priority) {
+			return right.priority - left.priority;
+		}
+
+		const createdAtOrder = compareCreatedAt(left.createdAt, right.createdAt);
+
+		if (createdAtOrder !== 0) {
+			return createdAtOrder;
+		}
+
+		return right.id - left.id;
+	});
+}
+
 export function groupTasksByDate(tasks: AppTask[]) {
 	const groups = new Map<string, AppTask[]>();
 
 	for (const task of tasks) {
-		const key = normalizeDueDate(task.dueDate) ?? 'no-date';
+		const key = getDateBucketKey(task.dueDate) ?? 'no-date';
 		const bucket = groups.get(key);
 
 		if (bucket) {
@@ -277,13 +297,19 @@ export function getPriorityCheckboxTone(priority: number) {
 }
 
 export function formatTaskGroupHeading(isoDate: string | null) {
-	const label = formatTaskDate(isoDate);
+	const normalized = normalizeDueDate(isoDate);
 
-	if (label === 'No due date') {
-		return label;
+	if (!normalized) {
+		return 'No due date';
 	}
 
-	return label.charAt(0).toUpperCase() + label.slice(1);
+	const date = parseGroupingDate(normalized);
+
+	if (!date) {
+		return 'No due date';
+	}
+
+	return `${weekdayFormatter.format(date)} - ${formatHeaderDate(date)}`;
 }
 
 function getVisibleLists(lists: AppList[]) {
@@ -319,16 +345,31 @@ function isUpcoming(isoDate: string | null) {
 	return diffInDays !== null && diffInDays >= 0;
 }
 
-function getDateDiffInDays(isoDate: string | null) {
-	const normalized = normalizeDueDate(isoDate);
+function compareCreatedAt(left: string | null, right: string | null) {
+	if (left && right) {
+		const leftTime = new Date(left).getTime();
+		const rightTime = new Date(right).getTime();
 
-	if (!normalized) {
-		return null;
+		if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime) && leftTime !== rightTime) {
+			return leftTime - rightTime;
+		}
 	}
 
-	const date = new Date(normalized);
+	if (left) {
+		return -1;
+	}
 
-	if (Number.isNaN(date.getTime())) {
+	if (right) {
+		return 1;
+	}
+
+	return 0;
+}
+
+function getDateDiffInDays(isoDate: string | null) {
+	const date = parseDueDate(isoDate);
+
+	if (!date) {
 		return null;
 	}
 
@@ -353,11 +394,54 @@ function normalizeDueDate(isoDate: string | null) {
 	return trimmed;
 }
 
+function parseDueDate(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return null;
+	}
+
+	const date = new Date(normalized);
+
+	if (Number.isNaN(date.getTime())) {
+		return null;
+	}
+
+	return date;
+}
+
+function getDateBucketKey(isoDate: string | null) {
+	const date = parseDueDate(isoDate);
+
+	if (!date) {
+		return null;
+	}
+
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+
+	return `${year}-${month}-${day}`;
+}
+
+function parseGroupingDate(value: string) {
+	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+		const [year, month, day] = value.split('-').map(Number);
+		return new Date(year, month - 1, day);
+	}
+
+	return parseDueDate(value);
+}
+
 function formatCalendarDate(date: Date) {
 	const formatted = dueDateFormatter.format(date);
 	const [day, month] = formatted.replace(',', '').split(' ');
 
 	return `${day}.${month}`;
+}
+
+function formatHeaderDate(date: Date) {
+	return dueDateFormatter.format(date);
 }
 
 function getWeekdayTone(day: number) {

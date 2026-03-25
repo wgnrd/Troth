@@ -14,7 +14,7 @@ export function mapProjectToList(project: VikunjaProject): AppList {
 		title: project.title,
 		description: project.description ?? '',
 		isArchived: project.is_archived ?? false,
-		color: project.hex_color ?? null,
+		color: normalizeProjectColor(project.hex_color),
 		identifier: project.identifier ?? null
 	};
 }
@@ -52,4 +52,26 @@ export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 		project_id: input.listId,
 		done: input.completed
 	};
+}
+
+function normalizeProjectColor(color: string | null | undefined) {
+	if (!color) {
+		return null;
+	}
+
+	const normalized = color.trim();
+
+	if (!normalized) {
+		return null;
+	}
+
+	if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(normalized)) {
+		return normalized;
+	}
+
+	if (/^[0-9a-f]{3}([0-9a-f]{3})?$/i.test(normalized)) {
+		return `#${normalized}`;
+	}
+
+	return normalized;
 }

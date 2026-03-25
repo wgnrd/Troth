@@ -12,6 +12,7 @@
 		filterTasksForView,
 		findInboxList,
 		groupTasksByDate,
+		sortTodayTasks,
 		sortTasks,
 		type TaskViewKey
 	} from '$lib/tasks/view';
@@ -49,7 +50,8 @@
 				exitingTaskIds.includes(task.id) && !filteredTasks.some((item) => item.id === task.id)
 		);
 
-		return sortTasks([...filteredTasks, ...exitingTasks]);
+		const nextTasks = [...filteredTasks, ...exitingTasks];
+		return view === 'today' ? sortTodayTasks(nextTasks) : sortTasks(nextTasks);
 	});
 	const selectedTask = $derived(
 		selectedTaskId === null
@@ -77,6 +79,7 @@
 		configured && !showInitialLoading && !loadError && !hasVisibleTasks
 	);
 	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
+	const showDueDateBadge = $derived(view !== 'today' && view !== 'upcoming');
 	const overdueTasks = $derived.by(() => {
 		if (view !== 'today') {
 			return [];
@@ -355,6 +358,7 @@
 						tasks={overdueTasks}
 						lists={activeLists}
 						{listsById}
+						{showDueDateBadge}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						class="border-amber-200/90 bg-amber-100/70 shadow-none"
@@ -397,6 +401,7 @@
 					groups={groupedVisibleTasks}
 					lists={activeLists}
 					{listsById}
+					{showDueDateBadge}
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
 					onOpen={(task) => {
@@ -413,6 +418,7 @@
 						tasks={todayTasks}
 						lists={activeLists}
 						{listsById}
+						{showDueDateBadge}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						onOpen={(task) => {
@@ -429,6 +435,7 @@
 					tasks={visibleTasks}
 					lists={activeLists}
 					{listsById}
+					{showDueDateBadge}
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
 					onOpen={(task) => {

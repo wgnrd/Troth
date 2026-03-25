@@ -50,7 +50,10 @@
 <Popover.Root bind:open>
 	<Popover.Trigger class={triggerClass} style={chipStyle} {disabled} aria-label={ariaLabel}>
 		<span class="inline-flex min-w-0 items-center gap-1.5">
-			<Hash class="size-3.5 shrink-0" />
+			<Hash
+				class="size-3.5 shrink-0"
+				style={selectedList?.color ? `color: ${selectedList.color};` : undefined}
+			/>
 			<span class={cn(mode === 'field' && 'truncate', !selectedList && 'text-muted-foreground')}>
 				{selectedList?.title ?? 'No project'}
 			</span>
@@ -70,7 +73,13 @@
 						void handleSelect(list.id);
 					}}
 				>
-					<span class="truncate">{list.title}</span>
+					<span class="flex min-w-0 items-center gap-2">
+						<Hash
+							class="size-3.5 shrink-0"
+							style={list.color ? `color: ${list.color};` : undefined}
+						/>
+						<span class="truncate">{list.title}</span>
+					</span>
 					{#if list.id === value}
 						<Check class="size-4 shrink-0 text-muted-foreground" />
 					{/if}

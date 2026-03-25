@@ -10,6 +10,7 @@
 		task,
 		list = null,
 		lists = [],
+		showDueDateBadge = true,
 		exiting = false,
 		busy = false,
 		class: className = '',
@@ -21,6 +22,7 @@
 		task: AppTask;
 		list?: AppList | null;
 		lists?: AppList[];
+		showDueDateBadge?: boolean;
 		exiting?: boolean;
 		busy?: boolean;
 		class?: string;
@@ -153,13 +155,15 @@
 			/>
 		{/if}
 
-		<DueDatePicker
-			mode="chip"
-			value={task.dueDate}
-			disabled={busy}
-			align="end"
-			ariaLabel="Edit due date"
-			onChange={(dueDate) => onDueDateChange?.(task, dueDate)}
-		/>
+		{#if showDueDateBadge}
+			<DueDatePicker
+				mode="chip"
+				value={task.dueDate}
+				disabled={busy}
+				align="end"
+				ariaLabel="Edit due date"
+				onChange={(dueDate) => onDueDateChange?.(task, dueDate)}
+			/>
+		{/if}
 	</div>
 </div>

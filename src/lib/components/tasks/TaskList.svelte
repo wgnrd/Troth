@@ -7,6 +7,7 @@
 		tasks,
 		lists,
 		listsById,
+		showDueDateBadge = true,
 		exitingTaskIds = [],
 		mutatingIds = [],
 		class: className = '',
@@ -19,6 +20,7 @@
 		tasks: AppTask[];
 		lists: AppList[];
 		listsById: Map<number, AppList>;
+		showDueDateBadge?: boolean;
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
 		class?: string;
@@ -36,6 +38,7 @@
 			{task}
 			list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
 			{lists}
+			{showDueDateBadge}
 			exiting={exitingTaskIds.includes(task.id)}
 			busy={mutatingIds.includes(task.id)}
 			class={rowClass}
