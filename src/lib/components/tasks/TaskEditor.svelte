@@ -2,7 +2,7 @@
 	import { Check, Circle, X } from '@lucide/svelte';
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
-	import { getPriorityCheckboxTone } from '$lib/tasks/view';
+	import { formatTaskRepeat, getPriorityCheckboxTone } from '$lib/tasks/view';
 	import { cn, notesToEditableMarkdown } from '$lib/utils';
 	import TaskMetaFields from './TaskMetaFields.svelte';
 
@@ -29,6 +29,8 @@
 	let title = $state('');
 	let description = $state('');
 	let dueDate = $state<string | null>(null);
+	let repeatAfter = $state<number | null>(null);
+	let repeatMode = $state<number | null>(null);
 	let priority = $state(0);
 	let listId = $state<number | null>(null);
 	let completed = $state(false);
@@ -40,6 +42,7 @@
 	let focusedTaskId = $state<number | null>(null);
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
+	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
 	const savePayload = $derived.by(() => {
 		if (!task || listId === null || !title.trim()) {
 			return null;
@@ -50,6 +53,8 @@
 			title: title.trim(),
 			description: description.trim(),
 			dueDate,
+			repeatAfter,
+			repeatMode,
 			priority,
 			listId,
 			completed
@@ -64,6 +69,8 @@
 			title: task.title,
 			description: notesToEditableMarkdown(task.description).trim(),
 			dueDate: task.dueDate,
+			repeatAfter: task.repeatAfter,
+			repeatMode: task.repeatMode,
 			priority: task.priority,
 			listId: task.listId,
 			completed: task.completed
@@ -75,6 +82,8 @@
 					title: savePayload.title,
 					description: savePayload.description,
 					dueDate: savePayload.dueDate,
+					repeatAfter: savePayload.repeatAfter,
+					repeatMode: savePayload.repeatMode,
 					priority: savePayload.priority,
 					listId: savePayload.listId,
 					completed: savePayload.completed
@@ -94,6 +103,8 @@
 		title = task.title;
 		description = notesToEditableMarkdown(task.description);
 		dueDate = task.dueDate;
+		repeatAfter = task.repeatAfter;
+		repeatMode = task.repeatMode;
 		priority = task.priority;
 		listId = task.listId;
 		completed = task.completed;
@@ -246,12 +257,12 @@
 
 	<aside
 		bind:this={editorEl}
-		class="fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[44rem] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl"
+		class="fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[52rem] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl"
 		aria-label="Task editor"
 	>
 		<div class="space-y-4">
-			<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
-				<div class="space-y-4">
+			<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
+				<div class="min-w-0 space-y-4">
 					<div class="pb-1">
 						<div class="flex items-start gap-3">
 							<button
@@ -310,7 +321,7 @@
 				</div>
 
 				<div
-					class="border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:border-border/55 lg:pt-0 lg:pl-4"
+					class="min-w-0 border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:border-border/55 lg:pt-0 lg:pl-4"
 				>
 					<div class="space-y-3">
 						<div class="flex items-center justify-end">
@@ -328,7 +339,11 @@
 							{lists}
 							bind:listId
 							bind:dueDate
+							bind:repeatAfter
+							bind:repeatMode
 							bind:priority
+							showRepeatField
+							{repeatLabel}
 							layout="surface"
 							disabled={saving}
 							tintedDueDateField
@@ -339,6 +354,9 @@
 								await persistDraft();
 							}}
 							onPriorityChange={async () => {
+								await persistDraft();
+							}}
+							onRepeatChange={async () => {
 								await persistDraft();
 							}}
 						/>

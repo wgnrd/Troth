@@ -242,6 +242,8 @@
 			title: task.title,
 			description: task.description,
 			dueDate,
+			repeatAfter: task.repeatAfter,
+			repeatMode: task.repeatMode,
 			priority: task.priority,
 			listId: task.listId,
 			completed: task.completed
@@ -268,6 +270,8 @@
 			title: task.title,
 			description: task.description,
 			dueDate: task.dueDate,
+			repeatAfter: task.repeatAfter,
+			repeatMode: task.repeatMode,
 			priority: task.priority,
 			listId,
 			completed: task.completed
@@ -317,6 +321,8 @@
 						title: task.title,
 						description: task.description,
 						dueDate,
+						repeatAfter: task.repeatAfter,
+						repeatMode: task.repeatMode,
 						priority: task.priority,
 						listId: task.listId as number,
 						completed: task.completed

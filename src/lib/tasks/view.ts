@@ -1,6 +1,16 @@
 import type { AppList, AppTask } from '$lib/api/vikunja';
 
 export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'completed';
+export type RepeatUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+
+const repeatUnitSeconds: Record<RepeatUnit, number> = {
+	minute: 60,
+	hour: 3_600,
+	day: 86_400,
+	week: 604_800,
+	month: 2_592_000,
+	year: 31_536_000
+};
 
 const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
 	day: '2-digit',
@@ -296,6 +306,68 @@ export function getPriorityCheckboxTone(priority: number) {
 	};
 }
 
+export function isTaskRepeating(task: Pick<AppTask, 'repeatAfter' | 'repeatMode'>) {
+	const repeatMode = normalizeTaskRepeatMode(task.repeatMode);
+	return Boolean((task.repeatAfter ?? 0) > 0 || repeatMode === 1 || repeatMode === 2);
+}
+
+export function formatTaskRepeat(task: Pick<AppTask, 'repeatAfter' | 'repeatMode'>) {
+	if (!isTaskRepeating(task)) {
+		return null;
+	}
+
+	const repeatMode = normalizeTaskRepeatMode(task.repeatMode);
+	const repeatAfter = task.repeatAfter ?? 0;
+
+	if (repeatMode === 1) {
+		return 'Monthly';
+	}
+
+	if (repeatAfter <= 0) {
+		return repeatMode === 2 ? 'Repeating from completion' : 'Repeating';
+	}
+
+	const everyLabel = formatRepeatInterval(repeatAfter);
+
+	if (repeatMode === 2) {
+		return `${everyLabel} from completion`;
+	}
+
+	return everyLabel;
+}
+
+export function normalizeTaskRepeatMode(mode: number | null | undefined) {
+	return mode === 1 ? 1 : mode === 2 || mode === 3 ? 2 : 0;
+}
+
+export function composeRepeatInterval(amount: number, unit: RepeatUnit) {
+	return Math.max(1, Math.floor(amount)) * repeatUnitSeconds[unit];
+}
+
+export function getRepeatIntervalParts(seconds: number | null | undefined): {
+	amount: number;
+	unit: RepeatUnit;
+} {
+	const normalized = Math.max(0, seconds ?? 0);
+	const units: RepeatUnit[] = ['year', 'month', 'week', 'day', 'hour', 'minute'];
+
+	for (const unit of units) {
+		const unitSeconds = repeatUnitSeconds[unit];
+
+		if (normalized >= unitSeconds && normalized % unitSeconds === 0) {
+			return {
+				amount: normalized / unitSeconds,
+				unit
+			};
+		}
+	}
+
+	return {
+		amount: 1,
+		unit: 'day'
+	};
+}
+
 export function formatTaskGroupHeading(isoDate: string | null) {
 	const normalized = normalizeDueDate(isoDate);
 
@@ -346,6 +418,26 @@ function matchesTaskView(task: AppTask, view: TaskViewKey, inboxListId: number |
 		case 'completed':
 			return task.completed;
 	}
+}
+
+function formatRepeatInterval(seconds: number) {
+	const intervals: Array<{ unit: RepeatUnit; seconds: number }> = [
+		{ unit: 'year', seconds: repeatUnitSeconds.year },
+		{ unit: 'month', seconds: repeatUnitSeconds.month },
+		{ unit: 'week', seconds: repeatUnitSeconds.week },
+		{ unit: 'day', seconds: repeatUnitSeconds.day },
+		{ unit: 'hour', seconds: repeatUnitSeconds.hour },
+		{ unit: 'minute', seconds: repeatUnitSeconds.minute }
+	];
+
+	for (const interval of intervals) {
+		if (seconds >= interval.seconds && seconds % interval.seconds === 0) {
+			const amount = seconds / interval.seconds;
+			return `Every ${amount} ${interval.unit}${amount === 1 ? '' : 's'}`;
+		}
+	}
+
+	return `Every ${seconds} seconds`;
 }
 
 function isDueTodayOrEarlier(isoDate: string | null) {

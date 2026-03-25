@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Check, Circle, GripVertical, LoaderCircle } from '@lucide/svelte';
+	import { Check, Circle, GripVertical, LoaderCircle, RefreshCcw } from '@lucide/svelte';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
 	import { cn, notesToPlainText } from '$lib/utils';
-	import { getPriorityCheckboxTone } from '$lib/tasks/view';
+	import { formatTaskRepeat, getPriorityCheckboxTone } from '$lib/tasks/view';
 	import DueDatePicker from './DueDatePicker.svelte';
 	import ProjectPicker from './ProjectPicker.svelte';
 
@@ -44,6 +44,7 @@
 
 	const descriptionPreview = $derived(notesToPlainText(task.description));
 	const priorityTone = $derived(getPriorityCheckboxTone(task.priority));
+	const repeatLabel = $derived(formatTaskRepeat(task));
 
 	function triggerCelebration() {
 		if (celebrationTimer) {
@@ -185,15 +186,27 @@
 	<div class="min-w-0 flex-1 text-left">
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div class="min-w-0 space-y-1">
-				<p
-					class={cn(
-						'truncate text-sm font-medium text-foreground transition-all duration-700',
-						task.completed && 'text-muted-foreground line-through line-through decoration-2',
-						exiting && 'translate-x-1'
-					)}
-				>
-					{task.title}
-				</p>
+				<div class="flex min-w-0 items-center gap-1.5">
+					{#if repeatLabel}
+						<span
+							class="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground/75"
+							aria-label={`Repeating task: ${repeatLabel}`}
+							title={`Repeating task: ${repeatLabel}`}
+						>
+							<RefreshCcw class="size-3.25" />
+						</span>
+					{/if}
+
+					<p
+						class={cn(
+							'truncate text-sm font-medium text-foreground transition-all duration-700',
+							task.completed && 'text-muted-foreground line-through line-through decoration-2',
+							exiting && 'translate-x-1'
+						)}
+					>
+						{task.title}
+					</p>
+				</div>
 
 				{#if descriptionPreview}
 					<p class="line-clamp-2 text-sm text-muted-foreground">{descriptionPreview}</p>

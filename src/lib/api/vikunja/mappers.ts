@@ -31,6 +31,8 @@ export function mapTaskToAppTask(task: VikunjaTask): AppTask {
 		completed: task.done ?? false,
 		completedAt: task.done_at ?? null,
 		dueDate: task.due_date ?? null,
+		repeatAfter: task.repeat_after ?? null,
+		repeatMode: task.repeat_mode ?? null,
 		priority: task.priority ?? 0,
 		listId: task.project_id ?? null,
 		identifier: task.identifier ?? null,
@@ -70,6 +72,8 @@ export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 		title: input.title.trim(),
 		description: input.description.trim(),
 		due_date: input.dueDate,
+		repeat_after: input.repeatAfter ?? 0,
+		repeat_mode: input.repeatMode ?? 0,
 		priority: input.priority,
 		project_id: input.listId,
 		done: input.completed
