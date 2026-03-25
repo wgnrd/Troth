@@ -4,7 +4,9 @@ export type {
 	AppList,
 	AppTask,
 	ConnectionSettings,
+	CreateProjectInput,
 	CreateTaskInput,
+	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaProject,
 	VikunjaTask

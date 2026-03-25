@@ -1,4 +1,12 @@
-import { CalendarRange, CheckCheck, Inbox, ListTodo, Settings2, Sun } from '@lucide/svelte';
+import {
+	CalendarRange,
+	CheckCheck,
+	Folders,
+	Inbox,
+	ListTodo,
+	Settings2,
+	Sun
+} from '@lucide/svelte';
 import type { AppRouteMeta } from '$lib/types/navigation';
 
 export const appRoutes: AppRouteMeta[] = [
@@ -19,6 +27,12 @@ export const appRoutes: AppRouteMeta[] = [
 		label: 'Upcoming',
 		emptyState: 'Nothing upcoming yet.',
 		icon: CalendarRange
+	},
+	{
+		href: '/projects',
+		label: 'Projects',
+		emptyState: 'No projects yet.',
+		icon: Folders
 	},
 	{
 		href: '/active',

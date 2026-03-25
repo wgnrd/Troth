@@ -1,9 +1,12 @@
 import type {
 	AppList,
 	AppTask,
+	CreateProjectInput,
 	CreateTaskInput,
+	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaProject,
+	VikunjaProjectWrite,
 	VikunjaTask,
 	VikunjaTaskWrite
 } from './types';
@@ -15,7 +18,8 @@ export function mapProjectToList(project: VikunjaProject): AppList {
 		description: project.description ?? '',
 		isArchived: project.is_archived ?? false,
 		color: normalizeProjectColor(project.hex_color),
-		identifier: project.identifier ?? null
+		identifier: project.identifier ?? null,
+		parentId: project.parent_project_id ?? null
 	};
 }
 
@@ -40,6 +44,24 @@ export function mapCreateTaskInput(input: CreateTaskInput): VikunjaTaskWrite {
 		title: input.title.trim(),
 		due_date: input.dueDate ?? null,
 		priority: input.priority ?? 0
+	};
+}
+
+export function mapCreateProjectInput(input: CreateProjectInput): VikunjaProjectWrite {
+	return {
+		title: input.title.trim(),
+		description: input.description?.trim() ?? '',
+		hex_color: normalizeProjectColor(input.color),
+		parent_project_id: input.parentId ?? null
+	};
+}
+
+export function mapUpdateProjectInput(input: UpdateProjectInput): VikunjaProjectWrite {
+	return {
+		title: input.title.trim(),
+		description: input.description?.trim() ?? '',
+		hex_color: normalizeProjectColor(input.color),
+		parent_project_id: input.parentId ?? null
 	};
 }
 

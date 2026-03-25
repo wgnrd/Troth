@@ -13,6 +13,7 @@
 		groups,
 		lists,
 		listsById,
+		groupAriaLabelPrefix = 'Upcoming tasks for',
 		showDueDateBadge = true,
 		exitingTaskIds = [],
 		mutatingIds = [],
@@ -26,6 +27,7 @@
 		groups: TaskGroup[];
 		lists: AppList[];
 		listsById: Map<number, AppList>;
+		groupAriaLabelPrefix?: string;
 		showDueDateBadge?: boolean;
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
@@ -208,27 +210,25 @@
 
 		return 1;
 	}
-
 </script>
 
 <div class="space-y-4">
 	{#each groups as group (group.key)}
-			<section
-				class={cn(
-					'space-y-3 rounded-[1.6rem] border border-transparent px-2 py-2 transition-all duration-200',
-					enableDragAndDrop && draggedTaskId !== null && group.key !== 'no-date' && 'border-dashed',
-					dropTargetKey === group.key && 'border-stone-300 bg-white/68 shadow-[0_10px_24px_rgba(28,25,23,0.08)]'
-				)}
-				role="group"
-				aria-label={`Upcoming tasks for ${group.title}`}
-				data-drop-key={group.key}
-				onpointerenter={() => handleDropZoneEnter(group.key)}
-				onpointermove={() => handleDropZoneMove(group.key)}
-				onpointerleave={() => handleDropZoneLeave(group.key)}
-			>
-			<p
-				class="px-2 text-[0.9rem] font-semibold tracking-[0.18em] text-foreground/78 uppercase"
-			>
+		<section
+			class={cn(
+				'space-y-3 rounded-[1.6rem] border border-transparent px-2 py-2 transition-all duration-200',
+				enableDragAndDrop && draggedTaskId !== null && group.key !== 'no-date' && 'border-dashed',
+				dropTargetKey === group.key &&
+					'border-stone-300 bg-white/68 shadow-[0_10px_24px_rgba(28,25,23,0.08)]'
+			)}
+			role="group"
+			aria-label={`${groupAriaLabelPrefix} ${group.title}`}
+			data-drop-key={group.key}
+			onpointerenter={() => handleDropZoneEnter(group.key)}
+			onpointermove={() => handleDropZoneMove(group.key)}
+			onpointerleave={() => handleDropZoneLeave(group.key)}
+		>
+			<p class="px-2 text-[0.9rem] font-semibold tracking-[0.18em] text-foreground/78 uppercase">
 				{group.title}
 			</p>
 
@@ -238,7 +238,8 @@
 					aria-label={`${group.tasks.length} tasks planned for ${group.title}`}
 				>
 					<span class="font-medium">
-						{group.tasks.length} {group.tasks.length === 1 ? 'task' : 'tasks'}
+						{group.tasks.length}
+						{group.tasks.length === 1 ? 'task' : 'tasks'}
 					</span>
 					<span class="flex items-center gap-1" aria-hidden="true">
 						{#each Array.from({ length: 3 }) as _, dotIndex (dotIndex)}
@@ -307,7 +308,9 @@
 
 			<div class="min-w-0">
 				<p class="truncate text-sm font-medium text-foreground">{draggedTask.title}</p>
-				<p class="mt-1 text-xs text-muted-foreground">Move to {dropTargetKey ? 'this day' : 'another day'}</p>
+				<p class="mt-1 text-xs text-muted-foreground">
+					Move to {dropTargetKey ? 'this day' : 'another day'}
+				</p>
 			</div>
 		</div>
 	</div>

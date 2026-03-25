@@ -1,14 +1,18 @@
 import {
+	mapCreateProjectInput,
 	mapCreateTaskInput,
 	mapProjectToList,
 	mapTaskToAppTask,
+	mapUpdateProjectInput,
 	mapUpdateTaskInput
 } from './mappers';
 import type {
 	AppList,
 	AppTask,
 	ConnectionSettings,
+	CreateProjectInput,
 	CreateTaskInput,
+	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaErrorResponse,
 	VikunjaProject,
@@ -62,6 +66,24 @@ export class VikunjaClient {
 		});
 
 		return tasks.map(mapTaskToAppTask);
+	}
+
+	async createProject(input: CreateProjectInput): Promise<AppList> {
+		const project = await this.request<VikunjaProject>('/projects', {
+			method: 'PUT',
+			body: mapCreateProjectInput(input)
+		});
+
+		return mapProjectToList(project);
+	}
+
+	async updateProject(input: UpdateProjectInput): Promise<AppList> {
+		const project = await this.request<VikunjaProject>(`/projects/${input.id}`, {
+			method: 'POST',
+			body: mapUpdateProjectInput(input)
+		});
+
+		return mapProjectToList(project);
 	}
 
 	async createTask(input: CreateTaskInput): Promise<AppTask> {

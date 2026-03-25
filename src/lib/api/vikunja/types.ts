@@ -29,6 +29,7 @@ export type VikunjaProject = {
 	is_archived?: boolean;
 	hex_color?: string;
 	identifier?: string;
+	parent_project_id?: number | null;
 	created?: string;
 	updated?: string;
 };
@@ -40,6 +41,22 @@ export type AppList = {
 	isArchived: boolean;
 	color: string | null;
 	identifier: string | null;
+	parentId: number | null;
+};
+
+export type CreateProjectInput = {
+	title: string;
+	description?: string;
+	color?: string | null;
+	parentId?: number | null;
+};
+
+export type UpdateProjectInput = {
+	id: number;
+	title: string;
+	description?: string;
+	color?: string | null;
+	parentId?: number | null;
 };
 
 export type AppTask = {
@@ -80,4 +97,11 @@ export type VikunjaTaskWrite = {
 	due_date?: string | null;
 	priority?: number;
 	project_id?: number;
+};
+
+export type VikunjaProjectWrite = {
+	title?: string;
+	description?: string;
+	hex_color?: string | null;
+	parent_project_id?: number | null;
 };

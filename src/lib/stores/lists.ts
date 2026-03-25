@@ -1,6 +1,6 @@
 import { get, writable } from 'svelte/store';
 import { VikunjaClient } from '$lib/api/vikunja';
-import type { AppList } from '$lib/api/vikunja';
+import type { AppList, CreateProjectInput, UpdateProjectInput } from '$lib/api/vikunja';
 import { connection } from './connection';
 
 export type ListsState = {
@@ -8,6 +8,9 @@ export type ListsState = {
 	loading: boolean;
 	loaded: boolean;
 	error: string | null;
+	mutationError: string | null;
+	creating: boolean;
+	mutatingIds: number[];
 };
 
 function createListsStore() {
@@ -15,7 +18,10 @@ function createListsStore() {
 		items: [],
 		loading: false,
 		loaded: false,
-		error: null
+		error: null,
+		mutationError: null,
+		creating: false,
+		mutatingIds: []
 	};
 
 	const { subscribe, set, update } = writable<ListsState>(initialState);
@@ -48,7 +54,7 @@ function createListsStore() {
 			return;
 		}
 
-		update((value) => ({ ...value, loading: true, error: null }));
+		update((value) => ({ ...value, loading: true, error: null, mutationError: null }));
 
 		try {
 			const client = new VikunjaClient(current.settings);
@@ -57,7 +63,10 @@ function createListsStore() {
 				items,
 				loading: false,
 				loaded: true,
-				error: null
+				error: null,
+				mutationError: null,
+				creating: false,
+				mutatingIds: []
 			});
 		} catch (error) {
 			update((value) => ({
@@ -69,10 +78,93 @@ function createListsStore() {
 		}
 	}
 
+	async function createProject(input: CreateProjectInput) {
+		const current = get(connection);
+
+		if (!current.settings) {
+			update((state) => ({
+				...state,
+				mutationError: 'Add your Vikunja connection in Settings before creating projects.'
+			}));
+			return null;
+		}
+
+		update((state) => ({
+			...state,
+			creating: true,
+			mutationError: null
+		}));
+
+		try {
+			const client = new VikunjaClient(current.settings);
+			const createdProject = await client.createProject(input);
+
+			update((state) => ({
+				...state,
+				creating: false,
+				items: [...state.items, createdProject]
+			}));
+
+			return createdProject;
+		} catch (error) {
+			update((state) => ({
+				...state,
+				creating: false,
+				mutationError: error instanceof Error ? error.message : 'Could not create the project.'
+			}));
+			return null;
+		}
+	}
+
+	async function updateProject(input: UpdateProjectInput) {
+		const current = get(connection);
+
+		if (!current.settings) {
+			update((state) => ({
+				...state,
+				mutationError: 'Add your Vikunja connection in Settings before updating projects.'
+			}));
+			return null;
+		}
+
+		update((state) => ({
+			...state,
+			mutationError: null,
+			mutatingIds: [...state.mutatingIds, input.id]
+		}));
+
+		try {
+			const client = new VikunjaClient(current.settings);
+			const updatedProject = await client.updateProject(input);
+
+			update((state) => ({
+				...state,
+				mutatingIds: state.mutatingIds.filter((id) => id !== input.id),
+				items: state.items.map((item) => (item.id === input.id ? updatedProject : item))
+			}));
+
+			return updatedProject;
+		} catch (error) {
+			update((state) => ({
+				...state,
+				mutatingIds: state.mutatingIds.filter((id) => id !== input.id),
+				mutationError: error instanceof Error ? error.message : 'Could not update the project.'
+			}));
+			return null;
+		}
+	}
+
+	function clearMutationError() {
+		update((state) => ({ ...state, mutationError: null }));
+	}
+
 	return {
 		subscribe,
 		load,
-		refresh: () => load(true)
+		refresh: () => load(true),
+		createProject,
+		updateProject,
+		clearMutationError
 	};
 }
 
