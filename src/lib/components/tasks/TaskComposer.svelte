@@ -61,8 +61,18 @@
 
 		function handlePointerDown(event: PointerEvent) {
 			const target = event.target;
+			const composedPath = event.composedPath();
 
 			if (target instanceof Node && formEl?.contains(target)) {
+				return;
+			}
+
+			if (
+				composedPath.some(
+					(entry) =>
+						entry instanceof HTMLElement && entry.dataset.taskComposerIgnoreCollapse === 'true'
+				)
+			) {
 				return;
 			}
 

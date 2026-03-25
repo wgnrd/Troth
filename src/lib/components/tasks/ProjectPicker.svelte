@@ -2,6 +2,7 @@
 	import { Check, Hash } from '@lucide/svelte';
 	import type { AppList } from '$lib/api/vikunja';
 	import * as Popover from '$lib/components/ui/popover';
+	import { buildProjectTree, flattenProjectTree } from '$lib/lists/tree';
 	import { cn } from '$lib/utils';
 
 	let {
@@ -25,6 +26,7 @@
 	} = $props();
 
 	const selectedList = $derived(lists.find((list) => list.id === value) ?? null);
+	const treeEntries = $derived(flattenProjectTree(buildProjectTree(lists)));
 	const chipStyle = $derived(
 		mode === 'chip' && selectedList?.color
 			? `color: ${selectedList.color}; background-color: color-mix(in oklch, ${selectedList.color} 14%, white); border-color: color-mix(in oklch, ${selectedList.color} 24%, white);`
@@ -48,7 +50,13 @@
 </script>
 
 <Popover.Root bind:open>
-	<Popover.Trigger class={triggerClass} style={chipStyle} {disabled} aria-label={ariaLabel}>
+	<Popover.Trigger
+		class={triggerClass}
+		style={chipStyle}
+		{disabled}
+		aria-label={ariaLabel}
+		data-task-composer-ignore-collapse="true"
+	>
 		<span class="inline-flex min-w-0 items-center gap-1.5">
 			<Hash
 				class="size-3.5 shrink-0"
@@ -60,27 +68,36 @@
 		</span>
 	</Popover.Trigger>
 
-	<Popover.Content {align} class="w-60 rounded-2xl border-border/70 p-1.5">
+	<Popover.Content
+		{align}
+		class="w-60 rounded-2xl border-border/70 p-1.5"
+		data-task-composer-ignore-collapse="true"
+	>
 		<div class="max-h-72 overflow-y-auto">
-			{#each lists as list (list.id)}
+			{#each treeEntries as entry (entry.list.id)}
 				<button
 					type="button"
 					class={cn(
 						'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition',
-						list.id === value ? 'bg-muted text-foreground' : 'text-foreground/80 hover:bg-stone-50'
+						entry.list.id === value
+							? 'bg-muted text-foreground'
+							: 'text-foreground/80 hover:bg-stone-50'
 					)}
 					onclick={() => {
-						void handleSelect(list.id);
+						void handleSelect(entry.list.id);
 					}}
 				>
-					<span class="flex min-w-0 items-center gap-2">
+					<span
+						class="flex min-w-0 items-center gap-2"
+						style={`padding-left: ${entry.depth * 0.9}rem;`}
+					>
 						<Hash
 							class="size-3.5 shrink-0"
-							style={list.color ? `color: ${list.color};` : undefined}
+							style={entry.list.color ? `color: ${entry.list.color};` : undefined}
 						/>
-						<span class="truncate">{list.title}</span>
+						<span class="truncate">{entry.list.title}</span>
 					</span>
-					{#if list.id === value}
+					{#if entry.list.id === value}
 						<Check class="size-4 shrink-0 text-muted-foreground" />
 					{/if}
 				</button>

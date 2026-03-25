@@ -102,7 +102,12 @@
 </script>
 
 <Popover.Root bind:open>
-	<Popover.Trigger class={triggerClass} {disabled} aria-label={ariaLabel}>
+	<Popover.Trigger
+		class={triggerClass}
+		{disabled}
+		aria-label={ariaLabel}
+		data-task-composer-ignore-collapse="true"
+	>
 		<span class="inline-flex min-w-0 items-center gap-1.5">
 			{#if isToday}
 				<Sun
@@ -159,7 +164,11 @@
 		</span>
 	</Popover.Trigger>
 
-	<Popover.Content {align} class="w-auto rounded-2xl border-border/70 p-0">
+	<Popover.Content
+		{align}
+		class="w-auto rounded-2xl border-border/70 p-0"
+		data-task-composer-ignore-collapse="true"
+	>
 		<div class="flex flex-col gap-2 border-b border-border/70 px-3 py-3">
 			<Button
 				variant="ghost"

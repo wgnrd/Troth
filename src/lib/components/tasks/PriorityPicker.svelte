@@ -45,6 +45,7 @@
 		class="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 text-sm transition outline-none focus-within:border-primary/30 focus-within:ring-3 focus-within:ring-primary/10"
 		{disabled}
 		aria-label={ariaLabel}
+		data-task-composer-ignore-collapse="true"
 	>
 		<span class="inline-flex min-w-0 items-center gap-1.5">
 			<AlertCircle class={cn('size-3.5 shrink-0', selectedOption.tone)} />
@@ -53,7 +54,11 @@
 		<ChevronDown class="size-4 shrink-0 text-muted-foreground" />
 	</Popover.Trigger>
 
-	<Popover.Content {align} class="w-48 rounded-2xl border-border/70 p-1.5">
+	<Popover.Content
+		{align}
+		class="w-48 rounded-2xl border-border/70 p-1.5"
+		data-task-composer-ignore-collapse="true"
+	>
 		<div class="flex flex-col gap-1">
 			{#each options as option (option.value)}
 				<button
