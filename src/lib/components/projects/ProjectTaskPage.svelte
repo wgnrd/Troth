@@ -6,9 +6,14 @@
 	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
+	import { projectPreferences } from '$lib/stores/project-preferences';
 	import { tasks } from '$lib/stores/tasks';
 	import { fromDateInputValue, groupTasksByDate, sortTasks } from '$lib/tasks/view';
-	import { findProjectById, getDescendantProjectIds } from '$lib/lists/tree';
+	import {
+		findProjectById,
+		getDescendantProjectIds,
+		getEffectiveHiddenProjectIds
+	} from '$lib/lists/tree';
 	import TaskComposer from '$lib/components/tasks/TaskComposer.svelte';
 	import TaskEditor from '$lib/components/tasks/TaskEditor.svelte';
 	import TaskGroupedList from '$lib/components/tasks/TaskGroupedList.svelte';
@@ -22,7 +27,11 @@
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
-	const activeLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const hiddenProjectIds = $derived(
+		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
+	);
+	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
 	const currentProject = $derived(findProjectById(activeLists, listId));
 	const visibleProjectIds = $derived(
 		currentProject ? getDescendantProjectIds(activeLists, currentProject.id) : []

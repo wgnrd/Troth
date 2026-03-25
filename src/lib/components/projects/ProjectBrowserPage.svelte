@@ -6,6 +6,7 @@
 	import ProjectEditor from '$lib/components/projects/ProjectEditor.svelte';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
+	import { projectPreferences } from '$lib/stores/project-preferences';
 	import { tasks } from '$lib/stores/tasks';
 	import type { AppList } from '$lib/api/vikunja';
 	import {
@@ -13,6 +14,7 @@
 		countOpenTasksForProjectTree,
 		flattenProjectTree,
 		getDescendantProjectIds,
+		getEffectiveHiddenProjectIds,
 		type ProjectTreeNode
 	} from '$lib/lists/tree';
 
@@ -21,7 +23,11 @@
 	let editingProject = $state<AppList | null>(null);
 
 	const configured = $derived(Boolean($connection.settings));
-	const activeLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const hiddenProjectIds = $derived(
+		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
+	);
+	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
 	const projectTree = $derived(buildProjectTree(activeLists));
 	const loadError = $derived($lists.error ?? $tasks.error);
 	const showInitialLoading = $derived(

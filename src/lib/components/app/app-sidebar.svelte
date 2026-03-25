@@ -1,14 +1,26 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { Hash, X } from '@lucide/svelte';
+	import { ChevronDown, ChevronRight, Eye, EyeOff, Hash, X } from '@lucide/svelte';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
-	import { buildProjectTree, flattenProjectTree } from '$lib/lists/tree';
+	import { projectPreferences } from '$lib/stores/project-preferences';
+	import {
+		buildProjectTree,
+		getEffectiveHiddenProjectIds,
+		type ProjectTreeNode
+	} from '$lib/lists/tree';
 	import { appRoutes } from '$lib/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import { cn } from '$lib/utils';
+
+	type SidebarProjectEntry = {
+		list: ProjectTreeNode['list'];
+		depth: number;
+		hasChildren: boolean;
+		collapsed: boolean;
+	};
 
 	let {
 		class: className,
@@ -24,6 +36,10 @@
 		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
 	}
 
+	function isExactActive(href: string) {
+		return page.url.pathname === href;
+	}
+
 	function getProjectIconStyle(color: string | null, active: boolean) {
 		if (!color) {
 			return undefined;
@@ -34,6 +50,32 @@
 		return `color: color-mix(in srgb, ${color} ${textMix}, rgb(68 64 60));`;
 	}
 
+	function flattenSidebarTree(
+		nodes: ProjectTreeNode[],
+		expandedProjectIds: Set<number>,
+		depth = 0
+	): SidebarProjectEntry[] {
+		return nodes.flatMap((node) => {
+			const collapsed = node.children.length > 0 && !expandedProjectIds.has(node.list.id);
+			const entry: SidebarProjectEntry = {
+				list: node.list,
+				depth,
+				hasChildren: node.children.length > 0,
+				collapsed
+			};
+
+			return [
+				entry,
+				...(collapsed ? [] : flattenSidebarTree(node.children, expandedProjectIds, depth + 1))
+			];
+		});
+	}
+
+	function stopEvent(event: Event) {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
 	const primaryRoutes = appRoutes.filter(
 		(item) => item.href !== '/settings' && item.href !== '/projects'
 	);
@@ -41,7 +83,25 @@
 	const settingsRoute = appRoutes.find((item) => item.href === '/settings');
 	const ProjectsIcon = projectsRoute?.icon;
 	const SettingsIcon = settingsRoute?.icon;
-	const projectEntries = $derived(flattenProjectTree(buildProjectTree($lists.items)));
+	const allProjectLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const hiddenProjectIds = $derived(
+		getEffectiveHiddenProjectIds(allProjectLists, $projectPreferences.hiddenProjectIds)
+	);
+	const visibleProjectLists = $derived(
+		allProjectLists.filter((list) => !hiddenProjectIds.has(list.id))
+	);
+	const projectEntries = $derived(
+		flattenSidebarTree(
+			buildProjectTree(visibleProjectLists),
+			new Set($projectPreferences.expandedProjectIds)
+		)
+	);
+	const hiddenProjects = $derived(
+		$projectPreferences.hiddenProjectIds
+			.map((projectId) => allProjectLists.find((list) => list.id === projectId) ?? null)
+			.filter((list): list is (typeof allProjectLists)[number] => list !== null)
+			.sort((left, right) => left.title.localeCompare(right.title))
+	);
 
 	$effect(() => {
 		if (!$connection.settings || $lists.loaded || $lists.loading) {
@@ -104,7 +164,7 @@
 					onclick={onSelect}
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
-						isActive(projectsRoute.href)
+						isExactActive(projectsRoute.href)
 							? 'bg-primary/10 text-foreground'
 							: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
 					)}
@@ -112,7 +172,7 @@
 					<span
 						class={cn(
 							'rounded-lg p-1.5 transition-colors',
-							isActive(projectsRoute.href)
+							isExactActive(projectsRoute.href)
 								? 'bg-primary/12 text-foreground'
 								: 'text-muted-foreground group-hover:text-foreground'
 						)}
@@ -127,32 +187,102 @@
 					<div class="mt-2 space-y-1" aria-label="Projects">
 						{#each projectEntries as entry (entry.list.id)}
 							{@const active = isActive(`/projects/${entry.list.id}`)}
-							<a
-								href={resolve(`/projects/${entry.list.id}`)}
-								onclick={onSelect}
+							<div
 								class={cn(
-									'group flex items-center gap-2 rounded-xl py-2 pr-2 text-sm transition-colors',
+									'group flex items-center gap-1.5 rounded-lg py-1 pr-1.5 text-[0.82rem] transition-colors',
 									active
 										? 'bg-primary/8 text-foreground'
 										: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
 								)}
-								style={`padding-left: ${entry.depth * 0.9 + 1}rem;`}
+								style={`padding-left: ${entry.depth * 0.68 + 0.75}rem;`}
 							>
-								<span
-									class={cn(
-										'flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors',
-										!entry.list.color &&
-											(active
-												? 'bg-primary/12 text-foreground'
-												: 'text-stone-400 group-hover:text-foreground')
-									)}
-									style={getProjectIconStyle(entry.list.color, active)}
+								<a
+									href={resolve(`/projects/${entry.list.id}`)}
+									onclick={onSelect}
+									class="flex min-w-0 flex-1 items-center gap-1.5"
 								>
-									<Hash class="size-3.5" />
+									<span
+										class={cn(
+											'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors',
+											!entry.list.color &&
+												(active
+													? 'bg-primary/12 text-foreground'
+													: 'text-stone-400 group-hover:text-foreground')
+										)}
+										style={getProjectIconStyle(entry.list.color, active)}
+									>
+										<Hash class="size-3" />
+									</span>
+
+									<span class="min-w-0 flex-1 truncate">{entry.list.title}</span>
+								</a>
+
+								<div class="flex items-center gap-0.5">
+									<button
+										type="button"
+										class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100 hover:bg-white/80 hover:text-foreground"
+										aria-label={`Hide ${entry.list.title}`}
+										onclick={(event) => {
+											stopEvent(event);
+											projectPreferences.toggleHidden(allProjectLists, entry.list.id);
+										}}
+									>
+										<EyeOff class="size-3.5" />
+									</button>
+
+									{#if entry.hasChildren}
+										<button
+											type="button"
+											class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
+											aria-label={entry.collapsed
+												? `Expand ${entry.list.title}`
+												: `Collapse ${entry.list.title}`}
+											onclick={(event) => {
+												stopEvent(event);
+												projectPreferences.toggleCollapsed(entry.list.id);
+											}}
+										>
+											{#if entry.collapsed}
+												<ChevronRight class="size-3.5" />
+											{:else}
+												<ChevronDown class="size-3.5" />
+											{/if}
+										</button>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				{#if hiddenProjects.length > 0}
+					<div class="mt-3 space-y-1" aria-label="Hidden projects">
+						<p class="pl-4 text-[0.72rem] font-medium text-muted-foreground/80">Hidden Projects</p>
+						{#each hiddenProjects as project (project.id)}
+							<div
+								class="group flex items-center gap-1.5 rounded-lg py-1.5 pr-1.5 text-[0.82rem] text-muted-foreground hover:bg-muted/35 hover:text-foreground"
+							>
+								<span class="flex min-w-0 flex-1 items-center gap-1.5 pl-4">
+									<span
+										class="flex size-5 shrink-0 items-center justify-center rounded-md text-stone-400 group-hover:text-foreground"
+										style={getProjectIconStyle(project.color, false)}
+									>
+										<Hash class="size-3" />
+									</span>
+									<span class="min-w-0 flex-1 truncate">{project.title}</span>
 								</span>
 
-								<span class="min-w-0 flex-1 truncate">{entry.list.title}</span>
-							</a>
+								<button
+									type="button"
+									class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 hover:bg-white/80 hover:text-foreground"
+									aria-label={`Show ${project.title}`}
+									onclick={() => {
+										projectPreferences.toggleHidden(allProjectLists, project.id);
+									}}
+								>
+									<Eye class="size-3.5" />
+								</button>
+							</div>
 						{/each}
 					</div>
 				{/if}

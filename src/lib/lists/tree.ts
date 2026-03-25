@@ -91,6 +91,18 @@ export function getDescendantProjectIds(lists: AppList[], listId: number) {
 	return Array.from(seen);
 }
 
+export function getEffectiveHiddenProjectIds(lists: AppList[], hiddenProjectIds: number[]) {
+	const effectiveHiddenIds = new Set<number>();
+
+	for (const projectId of hiddenProjectIds) {
+		for (const descendantId of getDescendantProjectIds(lists, projectId)) {
+			effectiveHiddenIds.add(descendantId);
+		}
+	}
+
+	return effectiveHiddenIds;
+}
+
 export function countOpenTasksForProjectTree(tasks: AppTask[], projectIds: number[]) {
 	const projectIdSet = new Set(projectIds);
 

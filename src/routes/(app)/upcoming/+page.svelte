@@ -8,6 +8,6 @@
 <TaskPage
 	view="upcoming"
 	title={route?.label ?? 'Upcoming'}
-	meta="Due after today"
+	meta="Plan your next days."
 	emptyState={route?.emptyState ?? 'Nothing upcoming yet.'}
 />

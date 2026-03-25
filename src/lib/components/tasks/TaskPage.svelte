@@ -6,7 +6,9 @@
 	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
+	import { projectPreferences } from '$lib/stores/project-preferences';
 	import { tasks } from '$lib/stores/tasks';
+	import { getEffectiveHiddenProjectIds } from '$lib/lists/tree';
 	import DueDatePicker from './DueDatePicker.svelte';
 	import {
 		filterTasksForView,
@@ -42,7 +44,11 @@
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
-	const activeLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const hiddenProjectIds = $derived(
+		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
+	);
+	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
 	const inboxList = $derived(findInboxList(activeLists));
 	const visibleTasks = $derived.by(() => {
 		const filteredTasks = filterTasksForView(view, $tasks.items, activeLists);
@@ -297,7 +303,6 @@
 	}
 
 	async function handleBulkReschedule(tasksToReschedule: AppTask[], dueDate: string) {
-
 		if (tasksToReschedule.length === 0) {
 			return;
 		}
@@ -419,15 +424,19 @@
 		/>
 
 		{#if view === 'today' && overdueTasks.length > 0}
-			<section class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]">
+			<section
+				class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]"
+			>
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="space-y-2">
-						<div class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]">
+						<div
+							class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]"
+						>
 							Overdue
 						</div>
 						<p class="text-sm font-medium text-rose-950">
-							{overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'} still
-							show in Today
+							{overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'} still show
+							in Today
 						</p>
 						<p class="text-sm leading-6 text-rose-900/72">
 							Give them a fresh day with one quick move.
@@ -469,14 +478,20 @@
 		{/if}
 
 		{#if view === 'upcoming' && upcomingOverdueTasks.length > 0}
-			<section class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]">
+			<section
+				class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]"
+			>
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="space-y-2">
-						<div class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]">
+						<div
+							class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]"
+						>
 							Due Today
 						</div>
 						<p class="text-sm font-medium text-rose-950">
-							{upcomingOverdueTasks.length} overdue task{upcomingOverdueTasks.length === 1 ? '' : 's'} need a new day
+							{upcomingOverdueTasks.length} overdue task{upcomingOverdueTasks.length === 1
+								? ''
+								: 's'} need a new day
 						</p>
 						<p class="text-sm leading-6 text-rose-900/72">
 							Push them forward with one quick reschedule.
@@ -534,20 +549,24 @@
 			{#if view === 'inbox'}
 				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
-						<div class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]">
+						<div
+							class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]"
+						>
 							<Inbox class="size-5" />
 						</div>
 						<p class="text-base font-medium text-foreground">Inbox is clear</p>
 						<p class="mt-2 text-sm leading-6 text-muted-foreground">
-							Nothing is waiting here right now. Add a thought, task, or reminder when
-							something new comes up.
+							Nothing is waiting here right now. Add a thought, task, or reminder when something new
+							comes up.
 						</p>
 					</div>
 				</div>
 			{:else if view === 'today'}
 				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
-						<div class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]">
+						<div
+							class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]"
+						>
 							<Sun class="size-5" />
 						</div>
 						<p class="text-base font-medium text-foreground">Nothing due today</p>
