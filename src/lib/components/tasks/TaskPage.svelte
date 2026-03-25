@@ -11,6 +11,7 @@
 	import {
 		filterTasksForView,
 		findInboxList,
+		fromDateInputValue,
 		groupTasksByDate,
 		sortTodayTasks,
 		sortTasks,
@@ -239,6 +240,20 @@
 			listId: task.listId,
 			completed: task.completed
 		});
+	}
+
+	async function handleUpcomingDrop(task: AppTask, dateKey: string) {
+		if (task.listId === null || bulkRescheduling) {
+			return;
+		}
+
+		const nextDueDate = fromDateInputValue(dateKey);
+
+		if (!nextDueDate || task.dueDate?.slice(0, 10) === dateKey) {
+			return;
+		}
+
+		await handleDueDateChange(task, nextDueDate);
 	}
 
 	async function handleListChange(task: AppTask, listId: number) {
@@ -558,6 +573,7 @@
 					{showDueDateBadge}
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
+					enableDragAndDrop
 					onOpen={(task) => {
 						selectedTaskId = task.id;
 						tasks.clearMutationError();
@@ -565,6 +581,7 @@
 					onToggleComplete={handleToggleComplete}
 					onDueDateChange={handleDueDateChange}
 					onListChange={handleListChange}
+					onRescheduleTask={handleUpcomingDrop}
 				/>
 			{:else if view === 'today'}
 				{#if todayTasks.length > 0}

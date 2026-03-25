@@ -309,6 +309,19 @@ export function formatTaskGroupHeading(isoDate: string | null) {
 		return 'No due date';
 	}
 
+	const today = new Date();
+	const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+	const groupDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+	const diffInDays = Math.round((groupDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+	if (diffInDays === 0) {
+		return `Today - ${formatHeaderDate(date)}`;
+	}
+
+	if (diffInDays === 1) {
+		return `Tomorrow - ${formatHeaderDate(date)}`;
+	}
+
 	return `${weekdayFormatter.format(date)} - ${formatHeaderDate(date)}`;
 }
 

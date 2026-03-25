@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, Circle, LoaderCircle } from '@lucide/svelte';
+	import { Check, Circle, GripVertical, LoaderCircle } from '@lucide/svelte';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
 	import { cn, notesToPlainText } from '$lib/utils';
 	import { getPriorityCheckboxTone } from '$lib/tasks/view';
@@ -13,11 +13,14 @@
 		showDueDateBadge = true,
 		exiting = false,
 		busy = false,
+		draggable = false,
+		dragging = false,
 		class: className = '',
 		onOpen,
 		onToggleComplete,
 		onDueDateChange,
-		onListChange
+		onListChange,
+		onPressStart
 	}: {
 		task: AppTask;
 		list?: AppList | null;
@@ -25,11 +28,14 @@
 		showDueDateBadge?: boolean;
 		exiting?: boolean;
 		busy?: boolean;
+		draggable?: boolean;
+		dragging?: boolean;
 		class?: string;
 		onOpen?: (task: AppTask) => void;
 		onToggleComplete?: (task: AppTask, completed: boolean) => Promise<void> | void;
 		onDueDateChange?: (task: AppTask, dueDate: string | null) => Promise<void> | void;
 		onListChange?: (task: AppTask, listId: number) => Promise<void> | void;
+		onPressStart?: (event: PointerEvent, task: AppTask) => void;
 	} = $props();
 
 	let celebrating = $state(false);
@@ -66,6 +72,36 @@
 		void onToggleComplete?.(task, nextCompleted);
 	}
 
+	function handleToggleClick(event: MouseEvent) {
+		event.stopPropagation();
+		handleToggle();
+	}
+
+	function stopPointerStart(event: PointerEvent) {
+		event.stopPropagation();
+	}
+
+	function stopPropagation(event: Event) {
+		event.stopPropagation();
+	}
+
+	function handleRowKeyDown(event: KeyboardEvent) {
+		if (event.key !== 'Enter' && event.key !== ' ') {
+			return;
+		}
+
+		event.preventDefault();
+		onOpen?.(task);
+	}
+
+	function handleRowPointerDown(event: PointerEvent) {
+		if (draggable && !busy) {
+			event.preventDefault();
+		}
+
+		onPressStart?.(event, task);
+	}
+
 	$effect(() => {
 		if (!busy) {
 			completionPending = false;
@@ -75,13 +111,36 @@
 
 <div
 	class={cn(
-		'group flex gap-3 rounded-[1.35rem] px-3 py-3 transition-all duration-700',
+		'group relative flex gap-3 rounded-[1.35rem] px-3 py-3 transition-all duration-700',
 		descriptionPreview ? 'items-start' : 'items-center',
 		task.completed ? 'bg-stone-50/75' : 'hover:bg-white/70',
+		draggable && 'pl-9',
+		draggable && 'select-none touch-none',
 		exiting && 'translate-x-1 opacity-45',
+		draggable && !busy && 'cursor-grab active:cursor-grabbing',
+		dragging && 'scale-[0.985] opacity-55 shadow-none',
 		className
 	)}
+	role="button"
+	tabindex="0"
+	aria-pressed={dragging}
+	onclick={() => onOpen?.(task)}
+	onkeydown={handleRowKeyDown}
+	onpointerdown={handleRowPointerDown}
 >
+	{#if draggable}
+		<div
+			class={cn(
+				'pointer-events-none absolute top-1/2 left-2 z-10 flex -translate-y-1/2 -translate-x-1 p-1.5 text-stone-400 opacity-0 transition-all duration-200',
+				'group-hover:translate-x-0 group-hover:opacity-100',
+				dragging && 'opacity-0'
+			)}
+			aria-hidden="true"
+		>
+			<GripVertical class="size-3.5" />
+		</div>
+	{/if}
+
 	<button
 		type="button"
 		class={cn(
@@ -91,7 +150,8 @@
 		)}
 		aria-label={task.completed ? 'Reopen task' : 'Complete task'}
 		disabled={busy}
-		onclick={handleToggle}
+		onclick={handleToggleClick}
+		onpointerdown={stopPointerStart}
 	>
 		{#if celebrating}
 			<span class="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -122,7 +182,7 @@
 		{/if}
 	</button>
 
-	<button type="button" class="min-w-0 flex-1 text-left" onclick={() => onOpen?.(task)}>
+	<div class="min-w-0 flex-1 text-left">
 		<div class="flex flex-wrap items-start justify-between gap-3">
 			<div class="min-w-0 space-y-1">
 				<p
@@ -140,30 +200,34 @@
 				{/if}
 			</div>
 		</div>
-	</button>
+	</div>
 
 	<div class="flex flex-wrap items-center gap-2 self-center text-xs text-muted-foreground">
 		{#if list}
-			<ProjectPicker
-				mode="chip"
-				{lists}
-				value={list.id}
-				disabled={busy}
-				align="end"
-				ariaLabel="Change project"
-				onChange={(listId) => onListChange?.(task, listId)}
-			/>
+			<div role="presentation" onclick={stopPropagation} onpointerdown={stopPointerStart}>
+				<ProjectPicker
+					mode="chip"
+					{lists}
+					value={list.id}
+					disabled={busy}
+					align="end"
+					ariaLabel="Change project"
+					onChange={(listId) => onListChange?.(task, listId)}
+				/>
+			</div>
 		{/if}
 
 		{#if showDueDateBadge}
-			<DueDatePicker
-				mode="chip"
-				value={task.dueDate}
-				disabled={busy}
-				align="end"
-				ariaLabel="Edit due date"
-				onChange={(dueDate) => onDueDateChange?.(task, dueDate)}
-			/>
+			<div role="presentation" onclick={stopPropagation} onpointerdown={stopPointerStart}>
+				<DueDatePicker
+					mode="chip"
+					value={task.dueDate}
+					disabled={busy}
+					align="end"
+					ariaLabel="Edit due date"
+					onChange={(dueDate) => onDueDateChange?.(task, dueDate)}
+				/>
+			</div>
 		{/if}
 	</div>
 </div>
