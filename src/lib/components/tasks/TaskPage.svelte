@@ -78,6 +78,23 @@
 	const showEmptyState = $derived(
 		configured && !showInitialLoading && !loadError && !hasVisibleTasks
 	);
+	const upcomingOverdueTasks = $derived.by(() => {
+		if (view !== 'upcoming') {
+			return [];
+		}
+
+		return $tasks.items.filter((task) => {
+			if (task.completed) {
+				return false;
+			}
+
+			if (task.listId !== null && !listsById.has(task.listId)) {
+				return false;
+			}
+
+			return isTaskOverdue(task);
+		});
+	});
 	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
 	const showDueDateBadge = $derived(view !== 'today' && view !== 'upcoming');
 	const overdueTasks = $derived.by(() => {
@@ -251,6 +268,21 @@
 
 		const tasksToReschedule = [...overdueTasks].filter((task) => task.listId !== null);
 
+		await handleBulkReschedule(tasksToReschedule, dueDate);
+	}
+
+	async function handleRescheduleUpcomingOverdue(dueDate: string | null) {
+		if (!dueDate || upcomingOverdueTasks.length === 0 || bulkRescheduling) {
+			return;
+		}
+
+		const tasksToReschedule = [...upcomingOverdueTasks].filter((task) => task.listId !== null);
+
+		await handleBulkReschedule(tasksToReschedule, dueDate);
+	}
+
+	async function handleBulkReschedule(tasksToReschedule: AppTask[], dueDate: string) {
+
 		if (tasksToReschedule.length === 0) {
 			return;
 		}
@@ -274,6 +306,50 @@
 		} finally {
 			bulkRescheduling = false;
 		}
+	}
+
+	function isTaskDueToday(task: AppTask) {
+		if (task.completed || !task.dueDate) {
+			return false;
+		}
+
+		const taskDate = new Date(task.dueDate);
+
+		if (Number.isNaN(taskDate.getTime())) {
+			return false;
+		}
+
+		const today = new Date();
+		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+		const normalizedTaskDate = new Date(
+			taskDate.getFullYear(),
+			taskDate.getMonth(),
+			taskDate.getDate()
+		);
+
+		return normalizedTaskDate.getTime() === todayDate.getTime();
+	}
+
+	function isTaskOverdue(task: AppTask) {
+		if (!task.dueDate) {
+			return false;
+		}
+
+		const taskDate = new Date(task.dueDate);
+
+		if (Number.isNaN(taskDate.getTime())) {
+			return false;
+		}
+
+		const today = new Date();
+		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+		const normalizedTaskDate = new Date(
+			taskDate.getFullYear(),
+			taskDate.getMonth(),
+			taskDate.getDate()
+		);
+
+		return normalizedTaskDate.getTime() < todayDate.getTime();
 	}
 </script>
 
@@ -328,19 +404,22 @@
 		/>
 
 		{#if view === 'today' && overdueTasks.length > 0}
-			<section class="space-y-3">
-				<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-					<div class="space-y-1">
-						<p class="text-sm font-medium text-amber-900">
+			<section class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]">
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<div class="space-y-2">
+						<div class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]">
+							Overdue
+						</div>
+						<p class="text-sm font-medium text-rose-950">
 							{overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'} still
 							show in Today
 						</p>
-						<p class="text-sm text-amber-800/80">
-							Reschedule them in one step with the calendar.
+						<p class="text-sm leading-6 text-rose-900/72">
+							Give them a fresh day with one quick move.
 						</p>
 					</div>
 
-					<div class="w-full sm:w-48">
+					<div class="w-full sm:w-52">
 						<DueDatePicker
 							value={null}
 							disabled={bulkRescheduling}
@@ -352,8 +431,7 @@
 					</div>
 				</div>
 
-				<div class="space-y-2">
-					<p class="px-2 text-xs font-medium tracking-[0.16em] text-amber-800 uppercase">Overdue</p>
+				<div class="mt-4 space-y-2">
 					<TaskList
 						tasks={overdueTasks}
 						lists={activeLists}
@@ -361,8 +439,57 @@
 						{showDueDateBadge}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
-						class="border-amber-200/90 bg-amber-100/70 shadow-none"
-						rowClass="bg-amber-50/95 hover:bg-amber-50"
+						class="space-y-2"
+						rowClass="border border-rose-200/75 bg-rose-50/95 shadow-[0_1px_0_rgba(255,255,255,0.88)_inset] hover:border-rose-300/75 hover:bg-rose-100/85"
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+						onToggleComplete={handleToggleComplete}
+						onDueDateChange={handleDueDateChange}
+						onListChange={handleListChange}
+					/>
+				</div>
+			</section>
+		{/if}
+
+		{#if view === 'upcoming' && upcomingOverdueTasks.length > 0}
+			<section class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]">
+				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<div class="space-y-2">
+						<div class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]">
+							Due Today
+						</div>
+						<p class="text-sm font-medium text-rose-950">
+							{upcomingOverdueTasks.length} overdue task{upcomingOverdueTasks.length === 1 ? '' : 's'} need a new day
+						</p>
+						<p class="text-sm leading-6 text-rose-900/72">
+							Push them forward with one quick reschedule.
+						</p>
+					</div>
+
+					<div class="w-full sm:w-52">
+						<DueDatePicker
+							value={null}
+							disabled={bulkRescheduling}
+							tintedField
+							emptyLabel={bulkRescheduling ? 'Rescheduling…' : 'Reschedule to…'}
+							ariaLabel="Reschedule overdue tasks in upcoming"
+							onChange={handleRescheduleUpcomingOverdue}
+						/>
+					</div>
+				</div>
+
+				<div class="mt-4 space-y-2">
+					<TaskList
+						tasks={upcomingOverdueTasks}
+						lists={activeLists}
+						{listsById}
+						{showDueDateBadge}
+						{exitingTaskIds}
+						mutatingIds={$tasks.mutatingIds}
+						class="space-y-2"
+						rowClass="border border-rose-200/75 bg-rose-50/95 shadow-[0_1px_0_rgba(255,255,255,0.88)_inset] hover:border-rose-300/75 hover:bg-rose-100/85"
 						onOpen={(task) => {
 							selectedTaskId = task.id;
 							tasks.clearMutationError();
