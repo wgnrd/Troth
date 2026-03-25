@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
-	import { RefreshCcw, Settings2 } from '@lucide/svelte';
+	import { Inbox, RefreshCcw, Settings2, Sun } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { connection } from '$lib/stores/connection';
@@ -389,12 +389,39 @@
 		{#if showInitialLoading}
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
-			<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
-				<div class="space-y-2 text-center sm:text-left">
-					<p class="text-sm font-medium text-foreground">{emptyStateTitle}</p>
-					<p class="text-sm text-muted-foreground">{emptyMessage}</p>
+			{#if view === 'inbox'}
+				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
+					<div class="mx-auto flex max-w-md flex-col items-center text-center">
+						<div class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]">
+							<Inbox class="size-5" />
+						</div>
+						<p class="text-base font-medium text-foreground">Inbox is clear</p>
+						<p class="mt-2 text-sm leading-6 text-muted-foreground">
+							Nothing is waiting here right now. Add a thought, task, or reminder when
+							something new comes up.
+						</p>
+					</div>
 				</div>
-			</div>
+			{:else if view === 'today'}
+				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
+					<div class="mx-auto flex max-w-md flex-col items-center text-center">
+						<div class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]">
+							<Sun class="size-5" />
+						</div>
+						<p class="text-base font-medium text-foreground">Nothing due today</p>
+						<p class="mt-2 text-sm leading-6 text-muted-foreground">
+							Today is in a good place. Take the quiet win and enjoy a little breathing room.
+						</p>
+					</div>
+				</div>
+			{:else}
+				<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
+					<div class="space-y-2 text-center sm:text-left">
+						<p class="text-sm font-medium text-foreground">{emptyStateTitle}</p>
+						<p class="text-sm text-muted-foreground">{emptyMessage}</p>
+					</div>
+				</div>
+			{/if}
 		{:else if hasVisibleTasks}
 			{#if view === 'upcoming'}
 				<TaskGroupedList

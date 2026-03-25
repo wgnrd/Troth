@@ -32,7 +32,7 @@
 	} = $props();
 </script>
 
-<div class={cn('rounded-[1.75rem] border border-border/65 bg-white/56 p-2 shadow-sm', className)}>
+<div class={cn('space-y-1.5', className)}>
 	{#each tasks as task (task.id)}
 		<TaskRow
 			{task}

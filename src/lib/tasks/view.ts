@@ -271,27 +271,27 @@ export function getPriorityLabel(priority: number) {
 export function getPriorityCheckboxTone(priority: number) {
 	if (priority >= 5) {
 		return {
-			idle: 'text-rose-600 hover:text-rose-700',
+			idle: 'bg-rose-100/85 text-rose-600 hover:bg-rose-150 hover:text-rose-700',
 			completed: 'bg-rose-100 text-rose-700'
 		};
 	}
 
 	if (priority >= 3) {
 		return {
-			idle: 'text-orange-600 hover:text-orange-700',
+			idle: 'bg-orange-100/85 text-orange-600 hover:bg-orange-150 hover:text-orange-700',
 			completed: 'bg-orange-100 text-orange-700'
 		};
 	}
 
 	if (priority >= 1) {
 		return {
-			idle: 'text-sky-600 hover:text-sky-700',
+			idle: 'bg-sky-100/85 text-sky-600 hover:bg-sky-150 hover:text-sky-700',
 			completed: 'bg-sky-100 text-sky-700'
 		};
 	}
 
 	return {
-		idle: 'text-muted-foreground hover:text-foreground',
+		idle: 'bg-stone-100 text-muted-foreground hover:bg-stone-200 hover:text-foreground',
 		completed: 'bg-primary/14 text-primary'
 	};
 }

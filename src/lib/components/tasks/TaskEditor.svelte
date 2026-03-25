@@ -3,7 +3,7 @@
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
 	import { getPriorityCheckboxTone } from '$lib/tasks/view';
-	import { cn, formattedNotesClasses, formatNotesHtml, notesToEditableMarkdown } from '$lib/utils';
+	import { cn, notesToEditableMarkdown } from '$lib/utils';
 	import TaskMetaFields from './TaskMetaFields.svelte';
 
 	let {
@@ -35,11 +35,10 @@
 	let localError = $state<string | null>(null);
 	let syncedTaskId = $state<number | null>(null);
 	let editorEl = $state<HTMLElement | null>(null);
-	let titleInput = $state<HTMLInputElement | null>(null);
+	let titleInput = $state<HTMLTextAreaElement | null>(null);
 	let previousFocus = $state<HTMLElement | null>(null);
 	let focusedTaskId = $state<number | null>(null);
 
-	const formattedDescription = $derived(formatNotesHtml(description));
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const savePayload = $derived.by(() => {
 		if (!task || listId === null || !title.trim()) {
@@ -277,19 +276,19 @@
 
 							<div class="min-w-0 flex-1">
 								<label class="sr-only" for="task-title">Task title</label>
-								<input
+								<textarea
 									id="task-title"
 									bind:this={titleInput}
 									bind:value={title}
 									class={cn(
-										'h-12 w-full border-0 bg-transparent px-0 text-[1.5rem] leading-tight font-semibold tracking-tight text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
+										'min-h-12 w-full resize-none border-0 bg-transparent px-0 py-1 text-[1.5rem] leading-tight font-semibold tracking-tight text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0 whitespace-pre-wrap break-words',
 										completed && 'text-muted-foreground line-through decoration-2'
 									)}
-									type="text"
+									rows="2"
 									placeholder="Untitled task"
 									disabled={saving}
 									onblur={handleFieldBlur}
-								/>
+								></textarea>
 							</div>
 						</div>
 					</div>
@@ -308,17 +307,6 @@
 						></textarea>
 					</div>
 
-					{#if description.trim()}
-						<div class="space-y-2">
-							<p class="text-xs font-medium text-muted-foreground">Preview</p>
-							<div class="rounded-[1.1rem] border border-border/45 bg-stone-50/35 px-4 py-3">
-								<div class={formattedNotesClasses}>
-									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-									{@html formattedDescription}
-								</div>
-							</div>
-						</div>
-					{/if}
 				</div>
 
 				<div

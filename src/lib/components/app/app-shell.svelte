@@ -39,7 +39,7 @@
 </script>
 
 <div
-	class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(120,113,108,0.1),_transparent_44%),linear-gradient(180deg,_color-mix(in_oklch,_var(--color-stone-50)_72%,_var(--color-background)),_var(--color-background)_36%)]"
+	class="min-h-screen bg-background"
 >
 	{#if showProgress}
 		<div class="fixed inset-x-0 top-0 z-50 h-1 bg-transparent">

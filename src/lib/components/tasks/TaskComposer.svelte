@@ -26,6 +26,7 @@
 	let priority = $state(0);
 	let localError = $state<string | null>(null);
 	let expanded = $state(false);
+	let formEl = $state<HTMLFormElement | null>(null);
 	let inputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
@@ -45,6 +46,38 @@
 		}
 	});
 
+	$effect(() => {
+		if (!expanded) {
+			return;
+		}
+
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key !== 'Escape') {
+				return;
+			}
+
+			collapseComposer();
+		}
+
+		function handlePointerDown(event: PointerEvent) {
+			const target = event.target;
+
+			if (target instanceof Node && formEl?.contains(target)) {
+				return;
+			}
+
+			collapseComposer();
+		}
+
+		document.addEventListener('keydown', handleKeyDown);
+		document.addEventListener('pointerdown', handlePointerDown);
+
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('pointerdown', handlePointerDown);
+		};
+	});
+
 	const canSubmit = $derived(Boolean(title.trim()) && selectedListId !== null && !busy);
 	const helperClass = $derived(localError || error ? 'text-destructive' : 'text-muted-foreground');
 	const helperText = $derived.by(() => {
@@ -57,10 +90,10 @@
 		}
 
 		if (fixedListId !== null) {
-			return expanded ? 'Press Enter to add the task.' : 'New tasks go to Inbox.';
+			return '';
 		}
 
-		return expanded ? 'Choose a project or due date if needed.' : 'Press Enter to add the task.';
+		return '';
 	});
 
 	async function handleSubmit(event: SubmitEvent) {
@@ -99,6 +132,16 @@
 		expanded = true;
 	}
 
+	function collapseComposer() {
+		expanded = false;
+		localError = null;
+
+		const activeElement = document.activeElement;
+		if (activeElement instanceof HTMLElement) {
+			activeElement.blur();
+		}
+	}
+
 	function getDefaultDueDate() {
 		const now = new Date();
 		const year = now.getFullYear();
@@ -110,6 +153,7 @@
 </script>
 
 <form
+	bind:this={formEl}
 	class="rounded-[1.6rem] border border-border/70 bg-white/78 p-3 shadow-sm backdrop-blur"
 	onsubmit={handleSubmit}
 	onfocusin={handleFocusIn}
@@ -150,7 +194,9 @@
 		</div>
 	{/if}
 
-	<p class={`mt-2 text-sm ${helperClass}`}>
-		{helperText}
-	</p>
+	{#if helperText}
+		<p class={`mt-2 text-sm ${helperClass}`}>
+			{helperText}
+		</p>
+	{/if}
 </form>

@@ -57,7 +57,7 @@
 				)
 			: cn(
 					buttonVariants({ variant: 'outline', size: 'default' }),
-					'w-full justify-between rounded-xl px-3 text-left font-normal',
+					'h-11 w-full justify-between rounded-xl px-3 text-left font-normal',
 					fieldToneClass
 				)
 	);
