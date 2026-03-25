@@ -208,8 +208,8 @@
 								{/if}
 							</div>
 
-							<div class="flex shrink-0 items-center gap-1">
-								<span class="text-xs text-stone-500">{openTaskCount}</span>
+							<div class="flex w-14 shrink-0 items-center justify-end gap-1">
+								<span class="min-w-4 text-right text-xs text-stone-500">{openTaskCount}</span>
 								<Button
 									variant="ghost"
 									size="icon-sm"
@@ -244,11 +244,13 @@
 											</span>
 											<span class="truncate">{entry.list.title}</span>
 										</a>
-										<span class="flex shrink-0 items-center gap-1">
-											<span class="text-xs text-stone-500">{entryOpenTaskCount} open</span>
+										<span class="flex w-14 shrink-0 items-center justify-end gap-1">
+											<span class="min-w-4 text-right text-xs text-stone-500"
+												>{entryOpenTaskCount}</span
+											>
 											<button
 												type="button"
-												class="rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
+												class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
 												aria-label={`Edit ${entry.list.title}`}
 												onclick={(event) => {
 													event.preventDefault();
@@ -256,7 +258,7 @@
 													openEditProject(entry.list);
 												}}
 											>
-												<PencilLine class="size-3.5" />
+												<PencilLine class="size-4" />
 											</button>
 										</span>
 									</div>
