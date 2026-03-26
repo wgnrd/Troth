@@ -22,6 +22,7 @@ export type VikunjaTask = {
 	identifier?: string;
 	created?: string;
 	updated?: string;
+	related_tasks?: Record<string, Array<{ id: number }> | undefined>;
 };
 
 export type VikunjaProject = {
@@ -72,6 +73,7 @@ export type AppTask = {
 	repeatMode: number | null;
 	priority: number;
 	listId: number | null;
+	parentTaskId: number | null;
 	identifier: string | null;
 	createdAt: string | null;
 	updatedAt: string | null;
@@ -82,6 +84,7 @@ export type CreateTaskInput = {
 	listId: number;
 	dueDate?: string | null;
 	priority?: number;
+	parentTaskId?: number | null;
 };
 
 export type UpdateTaskInput = {
@@ -93,6 +96,7 @@ export type UpdateTaskInput = {
 	repeatMode: number | null;
 	priority: number;
 	listId: number;
+	parentTaskId: number | null;
 	completed?: boolean;
 };
 

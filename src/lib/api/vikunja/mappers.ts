@@ -35,6 +35,7 @@ export function mapTaskToAppTask(task: VikunjaTask): AppTask {
 		repeatMode: task.repeat_mode ?? null,
 		priority: task.priority ?? 0,
 		listId: task.project_id ?? null,
+		parentTaskId: getParentTaskId(task),
 		identifier: task.identifier ?? null,
 		createdAt: task.created ?? null,
 		updatedAt: task.updated ?? null
@@ -78,6 +79,10 @@ export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 		project_id: input.listId,
 		done: input.completed
 	};
+}
+
+function getParentTaskId(task: VikunjaTask) {
+	return task.related_tasks?.parenttask?.[0]?.id ?? null;
 }
 
 function normalizeProjectColor(color: string | null | undefined) {

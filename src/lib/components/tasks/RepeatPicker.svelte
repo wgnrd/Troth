@@ -135,7 +135,7 @@
 	<div class="flex min-w-0 flex-wrap items-center gap-2">
 		<RefreshCcw class="size-3.5 shrink-0 text-muted-foreground" />
 		<select
-			class="h-9 min-w-0 flex-1 rounded-lg border border-border/70 bg-background px-2.5 text-sm outline-none transition focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
+			class="h-9 min-w-0 flex-1 rounded-lg border border-border/70 bg-background px-2.5 text-sm transition outline-none focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
 			{disabled}
 			aria-label={ariaLabel}
 			value={mode}
@@ -167,7 +167,7 @@
 				min="1"
 				step="1"
 				class={cn(
-					'h-9 min-w-0 rounded-lg border border-border/70 bg-background px-2.5 text-sm outline-none transition focus:border-primary/30 focus:ring-3 focus:ring-primary/10'
+					'h-9 min-w-0 rounded-lg border border-border/70 bg-background px-2.5 text-sm transition outline-none focus:border-primary/30 focus:ring-3 focus:ring-primary/10'
 				)}
 				{disabled}
 				aria-label="Repeat amount"
@@ -176,7 +176,7 @@
 			/>
 
 			<select
-				class="h-9 min-w-0 rounded-lg border border-border/70 bg-background px-2.5 text-sm outline-none transition focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
+				class="h-9 min-w-0 rounded-lg border border-border/70 bg-background px-2.5 text-sm transition outline-none focus:border-primary/30 focus:ring-3 focus:ring-primary/10"
 				{disabled}
 				aria-label="Repeat unit"
 				value={unit}
@@ -190,9 +190,7 @@
 	{/if}
 
 	{#if mode === 'monthly'}
-		<p class="mt-3 text-sm text-muted-foreground">
-			Repeats all task dates every month.
-		</p>
+		<p class="mt-3 text-sm text-muted-foreground">Repeats all task dates every month.</p>
 	{:else if mode === 'from_completion'}
 		<p class="mt-3 text-sm text-muted-foreground">
 			Uses the completion date as the base for the next repeat.

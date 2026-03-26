@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Check, Circle, GripVertical, LoaderCircle, RefreshCcw } from '@lucide/svelte';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
+	import type { SubtaskSummary } from '$lib/stores/tasks';
 	import { cn, notesToPlainText } from '$lib/utils';
 	import { formatTaskRepeat, getPriorityCheckboxTone } from '$lib/tasks/view';
 	import DueDatePicker from './DueDatePicker.svelte';
@@ -11,6 +12,7 @@
 		list = null,
 		lists = [],
 		showDueDateBadge = true,
+		subtaskSummary = null,
 		exiting = false,
 		busy = false,
 		draggable = false,
@@ -26,6 +28,7 @@
 		list?: AppList | null;
 		lists?: AppList[];
 		showDueDateBadge?: boolean;
+		subtaskSummary?: SubtaskSummary | null;
 		exiting?: boolean;
 		busy?: boolean;
 		draggable?: boolean;
@@ -45,6 +48,7 @@
 	const descriptionPreview = $derived(notesToPlainText(task.description));
 	const priorityTone = $derived(getPriorityCheckboxTone(task.priority));
 	const repeatLabel = $derived(formatTaskRepeat(task));
+	const subtaskSummaryLabel = $derived(formatSubtaskSummary(subtaskSummary));
 
 	function triggerCelebration() {
 		if (celebrationTimer) {
@@ -103,6 +107,18 @@
 		onPressStart?.(event, task);
 	}
 
+	function formatSubtaskSummary(summary: SubtaskSummary | null) {
+		if (!summary || summary.total === 0) {
+			return null;
+		}
+
+		if (summary.completed === 0) {
+			return `${summary.total} ${summary.total === 1 ? 'subtask' : 'subtasks'}`;
+		}
+
+		return `${summary.completed} of ${summary.total} done`;
+	}
+
 	$effect(() => {
 		if (!busy) {
 			completionPending = false;
@@ -116,7 +132,7 @@
 		descriptionPreview ? 'items-start' : 'items-center',
 		task.completed ? 'bg-stone-50/75' : 'hover:bg-white/70',
 		draggable && 'pl-9',
-		draggable && 'select-none touch-none',
+		draggable && 'touch-none select-none',
 		exiting && 'translate-x-1 opacity-45',
 		draggable && !busy && 'cursor-grab active:cursor-grabbing',
 		dragging && 'scale-[0.985] opacity-55 shadow-none',
@@ -132,7 +148,7 @@
 	{#if draggable}
 		<div
 			class={cn(
-				'pointer-events-none absolute top-1/2 left-2 z-10 flex -translate-y-1/2 -translate-x-1 p-1.5 text-stone-400 opacity-0 transition-all duration-200',
+				'pointer-events-none absolute top-1/2 left-2 z-10 flex -translate-x-1 -translate-y-1/2 p-1.5 text-stone-400 opacity-0 transition-all duration-200',
 				'group-hover:translate-x-0 group-hover:opacity-100',
 				dragging && 'opacity-0'
 			)}
@@ -210,6 +226,8 @@
 
 				{#if descriptionPreview}
 					<p class="line-clamp-2 text-sm text-muted-foreground">{descriptionPreview}</p>
+				{:else if subtaskSummaryLabel}
+					<p class="text-xs font-medium text-muted-foreground">{subtaskSummaryLabel}</p>
 				{/if}
 			</div>
 		</div>

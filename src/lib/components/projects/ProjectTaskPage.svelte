@@ -7,7 +7,7 @@
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
-	import { tasks } from '$lib/stores/tasks';
+	import { filterTopLevelTasks, getSubtaskSummary, tasks } from '$lib/stores/tasks';
 	import { fromDateInputValue, groupTasksByDate, sortTasks } from '$lib/tasks/view';
 	import {
 		findProjectById,
@@ -38,7 +38,7 @@
 	);
 	const visibleProjectIdSet = $derived(new Set(visibleProjectIds));
 	const visibleTasks = $derived.by(() => {
-		const filteredTasks = $tasks.items.filter((task) => {
+		const filteredTasks = filterTopLevelTasks($tasks.items).filter((task) => {
 			return !task.completed && task.listId !== null && visibleProjectIdSet.has(task.listId);
 		});
 		const exitingTasks = $tasks.items.filter(
@@ -58,6 +58,19 @@
 		selectedTask ? $tasks.mutatingIds.includes(selectedTask.id) : false
 	);
 	const listsById = $derived(new Map(activeLists.map((list) => [list.id, list])));
+	const subtaskSummaryByParentId = $derived.by(() => {
+		const summaries: Record<number, { total: number; open: number; completed: number }> = {};
+
+		for (const task of visibleTasks) {
+			const summary = getSubtaskSummary(task.id, $tasks.items);
+
+			if (summary.total > 0) {
+				summaries[task.id] = summary;
+			}
+		}
+
+		return summaries;
+	});
 	const loadError = $derived($tasks.error ?? $lists.error);
 	const hasVisibleTasks = $derived(visibleTasks.length > 0);
 	const showInitialLoading = $derived(
@@ -109,6 +122,7 @@
 		listId: number;
 		dueDate?: string | null;
 		priority?: number;
+		parentTaskId?: number | null;
 	}) {
 		const createdTask = await tasks.createTask(input);
 		return Boolean(createdTask);
@@ -161,17 +175,7 @@
 			return;
 		}
 
-		await tasks.updateTask({
-			id: task.id,
-			title: task.title,
-			description: task.description,
-			dueDate,
-			repeatAfter: task.repeatAfter,
-			repeatMode: task.repeatMode,
-			priority: task.priority,
-			listId: task.listId,
-			completed: task.completed
-		});
+		await tasks.updateTask(buildUpdateInput(task, { dueDate }));
 	}
 
 	async function handleRescheduleTask(task: AppTask, dateKey: string) {
@@ -189,17 +193,7 @@
 	}
 
 	async function handleListChange(task: AppTask, nextListId: number) {
-		await tasks.updateTask({
-			id: task.id,
-			title: task.title,
-			description: task.description,
-			dueDate: task.dueDate,
-			repeatAfter: task.repeatAfter,
-			repeatMode: task.repeatMode,
-			priority: task.priority,
-			listId: nextListId,
-			completed: task.completed
-		});
+		await tasks.updateTask(buildUpdateInput(task, { listId: nextListId }));
 	}
 
 	async function handleDelete(task: AppTask) {
@@ -208,6 +202,25 @@
 		if (deleted) {
 			selectedTaskId = null;
 		}
+	}
+
+	function buildUpdateInput(
+		task: AppTask,
+		overrides: Partial<UpdateTaskInput> = {}
+	): UpdateTaskInput {
+		return {
+			id: task.id,
+			title: task.title,
+			description: task.description,
+			dueDate: task.dueDate,
+			repeatAfter: task.repeatAfter,
+			repeatMode: task.repeatMode,
+			priority: task.priority,
+			listId: task.listId ?? activeLists[0]?.id ?? 0,
+			parentTaskId: task.parentTaskId,
+			completed: task.completed,
+			...overrides
+		};
 	}
 </script>
 
@@ -310,6 +323,7 @@
 				{listsById}
 				groupAriaLabelPrefix="Project tasks for"
 				showDueDateBadge={false}
+				{subtaskSummaryByParentId}
 				{exitingTaskIds}
 				mutatingIds={$tasks.mutatingIds}
 				enableDragAndDrop
@@ -328,14 +342,24 @@
 
 <TaskEditor
 	task={selectedTask}
+	allTasks={$tasks.items}
 	lists={activeLists}
 	open={selectedTask !== null}
 	saving={isSavingSelectedTask}
 	error={$tasks.mutationError}
+	mutatingIds={$tasks.mutatingIds}
 	onClose={() => {
 		selectedTaskId = null;
 		tasks.clearMutationError();
 	}}
+	onOpenTask={(task) => {
+		selectedTaskId = task.id;
+		tasks.clearMutationError();
+	}}
+	onCreateTask={handleQuickAdd}
+	onToggleComplete={handleToggleComplete}
+	onDueDateChange={handleDueDateChange}
+	onListChange={handleListChange}
 	onSave={handleSave}
 	onDelete={handleDelete}
 />

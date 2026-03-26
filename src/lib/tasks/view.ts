@@ -1,4 +1,5 @@
 import type { AppList, AppTask } from '$lib/api/vikunja';
+import { filterTopLevelTasks } from '$lib/stores/tasks';
 
 export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'completed';
 export type RepeatUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -25,7 +26,7 @@ export function filterTasksForView(view: TaskViewKey, tasks: AppTask[], lists: A
 	const visibleLists = new Set(getVisibleLists(lists).map((list) => list.id));
 	const inboxList = findInboxList(lists);
 
-	return tasks.filter(
+	return filterTopLevelTasks(tasks).filter(
 		(task) =>
 			belongsToVisibleList(task, visibleLists) && matchesTaskView(task, view, inboxList?.id ?? null)
 	);

@@ -29,6 +29,10 @@
 		busy = false,
 		error = null,
 		fixedListId = null,
+		defaultListId = null,
+		defaultDueDate = getDefaultDueDate(),
+		defaultPriority = 0,
+		parentTaskId = null,
 		placeholder = 'Add a task',
 		disabledMessage = 'Add a project in Vikunja before creating tasks.',
 		onSubmit
@@ -37,6 +41,10 @@
 		busy?: boolean;
 		error?: string | null;
 		fixedListId?: number | null;
+		defaultListId?: number | null;
+		defaultDueDate?: string | null;
+		defaultPriority?: number;
+		parentTaskId?: number | null;
 		placeholder?: string;
 		disabledMessage?: string;
 		onSubmit?: (input: CreateTaskInput) => Promise<boolean | void> | boolean | void;
@@ -44,7 +52,7 @@
 
 	let title = $state('');
 	let manualListId = $state<number | null>(null);
-	let manualDueDate = $state<string | null>(getDefaultDueDate());
+	let manualDueDate = $state<string | null>(null);
 	let manualPriority = $state(0);
 	let localError = $state<string | null>(null);
 	let expanded = $state(false);
@@ -66,7 +74,9 @@
 	const effectiveDueDate = $derived(inlineMetadata.dueDate ?? manualDueDate);
 	const effectivePriority = $derived(inlineMetadata.priority ?? manualPriority);
 	const visibleHighlights = $derived(
-		inlineMetadata.highlights.filter((highlight) => fixedListId === null || highlight.kind !== 'project')
+		inlineMetadata.highlights.filter(
+			(highlight) => fixedListId === null || highlight.kind !== 'project'
+		)
 	);
 	const highlightSegments = $derived(buildHighlightSegments(title, visibleHighlights));
 
@@ -76,8 +86,22 @@
 			return;
 		}
 
+		if (defaultListId !== null && lists.some((list) => list.id === defaultListId)) {
+			if (!expanded || !title.trim()) {
+				manualListId = defaultListId;
+			}
+			return;
+		}
+
 		if (!lists.some((list) => list.id === manualListId)) {
 			manualListId = lists[0]?.id ?? null;
+		}
+	});
+
+	$effect(() => {
+		if (!expanded || !title.trim()) {
+			manualDueDate = defaultDueDate;
+			manualPriority = defaultPriority;
 		}
 	});
 
@@ -224,13 +248,15 @@
 			title: parsedTitle.trim(),
 			listId: nextListId,
 			dueDate: nextDueDate,
-			priority: nextPriority
+			priority: nextPriority,
+			parentTaskId
 		});
 
 		if (result !== false) {
 			title = '';
-			manualDueDate = getDefaultDueDate();
-			manualPriority = 0;
+			manualListId = fixedListId ?? defaultListId ?? lists[0]?.id ?? null;
+			manualDueDate = defaultDueDate;
+			manualPriority = defaultPriority;
 			expanded = false;
 			inputEl?.focus();
 		}
@@ -324,11 +350,11 @@
 		cursorIndex = nextCursor;
 
 		if (highlight.kind === 'date') {
-			manualDueDate = getDefaultDueDate();
+			manualDueDate = defaultDueDate;
 		}
 
 		if (highlight.kind === 'priority') {
-			manualPriority = 0;
+			manualPriority = defaultPriority;
 		}
 
 		await tick();
@@ -420,7 +446,10 @@
 		return value.replace(/\s{2,}/g, ' ').trim();
 	}
 
-	function buildHighlightSegments(text: string, highlights: InlineResolvedToken[]): HighlightSegment[] {
+	function buildHighlightSegments(
+		text: string,
+		highlights: InlineResolvedToken[]
+	): HighlightSegment[] {
 		if (highlights.length === 0) {
 			return text ? [{ kind: 'text', text }] : [];
 		}
@@ -481,7 +510,7 @@
 
 		return `color: color-mix(in srgb, ${highlight.color} 74%, rgb(68 64 60)); background-color: color-mix(in srgb, ${highlight.color} 16%, white);`;
 	}
- </script>
+</script>
 
 <form
 	bind:this={formEl}
@@ -589,7 +618,9 @@
 			style={`left: ${suggestionPosition.left}px; top: ${suggestionPosition.top}px;`}
 			data-task-composer-ignore-collapse="true"
 		>
-			<div class="mb-1.5 px-2 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+			<div
+				class="mb-1.5 px-2 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase"
+			>
 				{activeToken.kind === 'project' ? 'Projects' : 'Priority'}
 			</div>
 			<div class="flex flex-col gap-1">
@@ -615,7 +646,9 @@
 							{/if}
 							<span class="truncate">{suggestion.label}</span>
 						</span>
-						<span class="ml-3 inline-flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+						<span
+							class="ml-3 inline-flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
+						>
 							{#if suggestion.detail}
 								<span>{suggestion.detail}</span>
 							{/if}

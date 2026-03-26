@@ -1,29 +1,52 @@
 <script lang="ts">
-	import { Check, Circle, X } from '@lucide/svelte';
+	import { Check, Circle, Plus, X } from '@lucide/svelte';
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
-	import { formatTaskRepeat, getPriorityCheckboxTone } from '$lib/tasks/view';
+	import { getSubtasks, getSubtaskSummary } from '$lib/stores/tasks';
+	import { formatTaskRepeat, getPriorityCheckboxTone, sortTasks } from '$lib/tasks/view';
 	import { cn, notesToEditableMarkdown } from '$lib/utils';
+	import TaskComposer from './TaskComposer.svelte';
 	import TaskMetaFields from './TaskMetaFields.svelte';
+	import TaskRow from './TaskRow.svelte';
 
 	let {
 		task,
+		allTasks = [],
 		lists,
 		open = false,
 		saving = false,
 		error = null,
+		mutatingIds = [],
 		onClose,
 		onSave,
-		onDelete
+		onDelete,
+		onOpenTask,
+		onCreateTask,
+		onToggleComplete,
+		onDueDateChange,
+		onListChange
 	}: {
 		task: AppTask | null;
+		allTasks?: AppTask[];
 		lists: AppList[];
 		open?: boolean;
 		saving?: boolean;
 		error?: string | null;
+		mutatingIds?: number[];
 		onClose?: () => void;
 		onSave?: (input: UpdateTaskInput) => Promise<boolean | void> | boolean | void;
 		onDelete?: (task: AppTask) => Promise<void> | void;
+		onOpenTask?: (task: AppTask) => void;
+		onCreateTask?: (input: {
+			title: string;
+			listId: number;
+			dueDate?: string | null;
+			priority?: number;
+			parentTaskId?: number | null;
+		}) => Promise<boolean | void> | boolean | void;
+		onToggleComplete?: (task: AppTask, completed: boolean) => Promise<void> | void;
+		onDueDateChange?: (task: AppTask, dueDate: string | null) => Promise<void> | void;
+		onListChange?: (task: AppTask, listId: number) => Promise<void> | void;
 	} = $props();
 
 	let title = $state('');
@@ -33,6 +56,7 @@
 	let repeatMode = $state<number | null>(null);
 	let priority = $state(0);
 	let listId = $state<number | null>(null);
+	let parentTaskId = $state<number | null>(null);
 	let completed = $state(false);
 	let localError = $state<string | null>(null);
 	let syncedTaskId = $state<number | null>(null);
@@ -40,9 +64,25 @@
 	let titleInput = $state<HTMLTextAreaElement | null>(null);
 	let previousFocus = $state<HTMLElement | null>(null);
 	let focusedTaskId = $state<number | null>(null);
+	let showSubtaskComposer = $state(false);
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
+	const subtasks = $derived.by(() => {
+		if (!task) {
+			return [];
+		}
+
+		return sortTasks(getSubtasks(task.id, allTasks));
+	});
+	const subtaskSummary = $derived.by(() => {
+		if (!task) {
+			return { total: 0, open: 0, completed: 0 };
+		}
+
+		return getSubtaskSummary(task.id, allTasks);
+	});
+	const subtaskSummaryLabel = $derived(formatSubtaskSummary(subtaskSummary));
 	const savePayload = $derived.by(() => {
 		if (!task || listId === null || !title.trim()) {
 			return null;
@@ -57,6 +97,7 @@
 			repeatMode,
 			priority,
 			listId,
+			parentTaskId,
 			completed
 		} satisfies UpdateTaskInput;
 	});
@@ -73,6 +114,7 @@
 			repeatMode: task.repeatMode,
 			priority: task.priority,
 			listId: task.listId,
+			parentTaskId: task.parentTaskId,
 			completed: task.completed
 		});
 	});
@@ -86,6 +128,7 @@
 					repeatMode: savePayload.repeatMode,
 					priority: savePayload.priority,
 					listId: savePayload.listId,
+					parentTaskId: savePayload.parentTaskId,
 					completed: savePayload.completed
 				})
 			: ''
@@ -107,7 +150,9 @@
 		repeatMode = task.repeatMode;
 		priority = task.priority;
 		listId = task.listId;
+		parentTaskId = task.parentTaskId;
 		completed = task.completed;
+		showSubtaskComposer = false;
 		localError = null;
 	});
 
@@ -245,6 +290,18 @@
 			completed = task?.completed ?? false;
 		}
 	}
+
+	function formatSubtaskSummary(summary: { total: number; completed: number }) {
+		if (summary.total === 0) {
+			return 'No subtasks yet';
+		}
+
+		if (summary.completed === 0) {
+			return `${summary.total} ${summary.total === 1 ? 'subtask' : 'subtasks'}`;
+		}
+
+		return `${summary.completed} of ${summary.total} done`;
+	}
 </script>
 
 {#if open && task}
@@ -292,7 +349,7 @@
 									bind:this={titleInput}
 									bind:value={title}
 									class={cn(
-										'min-h-12 w-full resize-none border-0 bg-transparent px-0 py-1 text-[1.5rem] leading-tight font-semibold tracking-tight text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0 whitespace-pre-wrap break-words',
+										'min-h-12 w-full resize-none border-0 bg-transparent px-0 py-1 text-[1.5rem] leading-tight font-semibold tracking-tight break-words whitespace-pre-wrap text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
 										completed && 'text-muted-foreground line-through decoration-2'
 									)}
 									rows="2"
@@ -318,6 +375,66 @@
 						></textarea>
 					</div>
 
+					<section class="space-y-3 rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3">
+						<div class="flex items-center justify-between gap-3">
+							<div class="min-w-0">
+								<p class="text-sm font-medium text-foreground">Subtasks</p>
+								<p class="text-xs text-muted-foreground">{subtaskSummaryLabel}</p>
+							</div>
+
+							<Button
+								variant="ghost"
+								size="icon"
+								class="size-8 rounded-full"
+								aria-label="Add subtask"
+								disabled={saving || listId === null}
+								onclick={() => {
+									showSubtaskComposer = true;
+								}}
+							>
+								<Plus class="size-4" />
+							</Button>
+						</div>
+
+						{#if showSubtaskComposer}
+							<TaskComposer
+								{lists}
+								busy={saving}
+								{error}
+								defaultListId={task?.listId ?? null}
+								defaultDueDate={task?.dueDate ?? null}
+								defaultPriority={0}
+								parentTaskId={task.id}
+								placeholder="Add a subtask"
+								disabledMessage="Choose a project for this task before adding subtasks."
+								onSubmit={onCreateTask}
+							/>
+						{/if}
+
+						{#if subtasks.length > 0}
+							<div class="space-y-1.5">
+								{#each subtasks as subtask (subtask.id)}
+									<TaskRow
+										task={subtask}
+										list={subtask.listId !== null
+											? (lists.find((list) => list.id === subtask.listId) ?? null)
+											: null}
+										{lists}
+										busy={mutatingIds.includes(subtask.id)}
+										class="rounded-[1.15rem] border border-border/55 bg-white/80"
+										onOpen={onOpenTask}
+										{onToggleComplete}
+										{onDueDateChange}
+										{onListChange}
+									/>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-sm text-muted-foreground">
+								Add smaller steps here when a task needs a little structure.
+							</p>
+						{/if}
+					</section>
 				</div>
 
 				<div

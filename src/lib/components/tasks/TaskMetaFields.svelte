@@ -160,9 +160,7 @@
 					Repeats
 				</p>
 			{/if}
-			<div
-				class={cn(layout === 'surface' && 'rounded-[1rem] bg-stone-50/65 p-0')}
-			>
+			<div class={cn(layout === 'surface' && 'rounded-[1rem] bg-stone-50/65 p-0')}>
 				<RepeatPicker
 					{repeatAfter}
 					{repeatMode}

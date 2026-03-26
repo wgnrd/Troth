@@ -6,7 +6,7 @@ services:
     container_name: troth
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       HOST: 0.0.0.0
       PORT: 3000

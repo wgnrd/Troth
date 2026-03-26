@@ -1,7 +1,13 @@
 import { get, writable } from 'svelte/store';
-import { VikunjaClient } from '$lib/api/vikunja';
+import { VikunjaClient, VikunjaTaskMutationError } from '$lib/api/vikunja';
 import type { AppTask, CreateTaskInput, UpdateTaskInput } from '$lib/api/vikunja';
 import { connection } from './connection';
+
+export type SubtaskSummary = {
+	total: number;
+	open: number;
+	completed: number;
+};
 
 export type TasksState = {
 	items: AppTask[];
@@ -102,6 +108,7 @@ function createTasksStore() {
 			repeatMode: null,
 			priority: input.priority ?? 0,
 			listId: input.listId,
+			parentTaskId: input.parentTaskId ?? null,
 			identifier: null,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString()
@@ -126,6 +133,16 @@ function createTasksStore() {
 
 			return createdTask;
 		} catch (error) {
+			if (error instanceof VikunjaTaskMutationError && error.task) {
+				update((state) => ({
+					...state,
+					creating: false,
+					mutationError: error.message,
+					items: state.items.map((task) => (task.id === optimisticTask.id ? error.task! : task))
+				}));
+				return error.task;
+			}
+
 			update((state) => ({
 				...state,
 				creating: false,
@@ -137,9 +154,11 @@ function createTasksStore() {
 	}
 
 	async function updateTask(input: UpdateTaskInput) {
+		const currentTask = get({ subscribe }).items.find((task) => task.id === input.id);
+
 		return mutateTask(
 			input.id,
-			async (client) => client.updateTask(input),
+			async (client) => client.updateTask(input, currentTask?.parentTaskId ?? null),
 			(task) => ({
 				...task,
 				title: input.title,
@@ -149,6 +168,7 @@ function createTasksStore() {
 				repeatMode: input.repeatMode,
 				priority: input.priority,
 				listId: input.listId,
+				parentTaskId: input.parentTaskId,
 				completed: input.completed ?? task.completed,
 				completedAt:
 					input.completed === undefined
@@ -176,12 +196,13 @@ function createTasksStore() {
 			repeatMode: currentTask.repeatMode,
 			priority: currentTask.priority,
 			listId: currentTask.listId,
+			parentTaskId: currentTask.parentTaskId,
 			completed
 		};
 
 		return mutateTask(
 			id,
-			async (client) => client.setTaskCompleted(payload, completed),
+			async (client) => client.setTaskCompleted(payload, completed, currentTask.parentTaskId),
 			(task) => ({
 				...task,
 				completed,
@@ -276,6 +297,16 @@ function createTasksStore() {
 
 			return savedTask;
 		} catch (error) {
+			if (error instanceof VikunjaTaskMutationError && error.task) {
+				update((state) => ({
+					...state,
+					items: state.items.map((task) => (task.id === id ? error.task! : task)),
+					mutatingIds: state.mutatingIds.filter((value) => value !== id),
+					mutationError: error.message
+				}));
+				return error.task;
+			}
+
 			update((state) => ({
 				...state,
 				items: snapshot,
@@ -299,3 +330,22 @@ function createTasksStore() {
 }
 
 export const tasks = createTasksStore();
+
+export function filterTopLevelTasks(items: AppTask[]) {
+	return items.filter((task) => task.parentTaskId === null);
+}
+
+export function getSubtasks(parentId: number, items: AppTask[]) {
+	return items.filter((task) => task.parentTaskId === parentId);
+}
+
+export function getSubtaskSummary(parentId: number, items: AppTask[]): SubtaskSummary {
+	const subtasks = getSubtasks(parentId, items);
+	const completed = subtasks.filter((task) => task.completed).length;
+
+	return {
+		total: subtasks.length,
+		completed,
+		open: subtasks.length - completed
+	};
+}

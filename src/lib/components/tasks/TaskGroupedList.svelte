@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AppList, AppTask } from '$lib/api/vikunja';
+	import type { SubtaskSummary } from '$lib/stores/tasks';
 	import { cn } from '$lib/utils';
 	import TaskRow from './TaskRow.svelte';
 
@@ -15,6 +16,7 @@
 		listsById,
 		groupAriaLabelPrefix = 'Upcoming tasks for',
 		showDueDateBadge = true,
+		subtaskSummaryByParentId = {} as Record<number, SubtaskSummary>,
 		exitingTaskIds = [],
 		mutatingIds = [],
 		enableDragAndDrop = false,
@@ -29,6 +31,7 @@
 		listsById: Map<number, AppList>;
 		groupAriaLabelPrefix?: string;
 		showDueDateBadge?: boolean;
+		subtaskSummaryByParentId?: Record<number, SubtaskSummary>;
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
 		enableDragAndDrop?: boolean;
@@ -242,7 +245,7 @@
 						{group.tasks.length === 1 ? 'task' : 'tasks'}
 					</span>
 					<span class="flex items-center gap-1" aria-hidden="true">
-						{#each Array.from({ length: 3 }) as _, dotIndex (dotIndex)}
+						{#each Array.from({ length: 3 }, (_, dotIndex) => dotIndex) as dotIndex (dotIndex)}
 							<span
 								class={cn(
 									'h-1.5 w-5 rounded-full bg-stone-200/90',
@@ -272,6 +275,7 @@
 						list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
 						{lists}
 						{showDueDateBadge}
+						subtaskSummary={subtaskSummaryByParentId[task.id] ?? null}
 						exiting={exitingTaskIds.includes(task.id)}
 						busy={mutatingIds.includes(task.id)}
 						draggable={enableDragAndDrop}

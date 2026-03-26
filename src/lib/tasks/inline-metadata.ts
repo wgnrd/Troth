@@ -136,7 +136,11 @@ const priorityDefinitions: PriorityDefinition[] = [
 	}
 ];
 
-export function parseInlineMetadata(title: string, lists: AppList[], now = new Date()): ParsedInlineMetadata {
+export function parseInlineMetadata(
+	title: string,
+	lists: AppList[],
+	now = new Date()
+): ParsedInlineMetadata {
 	const tokens = title.match(/\S+/g) ?? [];
 	const remainingTokens: string[] = [];
 	let listId: number | null = null;
@@ -284,7 +288,10 @@ export function getPrioritySuggestions(query: string, rawToken: string) {
 			score: getPriorityMatchScore(definition, normalizedQuery, rawToken)
 		}))
 		.filter(hasScore)
-		.sort((left, right) => (left.score ?? Number.POSITIVE_INFINITY) - (right.score ?? Number.POSITIVE_INFINITY))
+		.sort(
+			(left, right) =>
+				(left.score ?? Number.POSITIVE_INFINITY) - (right.score ?? Number.POSITIVE_INFINITY)
+		)
 		.map(
 			(entry) =>
 				({
@@ -310,7 +317,10 @@ export function getDateSuggestions(query: string, now = new Date()) {
 			score: getDateMatchScore(suggestion, normalizedQuery)
 		}))
 		.filter(hasScore)
-		.sort((left, right) => (left.score ?? Number.POSITIVE_INFINITY) - (right.score ?? Number.POSITIVE_INFINITY))
+		.sort(
+			(left, right) =>
+				(left.score ?? Number.POSITIVE_INFINITY) - (right.score ?? Number.POSITIVE_INFINITY)
+		)
 		.slice(0, 6)
 		.map((entry) => entry.suggestion);
 }
@@ -482,7 +492,9 @@ function resolveDateToken(token: string, nextToken: string | null, now: Date) {
 	if (normalizedToken === 'next' && weekdayAliases.has(normalizedNextToken)) {
 		return {
 			kind: 'matched' as const,
-			dueDate: dateToDueDate(getNextWeekday(now, weekdayAliases.get(normalizedNextToken) ?? 0, true)),
+			dueDate: dateToDueDate(
+				getNextWeekday(now, weekdayAliases.get(normalizedNextToken) ?? 0, true)
+			),
 			consumedTokens: 2
 		};
 	}
@@ -702,11 +714,7 @@ function createValidDate(year: number, month: number, day: number) {
 
 	const date = new Date(year, month - 1, day);
 
-	if (
-		date.getFullYear() !== year ||
-		date.getMonth() !== month - 1 ||
-		date.getDate() !== day
-	) {
+	if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
 		return null;
 	}
 
@@ -756,11 +764,18 @@ function formatDateDetail(date: Date) {
 }
 
 function normalizeLookupValue(value: string) {
-	return value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+	return value
+		.trim()
+		.toLowerCase()
+		.replace(/[\s_-]+/g, '');
 }
 
 function normalizeInlineQuery(value: string) {
-	return value.trim().toLowerCase().replace(/^[("'`[{]+/, '').replace(/[)"'`\]}.,;:!?]+$/, '');
+	return value
+		.trim()
+		.toLowerCase()
+		.replace(/^[("'`[{]+/, '')
+		.replace(/[)"'`\]}.,;:!?]+$/, '');
 }
 
 function hasScore<T>(entry: { score: T | null }): entry is { score: T } {

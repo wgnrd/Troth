@@ -31,6 +31,16 @@ export class VikunjaClientError extends Error {
 	}
 }
 
+export class VikunjaTaskMutationError extends VikunjaClientError {
+	task: AppTask | null;
+
+	constructor(message: string, status = 500, task: AppTask | null = null) {
+		super(message, status);
+		this.name = 'VikunjaTaskMutationError';
+		this.task = task;
+	}
+}
+
 export class VikunjaClient {
 	readonly baseUrl: string;
 	readonly token: string;
@@ -92,23 +102,88 @@ export class VikunjaClient {
 			body: mapCreateTaskInput(input)
 		});
 
-		return mapTaskToAppTask(task);
+		const createdTask = mapTaskToAppTask(task);
+
+		if (input.parentTaskId === undefined || input.parentTaskId === null) {
+			return createdTask;
+		}
+
+		try {
+			await this.createTaskRelation(input.parentTaskId, createdTask.id, 'subtask');
+		} catch (error) {
+			throw toTaskMutationError(
+				error,
+				createdTask,
+				`Created "${createdTask.title}" but could not link it as a subtask.`
+			);
+		}
+
+		return {
+			...createdTask,
+			parentTaskId: input.parentTaskId
+		};
 	}
 
-	async updateTask(input: UpdateTaskInput): Promise<AppTask> {
+	async updateTask(
+		input: UpdateTaskInput,
+		currentParentTaskId: number | null = null
+	): Promise<AppTask> {
 		const task = await this.request<VikunjaTask>(`/tasks/${input.id}`, {
 			method: 'POST',
 			body: mapUpdateTaskInput(input)
 		});
 
-		return mapTaskToAppTask(task);
+		const savedTask = mapTaskToAppTask(task);
+
+		if (currentParentTaskId === input.parentTaskId) {
+			return {
+				...savedTask,
+				parentTaskId: input.parentTaskId
+			};
+		}
+
+		if (currentParentTaskId !== null) {
+			try {
+				await this.deleteTaskRelation(currentParentTaskId, input.id, 'subtask');
+			} catch (error) {
+				throw toTaskMutationError(
+					error,
+					{ ...savedTask, parentTaskId: currentParentTaskId },
+					`Saved "${savedTask.title}" but could not keep its parent task relation in sync.`
+				);
+			}
+		}
+
+		if (input.parentTaskId !== null) {
+			try {
+				await this.createTaskRelation(input.parentTaskId, input.id, 'subtask');
+			} catch (error) {
+				throw toTaskMutationError(
+					error,
+					{ ...savedTask, parentTaskId: null },
+					`Saved "${savedTask.title}" but could not update its parent task relation.`
+				);
+			}
+		}
+
+		return {
+			...savedTask,
+			parentTaskId: input.parentTaskId
+		};
 	}
 
-	async setTaskCompleted(input: UpdateTaskInput, completed: boolean): Promise<AppTask> {
-		return this.updateTask({
-			...input,
-			completed
-		});
+	async setTaskCompleted(
+		input: UpdateTaskInput,
+		completed: boolean,
+		currentParentTaskId: number | null = null
+	): Promise<AppTask> {
+		return this.updateTask(
+			{
+				...input,
+				completed
+			},
+			currentParentTaskId
+		);
 	}
 
 	async deleteTask(id: number): Promise<void> {
@@ -139,6 +214,31 @@ export class VikunjaClient {
 		}
 
 		return results;
+	}
+
+	private async createTaskRelation(
+		taskId: number,
+		otherTaskId: number,
+		relationKind: 'subtask' | 'parenttask'
+	) {
+		await this.request(`/tasks/${taskId}/relations`, {
+			method: 'PUT',
+			body: {
+				task_id: taskId,
+				other_task_id: otherTaskId,
+				relation_kind: relationKind
+			}
+		});
+	}
+
+	private async deleteTaskRelation(
+		taskId: number,
+		otherTaskId: number,
+		relationKind: 'subtask' | 'parenttask'
+	) {
+		await this.request(`/tasks/${taskId}/relations/${relationKind}/${otherTaskId}`, {
+			method: 'DELETE'
+		});
 	}
 
 	private async request<T>(
@@ -222,6 +322,14 @@ export class VikunjaClient {
 			response
 		};
 	}
+}
+
+function toTaskMutationError(error: unknown, task: AppTask, fallbackMessage: string) {
+	if (error instanceof VikunjaClientError) {
+		return new VikunjaTaskMutationError(error.message, error.status, task);
+	}
+
+	return new VikunjaTaskMutationError(fallbackMessage, 500, task);
 }
 
 export function normalizeVikunjaBaseUrl(rawBaseUrl: string): string {

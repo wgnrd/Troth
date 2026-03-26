@@ -7,7 +7,7 @@
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
-	import { tasks } from '$lib/stores/tasks';
+	import { filterTopLevelTasks, getSubtaskSummary, tasks } from '$lib/stores/tasks';
 	import { getEffectiveHiddenProjectIds } from '$lib/lists/tree';
 	import DueDatePicker from './DueDatePicker.svelte';
 	import {
@@ -69,6 +69,19 @@
 		selectedTask ? $tasks.mutatingIds.includes(selectedTask.id) : false
 	);
 	const listsById = $derived(new Map(activeLists.map((list) => [list.id, list])));
+	const subtaskSummaryByParentId = $derived.by(() => {
+		const summaries: Record<number, { total: number; open: number; completed: number }> = {};
+
+		for (const task of visibleTasks) {
+			const summary = getSubtaskSummary(task.id, $tasks.items);
+
+			if (summary.total > 0) {
+				summaries[task.id] = summary;
+			}
+		}
+
+		return summaries;
+	});
 	const emptyMessage = $derived(
 		view === 'inbox' && !inboxList ? 'No project named Inbox was found in Vikunja yet.' : emptyState
 	);
@@ -90,7 +103,7 @@
 			return [];
 		}
 
-		return $tasks.items.filter((task) => {
+		return filterTopLevelTasks($tasks.items).filter((task) => {
 			if (task.completed) {
 				return false;
 			}
@@ -185,6 +198,7 @@
 		listId: number;
 		dueDate?: string | null;
 		priority?: number;
+		parentTaskId?: number | null;
 	}) {
 		const createdTask = await tasks.createTask(input);
 		return Boolean(createdTask);
@@ -237,17 +251,7 @@
 			return;
 		}
 
-		await tasks.updateTask({
-			id: task.id,
-			title: task.title,
-			description: task.description,
-			dueDate,
-			repeatAfter: task.repeatAfter,
-			repeatMode: task.repeatMode,
-			priority: task.priority,
-			listId: task.listId,
-			completed: task.completed
-		});
+		await tasks.updateTask(buildUpdateInput(task, { dueDate }));
 	}
 
 	async function handleUpcomingDrop(task: AppTask, dateKey: string) {
@@ -265,17 +269,7 @@
 	}
 
 	async function handleListChange(task: AppTask, listId: number) {
-		await tasks.updateTask({
-			id: task.id,
-			title: task.title,
-			description: task.description,
-			dueDate: task.dueDate,
-			repeatAfter: task.repeatAfter,
-			repeatMode: task.repeatMode,
-			priority: task.priority,
-			listId,
-			completed: task.completed
-		});
+		await tasks.updateTask(buildUpdateInput(task, { listId }));
 	}
 
 	async function handleDelete(task: AppTask) {
@@ -316,44 +310,17 @@
 		try {
 			await Promise.all(
 				tasksToReschedule.map((task) => {
-					return tasks.updateTask({
-						id: task.id,
-						title: task.title,
-						description: task.description,
-						dueDate,
-						repeatAfter: task.repeatAfter,
-						repeatMode: task.repeatMode,
-						priority: task.priority,
-						listId: task.listId as number,
-						completed: task.completed
-					});
+					return tasks.updateTask(
+						buildUpdateInput(task, {
+							dueDate,
+							listId: task.listId as number
+						})
+					);
 				})
 			);
 		} finally {
 			bulkRescheduling = false;
 		}
-	}
-
-	function isTaskDueToday(task: AppTask) {
-		if (task.completed || !task.dueDate) {
-			return false;
-		}
-
-		const taskDate = new Date(task.dueDate);
-
-		if (Number.isNaN(taskDate.getTime())) {
-			return false;
-		}
-
-		const today = new Date();
-		const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-		const normalizedTaskDate = new Date(
-			taskDate.getFullYear(),
-			taskDate.getMonth(),
-			taskDate.getDate()
-		);
-
-		return normalizedTaskDate.getTime() === todayDate.getTime();
 	}
 
 	function isTaskOverdue(task: AppTask) {
@@ -376,6 +343,25 @@
 		);
 
 		return normalizedTaskDate.getTime() < todayDate.getTime();
+	}
+
+	function buildUpdateInput(
+		task: AppTask,
+		overrides: Partial<UpdateTaskInput> = {}
+	): UpdateTaskInput {
+		return {
+			id: task.id,
+			title: task.title,
+			description: task.description,
+			dueDate: task.dueDate,
+			repeatAfter: task.repeatAfter,
+			repeatMode: task.repeatMode,
+			priority: task.priority,
+			listId: task.listId ?? activeLists[0]?.id ?? 0,
+			parentTaskId: task.parentTaskId,
+			completed: task.completed,
+			...overrides
+		};
 	}
 </script>
 
@@ -467,6 +453,7 @@
 						lists={activeLists}
 						{listsById}
 						{showDueDateBadge}
+						{subtaskSummaryByParentId}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						class="space-y-2"
@@ -522,6 +509,7 @@
 						lists={activeLists}
 						{listsById}
 						{showDueDateBadge}
+						{subtaskSummaryByParentId}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						class="space-y-2"
@@ -596,6 +584,7 @@
 					lists={activeLists}
 					{listsById}
 					{showDueDateBadge}
+					{subtaskSummaryByParentId}
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
 					enableDragAndDrop
@@ -615,6 +604,7 @@
 						lists={activeLists}
 						{listsById}
 						{showDueDateBadge}
+						{subtaskSummaryByParentId}
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						onOpen={(task) => {
@@ -632,6 +622,7 @@
 					lists={activeLists}
 					{listsById}
 					{showDueDateBadge}
+					{subtaskSummaryByParentId}
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
 					onOpen={(task) => {
@@ -649,14 +640,24 @@
 
 <TaskEditor
 	task={selectedTask}
+	allTasks={$tasks.items}
 	lists={activeLists}
 	open={selectedTask !== null}
 	saving={isSavingSelectedTask}
 	error={$tasks.mutationError}
+	mutatingIds={$tasks.mutatingIds}
 	onClose={() => {
 		selectedTaskId = null;
 		tasks.clearMutationError();
 	}}
+	onOpenTask={(task) => {
+		selectedTaskId = task.id;
+		tasks.clearMutationError();
+	}}
+	onCreateTask={handleQuickAdd}
+	onToggleComplete={handleToggleComplete}
+	onDueDateChange={handleDueDateChange}
+	onListChange={handleListChange}
 	onSave={handleSave}
 	onDelete={handleDelete}
 />

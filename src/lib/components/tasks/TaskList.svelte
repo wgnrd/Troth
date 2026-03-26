@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
+	import type { SubtaskSummary } from '$lib/stores/tasks';
 	import TaskRow from './TaskRow.svelte';
 
 	let {
@@ -8,6 +9,7 @@
 		lists,
 		listsById,
 		showDueDateBadge = true,
+		subtaskSummaryByParentId = {} as Record<number, SubtaskSummary>,
 		exitingTaskIds = [],
 		mutatingIds = [],
 		class: className = '',
@@ -21,6 +23,7 @@
 		lists: AppList[];
 		listsById: Map<number, AppList>;
 		showDueDateBadge?: boolean;
+		subtaskSummaryByParentId?: Record<number, SubtaskSummary>;
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
 		class?: string;
@@ -39,6 +42,7 @@
 			list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
 			{lists}
 			{showDueDateBadge}
+			subtaskSummary={subtaskSummaryByParentId[task.id] ?? null}
 			exiting={exitingTaskIds.includes(task.id)}
 			busy={mutatingIds.includes(task.id)}
 			class={rowClass}

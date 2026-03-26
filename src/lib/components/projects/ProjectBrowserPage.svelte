@@ -89,10 +89,6 @@
 		return countOpenTasksForProjectTree($tasks.items, getDescendantProjectIds(activeLists, listId));
 	}
 
-	function getNestedProjectCount(node: ProjectTreeNode) {
-		return getDescendantProjectIds(activeLists, node.list.id).length - 1;
-	}
-
 	function getNestedEntries(node: ProjectTreeNode) {
 		return flattenProjectTree(node.children, 1);
 	}
@@ -162,7 +158,7 @@
 		</div>
 	{:else if showInitialLoading}
 		<div class="space-y-3">
-			{#each Array.from({ length: 3 }) as _, index (index)}
+			{#each Array.from({ length: 3 }, (_, index) => index) as index (index)}
 				<div class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55"></div>
 			{/each}
 		</div>
@@ -187,7 +183,6 @@
 			<div class="space-y-1">
 				{#each projectTree as node (node.list.id)}
 					{@const openTaskCount = getOpenTaskCount(node.list.id)}
-					{@const nestedProjectCount = getNestedProjectCount(node)}
 					{@const nestedEntries = getNestedEntries(node)}
 					<div class="space-y-1">
 						<div

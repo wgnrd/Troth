@@ -40,5 +40,9 @@ Route-specific filtering lives in `src/lib/tasks/view.ts`. That file owns the re
 - `Upcoming` shows incomplete tasks due after today.
 - `All Active` shows every incomplete task.
 - `Completed` shows completed tasks.
+- Subtasks are stored as normal Vikunja tasks linked by a parent-task relation.
+- Main task lists stay flat and show only top-level tasks.
+- Parent rows show subtask progress like `2 of 5 done` when subtasks exist.
+- Subtasks are managed primarily from the parent task editor and inherit only the parent project by default.
 
 These rules are intentionally simple. Troth does not try to mirror every Vikunja view; it keeps a small personal workflow with predictable overlaps between views.

@@ -1,4 +1,9 @@
-export { VikunjaClient, VikunjaClientError, normalizeVikunjaBaseUrl } from './client';
+export {
+	VikunjaClient,
+	VikunjaClientError,
+	VikunjaTaskMutationError,
+	normalizeVikunjaBaseUrl
+} from './client';
 export { mapProjectToList, mapTaskToAppTask } from './mappers';
 export type {
 	AppList,
