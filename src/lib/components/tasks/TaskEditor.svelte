@@ -418,14 +418,14 @@
 						{/if}
 
 						{#if subtasks.length > 0}
-							<div class="space-y-1.5">
+							<div class="space-y-0.5">
 								{#each subtasks as subtask (subtask.id)}
 									<TaskRow
 										task={subtask}
 										list={null}
 										{lists}
 										busy={mutatingIds.includes(subtask.id)}
-										class="rounded-[1.15rem] border border-border/55 bg-white/80"
+										class="px-2 py-2"
 										onOpen={onOpenTask}
 										{onToggleComplete}
 										{onDueDateChange}

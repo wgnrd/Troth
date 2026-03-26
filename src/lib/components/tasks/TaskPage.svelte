@@ -41,6 +41,8 @@
 	let lastLoadKey = $state('');
 	let exitingTaskIds = $state<number[]>([]);
 	let bulkRescheduling = $state(false);
+	let showQuickAddComposer = $state(false);
+	let syncedQuickAddView = $state<TaskViewKey | null>(null);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
@@ -167,11 +169,15 @@
 				return 'No completed tasks';
 		}
 	});
+	const usesCollapsedQuickAdd = $derived(
+		view === 'today' || view === 'inbox' || view === 'upcoming'
+	);
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
 			lastLoadKey = '';
 			selectedTaskId = null;
+			showQuickAddComposer = false;
 			return;
 		}
 
@@ -187,6 +193,53 @@
 		if (selectedTaskId !== null && !selectedTask) {
 			selectedTaskId = null;
 		}
+	});
+
+	$effect(() => {
+		if (syncedQuickAddView === view) {
+			return;
+		}
+
+		syncedQuickAddView = view;
+		showQuickAddComposer = false;
+	});
+
+	$effect(() => {
+		if (!browser || !usesCollapsedQuickAdd || !configured) {
+			return;
+		}
+
+		function handleQuickAddShortcut(event: KeyboardEvent) {
+			if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+				return;
+			}
+
+			if (event.key.toLowerCase() !== 'n') {
+				return;
+			}
+
+			const activeElement =
+				document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+			if (
+				activeElement &&
+				(activeElement.isContentEditable ||
+					activeElement instanceof HTMLInputElement ||
+					activeElement instanceof HTMLTextAreaElement ||
+					activeElement instanceof HTMLSelectElement)
+			) {
+				return;
+			}
+
+			event.preventDefault();
+			showQuickAddComposer = true;
+		}
+
+		document.addEventListener('keydown', handleQuickAddShortcut);
+
+		return () => {
+			document.removeEventListener('keydown', handleQuickAddShortcut);
+		};
 	});
 
 	async function handleRefresh() {
@@ -405,15 +458,61 @@
 			</div>
 		</div>
 	{:else}
-		<TaskComposer
-			lists={activeLists}
-			busy={$tasks.creating}
-			error={$tasks.mutationError}
-			fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
-			placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
-			disabledMessage={quickAddDisabledMessage}
-			onSubmit={handleQuickAdd}
-		/>
+		{#if usesCollapsedQuickAdd}
+			{#if showQuickAddComposer}
+				<TaskComposer
+					lists={activeLists}
+					busy={$tasks.creating}
+					error={$tasks.mutationError}
+					fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
+					defaultListId={inboxList?.id ?? null}
+					autoFocus
+					placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
+					disabledMessage={quickAddDisabledMessage}
+					onCollapse={() => {
+						showQuickAddComposer = false;
+					}}
+					onSubmit={handleQuickAdd}
+				/>
+			{:else}
+				<div class="flex justify-start">
+					<Button
+						variant="outline"
+						size="sm"
+						class="group h-10 gap-2 rounded-full pl-3 pr-2"
+						aria-label={view === 'inbox' ? 'Add to Inbox' : 'Add task'}
+						disabled={activeLists.length === 0}
+						onclick={() => {
+							showQuickAddComposer = true;
+						}}
+					>
+						<span class="text-base leading-none">+</span>
+						<span>{view === 'inbox' ? 'Add to Inbox' : 'Add task'}</span>
+						<span
+							class="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100"
+							aria-hidden="true"
+						>
+							<kbd
+								class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset]"
+							>
+								N
+							</kbd>
+						</span>
+					</Button>
+				</div>
+			{/if}
+		{:else}
+			<TaskComposer
+				lists={activeLists}
+				busy={$tasks.creating}
+				error={$tasks.mutationError}
+				fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
+				defaultListId={inboxList?.id ?? null}
+				placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
+				disabledMessage={quickAddDisabledMessage}
+				onSubmit={handleQuickAdd}
+			/>
+		{/if}
 
 		{#if view === 'today' && overdueTasks.length > 0}
 			<section
