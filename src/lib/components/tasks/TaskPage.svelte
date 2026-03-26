@@ -172,6 +172,7 @@
 	const usesCollapsedQuickAdd = $derived(
 		view === 'today' || view === 'inbox' || view === 'upcoming'
 	);
+	const showQuickAdd = $derived(view !== 'completed');
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
@@ -458,7 +459,7 @@
 			</div>
 		</div>
 	{:else}
-		{#if usesCollapsedQuickAdd}
+		{#if showQuickAdd && usesCollapsedQuickAdd}
 			{#if showQuickAddComposer}
 				<TaskComposer
 					lists={activeLists}
@@ -501,7 +502,7 @@
 					</Button>
 				</div>
 			{/if}
-		{:else}
+		{:else if showQuickAdd}
 			<TaskComposer
 				lists={activeLists}
 				busy={$tasks.creating}
