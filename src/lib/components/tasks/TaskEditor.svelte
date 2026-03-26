@@ -320,7 +320,7 @@
 	>
 		<div class="space-y-4">
 			<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
-				<div class="min-w-0 space-y-4">
+				<div class="min-w-0 space-y-3">
 					<div class="pb-1">
 						<div class="flex items-start gap-3">
 							<button
@@ -350,10 +350,10 @@
 									bind:this={titleInput}
 									bind:value={title}
 									class={cn(
-										'min-h-12 w-full resize-none border-0 bg-transparent px-0 py-1 text-[1.5rem] leading-tight font-semibold tracking-tight break-words whitespace-pre-wrap text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
+										'min-h-12 w-full resize-none border-0 bg-transparent px-0 pt-2 pb-1 text-[1.5rem] leading-tight font-semibold tracking-tight break-words whitespace-pre-wrap text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
 										completed && 'text-muted-foreground line-through decoration-2'
 									)}
-									rows="2"
+									rows="1"
 									placeholder="Untitled task"
 									disabled={saving}
 									onblur={handleFieldBlur}
