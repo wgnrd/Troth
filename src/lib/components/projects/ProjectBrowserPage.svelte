@@ -102,17 +102,19 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-6">
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-5 sm:gap-6">
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 		<div class="space-y-1">
-			<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">Projects</h1>
+			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
+				Projects
+			</h1>
 			<p class="text-sm text-muted-foreground">
 				Browse every Vikunja project and drill into nested work.
 			</p>
 		</div>
 
 		{#if configured}
-			<div class="flex items-center gap-2 self-start">
+			<div class="flex w-full flex-col gap-2 self-start sm:w-auto sm:flex-row sm:items-center">
 				<Button variant="outline" size="sm" onclick={openCreateProject}>
 					<Plus class="size-3.5" />
 					Add Project
@@ -121,6 +123,8 @@
 				<Button
 					variant="outline"
 					size="sm"
+					class="hidden sm:inline-flex"
+					aria-label={$tasks.loading || $lists.loading ? 'Refreshing projects' : 'Refresh projects'}
 					onclick={handleRefresh}
 					disabled={$tasks.loading || $lists.loading}
 				>

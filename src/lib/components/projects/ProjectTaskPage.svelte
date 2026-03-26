@@ -264,10 +264,10 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-6">
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-5 sm:gap-6">
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 		<div class="space-y-1">
-			<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">
+			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
 				{currentProject?.title ?? 'Project'}
 			</h1>
 			{#if projectMeta}
@@ -279,7 +279,10 @@
 			<Button
 				variant="outline"
 				size="sm"
-				class="self-start"
+				class="hidden self-end sm:inline-flex"
+				aria-label={$tasks.loading || $lists.loading
+					? 'Refreshing project tasks'
+					: 'Refresh project tasks'}
 				onclick={handleRefresh}
 				disabled={$tasks.loading || $lists.loading}
 			>
@@ -323,25 +326,27 @@
 	{:else}
 		{#if currentProject}
 			{#if showQuickAddComposer}
-				<TaskComposer
-					lists={activeLists}
-					busy={$tasks.creating}
-					error={$tasks.mutationError}
-					fixedListId={currentProject.id}
-					autoFocus
-					placeholder={`Add to ${currentProject.title}`}
-					disabledMessage="Add a project in Vikunja before creating tasks."
-					onCollapse={() => {
-						showQuickAddComposer = false;
-					}}
-					onSubmit={handleQuickAdd}
-				/>
+				<div class="hidden md:block">
+					<TaskComposer
+						lists={activeLists}
+						busy={$tasks.creating}
+						error={$tasks.mutationError}
+						fixedListId={currentProject.id}
+						autoFocus
+						placeholder={`Add to ${currentProject.title}`}
+						disabledMessage="Add a project in Vikunja before creating tasks."
+						onCollapse={() => {
+							showQuickAddComposer = false;
+						}}
+						onSubmit={handleQuickAdd}
+					/>
+				</div>
 			{:else}
-				<div class="flex justify-start">
+				<div class="hidden justify-start md:flex">
 					<Button
 						variant="outline"
 						size="sm"
-						class="group h-10 gap-2 rounded-full pl-3 pr-2"
+						class="group h-10 gap-2 rounded-full pr-2 pl-3"
 						aria-label={`Add to ${currentProject.title}`}
 						onclick={() => {
 							showQuickAddComposer = true;

@@ -58,7 +58,7 @@
 
 <section class="mx-auto flex w-full max-w-[42rem] flex-col gap-6">
 	<div class="space-y-1">
-		<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">
+		<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
 			{route?.label ?? 'Settings'}
 		</h1>
 		<p class="text-sm text-muted-foreground">
@@ -133,7 +133,7 @@
 			</p>
 		</div>
 
-		<div class="flex flex-wrap items-center gap-2 pt-1">
+		<div class="flex flex-col gap-2 pt-1 sm:flex-row sm:flex-wrap sm:items-center">
 			<Button type="submit" disabled={$connection.status === 'checking'}>
 				{$connection.status === 'checking' ? 'Connecting…' : 'Save connection'}
 			</Button>

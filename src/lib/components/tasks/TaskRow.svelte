@@ -131,7 +131,7 @@
 		'group relative flex gap-3 rounded-[1.35rem] px-3 py-3 transition-all duration-700',
 		descriptionPreview ? 'items-start' : 'items-center',
 		task.completed ? 'bg-stone-50/75' : 'hover:bg-white/70',
-		draggable && 'pl-9',
+		draggable && 'md:pl-9',
 		draggable && 'touch-none select-none',
 		exiting && 'translate-x-1 opacity-45',
 		draggable && !busy && 'cursor-grab active:cursor-grabbing',
@@ -148,8 +148,8 @@
 	{#if draggable}
 		<div
 			class={cn(
-				'pointer-events-none absolute top-1/2 left-2 z-10 flex -translate-x-1 -translate-y-1/2 p-1.5 text-stone-400 opacity-0 transition-all duration-200',
-				'group-hover:translate-x-0 group-hover:opacity-100',
+				'pointer-events-none absolute top-1/2 left-2 z-10 hidden -translate-x-1 -translate-y-1/2 p-1.5 text-stone-400 opacity-0 transition-all duration-200 md:flex',
+				'group-hover:translate-x-0 group-hover:opacity-100 md:group-hover:opacity-100',
 				dragging && 'opacity-0'
 			)}
 			aria-hidden="true"
@@ -215,7 +215,7 @@
 
 					<p
 						class={cn(
-							'truncate text-sm font-medium text-foreground transition-all duration-700',
+							'text-sm font-medium break-words whitespace-normal text-foreground transition-all duration-700',
 							task.completed && 'text-muted-foreground line-through line-through decoration-2',
 							exiting && 'translate-x-1'
 						)}

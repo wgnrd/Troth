@@ -419,10 +419,12 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-6">
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-5 sm:gap-6">
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 		<div class="space-y-1">
-			<h1 class="text-[2rem] font-semibold tracking-tight text-foreground">{title}</h1>
+			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
+				{title}
+			</h1>
 			{#if meta}
 				<p class="text-sm text-muted-foreground">{meta}</p>
 			{/if}
@@ -432,7 +434,8 @@
 			<Button
 				variant="outline"
 				size="sm"
-				class="self-start"
+				class="hidden self-end sm:inline-flex"
+				aria-label={$tasks.loading || $lists.loading ? 'Refreshing tasks' : 'Refresh tasks'}
 				onclick={handleRefresh}
 				disabled={$tasks.loading || $lists.loading}
 			>
@@ -461,26 +464,28 @@
 	{:else}
 		{#if showQuickAdd && usesCollapsedQuickAdd}
 			{#if showQuickAddComposer}
-				<TaskComposer
-					lists={activeLists}
-					busy={$tasks.creating}
-					error={$tasks.mutationError}
-					fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
-					defaultListId={inboxList?.id ?? null}
-					autoFocus
-					placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
-					disabledMessage={quickAddDisabledMessage}
-					onCollapse={() => {
-						showQuickAddComposer = false;
-					}}
-					onSubmit={handleQuickAdd}
-				/>
+				<div class="hidden md:block">
+					<TaskComposer
+						lists={activeLists}
+						busy={$tasks.creating}
+						error={$tasks.mutationError}
+						fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
+						defaultListId={inboxList?.id ?? null}
+						autoFocus
+						placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
+						disabledMessage={quickAddDisabledMessage}
+						onCollapse={() => {
+							showQuickAddComposer = false;
+						}}
+						onSubmit={handleQuickAdd}
+					/>
+				</div>
 			{:else}
-				<div class="flex justify-start">
+				<div class="hidden justify-start md:flex">
 					<Button
 						variant="outline"
 						size="sm"
-						class="group h-10 gap-2 rounded-full pl-3 pr-2"
+						class="group h-10 gap-2 rounded-full pr-2 pl-3"
 						aria-label={view === 'inbox' ? 'Add to Inbox' : 'Add task'}
 						disabled={activeLists.length === 0}
 						onclick={() => {
@@ -503,16 +508,18 @@
 				</div>
 			{/if}
 		{:else if showQuickAdd}
-			<TaskComposer
-				lists={activeLists}
-				busy={$tasks.creating}
-				error={$tasks.mutationError}
-				fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
-				defaultListId={inboxList?.id ?? null}
-				placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
-				disabledMessage={quickAddDisabledMessage}
-				onSubmit={handleQuickAdd}
-			/>
+			<div class="hidden md:block">
+				<TaskComposer
+					lists={activeLists}
+					busy={$tasks.creating}
+					error={$tasks.mutationError}
+					fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
+					defaultListId={inboxList?.id ?? null}
+					placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
+					disabledMessage={quickAddDisabledMessage}
+					onSubmit={handleQuickAdd}
+				/>
+			</div>
 		{/if}
 
 		{#if view === 'today' && overdueTasks.length > 0}

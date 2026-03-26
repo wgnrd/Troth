@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { Check, Circle, Plus, X } from '@lucide/svelte';
+	import { resolve } from '$app/paths';
+	import { tick } from 'svelte';
+	import { Check, Circle, CornerUpLeft, Hash, Plus, X } from '@lucide/svelte';
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
 	import { getSubtasks, getSubtaskSummary } from '$lib/stores/tasks';
@@ -65,9 +67,18 @@
 	let previousFocus = $state<HTMLElement | null>(null);
 	let focusedTaskId = $state<number | null>(null);
 	let showSubtaskComposer = $state(false);
+	let notesFocused = $state(false);
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
+	const parentTask = $derived(
+		parentTaskId === null
+			? null
+			: (allTasks.find((candidate) => candidate.id === parentTaskId) ?? null)
+	);
+	const currentList = $derived(
+		listId === null ? null : (lists.find((list) => list.id === listId) ?? null)
+	);
 	const subtasks = $derived.by(() => {
 		if (!task) {
 			return [];
@@ -153,6 +164,7 @@
 		parentTaskId = task.parentTaskId;
 		completed = task.completed;
 		showSubtaskComposer = false;
+		notesFocused = false;
 		localError = null;
 	});
 
@@ -216,6 +228,24 @@
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
 		};
+	});
+
+	$effect(() => {
+		if (!open || !task) {
+			return;
+		}
+
+		void tick().then(() => {
+			syncTitleInputHeight(title);
+		});
+	});
+
+	$effect(() => {
+		if (!titleInput) {
+			return;
+		}
+
+		syncTitleInputHeight(title);
 	});
 
 	async function persistDraft() {
@@ -303,6 +333,24 @@
 
 		return `${summary.completed} of ${summary.total} done`;
 	}
+
+	function syncTitleInputHeight(_titleValue = title) {
+		if (!titleInput) {
+			return;
+		}
+
+		void _titleValue;
+		titleInput.style.height = '0px';
+		titleInput.style.height = `${titleInput.scrollHeight}px`;
+	}
+
+	function getProjectLinkStyle(color: string | null) {
+		if (!color) {
+			return undefined;
+		}
+
+		return `color: color-mix(in srgb, ${color} 72%, rgb(68 64 60)); background-color: color-mix(in srgb, ${color} 14%, white); border-color: color-mix(in srgb, ${color} 24%, rgb(231 229 228));`;
+	}
 </script>
 
 {#if open && task}
@@ -319,6 +367,42 @@
 		aria-label="Task editor"
 	>
 		<div class="space-y-4">
+			<div class="flex items-center justify-between gap-3">
+				<div class="min-w-0">
+					{#if parentTask}
+						<button
+							type="button"
+							class="inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-stone-50/75 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-background/90"
+							onclick={() => {
+								onOpenTask?.(parentTask);
+							}}
+						>
+							<CornerUpLeft class="size-3.5 shrink-0 text-muted-foreground" />
+							<span class="truncate">{parentTask.title}</span>
+						</button>
+					{:else if currentList}
+						<a
+							href={resolve(`/projects/${currentList.id}`)}
+							class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:bg-background/90"
+							style={getProjectLinkStyle(currentList.color)}
+						>
+							<Hash class="size-3.5 shrink-0" />
+							<span class="truncate">{currentList.title}</span>
+						</a>
+					{/if}
+				</div>
+
+				<Button
+					variant="ghost"
+					size="sm"
+					class="shrink-0 text-muted-foreground hover:text-foreground"
+					onclick={handleClose}
+				>
+					<X class="size-3.5" />
+					Close
+				</Button>
+			</div>
+
 			<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
 				<div class="min-w-0 space-y-3">
 					<div class="pb-1">
@@ -350,12 +434,15 @@
 									bind:this={titleInput}
 									bind:value={title}
 									class={cn(
-										'min-h-12 w-full resize-none border-0 bg-transparent px-0 pt-2 pb-1 text-[1.5rem] leading-tight font-semibold tracking-tight break-words whitespace-pre-wrap text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
+										'min-h-12 w-full resize-none overflow-hidden border-0 bg-transparent px-0 pt-2 pb-1 text-[1.5rem] leading-tight font-semibold tracking-tight break-words whitespace-pre-wrap text-foreground transition outline-none placeholder:text-muted-foreground/60 focus:ring-0',
 										completed && 'text-muted-foreground line-through decoration-2'
 									)}
 									rows="1"
 									placeholder="Untitled task"
 									disabled={saving}
+									oninput={() => {
+										syncTitleInputHeight();
+									}}
 									onblur={handleFieldBlur}
 								></textarea>
 							</div>
@@ -369,9 +456,15 @@
 						<textarea
 							id="task-description"
 							bind:value={description}
-							class="min-h-40 w-full rounded-[1.2rem] border border-border/60 bg-stone-50/40 px-4 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground/65 focus:border-primary/30 focus:bg-background focus:ring-3 focus:ring-primary/10"
+							class={cn(
+								'w-full rounded-[1.2rem] border border-border/60 bg-stone-50/40 px-4 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground/65 focus:border-primary/30 focus:bg-background focus:ring-3 focus:ring-primary/10',
+								description.trim() || notesFocused ? 'min-h-40' : 'min-h-12 sm:min-h-40'
+							)}
 							disabled={saving}
 							placeholder="Add notes"
+							onfocus={() => {
+								notesFocused = true;
+							}}
 							onblur={handleFieldBlur}
 						></textarea>
 					</div>
@@ -445,17 +538,6 @@
 					class="min-w-0 border-t border-border/60 pt-4 lg:border-t-0 lg:border-l lg:border-border/55 lg:pt-0 lg:pl-4"
 				>
 					<div class="space-y-3">
-						<div class="flex items-center justify-end">
-							<Button
-								variant="ghost"
-								size="sm"
-								class="text-muted-foreground hover:text-foreground"
-								onclick={handleClose}
-							>
-								<X class="size-3.5" />
-								Close
-							</Button>
-						</div>
 						<TaskMetaFields
 							{lists}
 							bind:listId
