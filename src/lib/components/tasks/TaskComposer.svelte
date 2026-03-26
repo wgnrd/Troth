@@ -33,8 +33,11 @@
 		defaultDueDate = getDefaultDueDate(),
 		defaultPriority = 0,
 		parentTaskId = null,
+		showMetaFields = true,
+		autoFocus = false,
 		placeholder = 'Add a task',
 		disabledMessage = 'Add a project in Vikunja before creating tasks.',
+		onCollapse,
 		onSubmit
 	}: {
 		lists: AppList[];
@@ -45,8 +48,11 @@
 		defaultDueDate?: string | null;
 		defaultPriority?: number;
 		parentTaskId?: number | null;
+		showMetaFields?: boolean;
+		autoFocus?: boolean;
 		placeholder?: string;
 		disabledMessage?: string;
+		onCollapse?: () => void;
 		onSubmit?: (input: CreateTaskInput) => Promise<boolean | void> | boolean | void;
 	} = $props();
 
@@ -65,6 +71,7 @@
 	let selectedSuggestionIndex = $state(0);
 	let activeToken = $state<ReturnType<typeof getActiveInlineToken>>(null);
 	let suggestionPosition = $state({ left: 0, top: 0 });
+	let autoFocused = $state(false);
 
 	const suggestionWidth = 260;
 	const inlineMetadata = $derived(resolveInlineMetadata(title, lists));
@@ -109,6 +116,20 @@
 		if (localError && title.trim()) {
 			localError = null;
 		}
+	});
+
+	$effect(() => {
+		if (!autoFocus || autoFocused || !inputEl || busy) {
+			return;
+		}
+
+		autoFocused = true;
+		expanded = true;
+
+		void tick().then(() => {
+			inputEl?.focus();
+			syncCursor();
+		});
 	});
 
 	$effect(() => {
@@ -313,6 +334,7 @@
 		suggestionsOpen = false;
 		suggestions = [];
 		activeToken = null;
+		onCollapse?.();
 
 		const activeElement = document.activeElement;
 		if (activeElement instanceof HTMLElement) {
@@ -582,7 +604,7 @@
 		</button>
 	</div>
 
-	{#if expanded}
+	{#if expanded && showMetaFields}
 		<div class="mt-3 border-t border-border/60 pt-3">
 			<TaskMetaFields
 				{lists}

@@ -265,6 +265,7 @@
 			return;
 		}
 
+		showSubtaskComposer = false;
 		onClose?.();
 	}
 
@@ -405,8 +406,13 @@
 								defaultDueDate={task?.dueDate ?? null}
 								defaultPriority={0}
 								parentTaskId={task.id}
+								showMetaFields={false}
+								autoFocus
 								placeholder="Add a subtask"
 								disabledMessage="Choose a project for this task before adding subtasks."
+								onCollapse={() => {
+									showSubtaskComposer = false;
+								}}
 								onSubmit={onCreateTask}
 							/>
 						{/if}
@@ -416,9 +422,7 @@
 								{#each subtasks as subtask (subtask.id)}
 									<TaskRow
 										task={subtask}
-										list={subtask.listId !== null
-											? (lists.find((list) => list.id === subtask.listId) ?? null)
-											: null}
+										list={null}
 										{lists}
 										busy={mutatingIds.includes(subtask.id)}
 										class="rounded-[1.15rem] border border-border/55 bg-white/80"
