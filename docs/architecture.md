@@ -2,25 +2,28 @@
 
 ## API layer
 
-Vikunja access is centralized under `src/lib/api/vikunja/`.
+Vikunja access is split across a server-only boundary plus a small same-origin browser client.
 
-- `client.ts` owns base URL normalization, bearer-token headers, pagination, and the wrapped endpoints.
+- `src/lib/api/vikunja/client.ts` owns base URL normalization, bearer-token headers, pagination, and the wrapped endpoint logic against Vikunja itself.
 - `types.ts` keeps the raw Vikunja response shapes and the smaller app-facing task/list types in one place.
 - `mappers.ts` converts Vikunja task and project payloads into the flatter types the UI uses.
 - `index.ts` is the public entry point for the rest of the app.
+- `src/lib/server/session.ts` owns the encrypted HTTP-only session cookie that stores the normalized Vikunja base URL plus API token on the server boundary.
+- `src/lib/server/vikunja.ts` creates authenticated Vikunja clients for SvelteKit server routes and translates Vikunja failures into app-facing JSON responses.
+- `src/lib/api/troth/client.ts` is the browser-facing client for Troth’s own same-origin `/api/*` endpoints.
 
-The goal for this slice is to keep raw `fetch` usage out of routes and components. Components only deal with typed app models plus store methods.
+The browser never calls Vikunja directly anymore. Components only deal with typed app models plus store methods, while SvelteKit routes proxy authenticated requests to Vikunja.
 
 ## Stores
 
 The app uses small Svelte stores instead of a larger query or state library.
 
-- `src/lib/stores/connection.ts` persists the Vikunja base URL and API token in browser local storage, validates input, and checks the connection before saving it.
-- `src/lib/stores/lists.ts` loads and refreshes Vikunja projects, then exposes them as app lists.
-- `src/lib/stores/saved-filters.ts` loads and refreshes Vikunja saved filters and smart views for the sidebar.
-- `src/lib/stores/tasks.ts` loads and refreshes tasks, and handles create, update, and complete/reopen writes with lightweight optimistic updates.
+- `src/lib/stores/connection.ts` submits the Vikunja base URL and API token to a same-origin session endpoint, then keeps only a small connection summary in browser state.
+- `src/lib/stores/lists.ts` loads and refreshes Vikunja projects through Troth’s own API endpoints, then exposes them as app lists.
+- `src/lib/stores/saved-filters.ts` loads and refreshes Vikunja saved filters and smart views through Troth’s own API endpoints.
+- `src/lib/stores/tasks.ts` loads and refreshes tasks through Troth’s own API endpoints, and handles create, update, and complete/reopen writes with lightweight optimistic updates.
 
-Both the task and list stores reset themselves when the saved Vikunja connection changes so stale data does not linger across reconnects. Refresh failures now keep the last successful data in place and surface the error inline so the MVP stays usable during temporary API issues.
+Both the task and list stores reset themselves when the authenticated Troth session changes so stale data does not linger across reconnects. Refresh failures now keep the last successful data in place and surface the error inline so the MVP stays usable during temporary API issues.
 
 ## Task UI composition
 

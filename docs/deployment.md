@@ -1,34 +1,38 @@
 # Deployment
 
-Troth is currently best deployed as an internal-only web app.
+Troth now talks to Vikunja through its own SvelteKit server routes instead of
+calling Vikunja directly from the browser.
 
-The app talks directly from the browser to the Vikunja API and stores the
-personal API token in browser local storage. That makes it a good fit for a
-private network, VPN, or Tailscale deployment, but not a public internet
-deployment yet.
+That makes deployment much simpler:
+
+- Troth only needs to reach Vikunja from the server/container network
+- browsers only need to reach Troth itself
+- core task and project flows no longer depend on browser-side CORS access to
+  Vikunja
 
 ## Recommended topology
 
 - Run Troth as a small Node container.
-- Keep Troth and Vikunja reachable from the same private network.
-- Publish Troth behind your existing reverse proxy on an internal hostname such
-  as `troth.example.internal`.
+- Keep Troth able to reach Vikunja from the same Docker or private network.
+- Publish Troth behind your reverse proxy on the hostname you want users to
+  visit, such as `troth.example.internal`.
 - In Troth, enter either your Vikunja site URL or full API URL in Settings.
+- Set `TROTH_SESSION_SECRET` in the Troth container environment before
+  publishing it beyond a local dev setup.
 
 ## Important networking note
 
-Troth makes API requests from the browser to Vikunja.
+Troth makes API requests from the server to Vikunja.
 
 That means one of these must be true:
 
-- Vikunja allows the Troth origin via CORS.
-- Your reverse proxy makes Vikunja available on a same-origin path that the
-  browser can reach without cross-origin restrictions.
-- You only access both apps in a setup where your browser can already reach the
-  Vikunja origin directly.
+- the Troth container can reach the Vikunja base URL you enter in Settings
+- or your reverse proxy/network routing makes the Vikunja URL reachable from the
+  Troth server process
 
-If you see connection errors mentioning network access, HTML responses, or CORS,
-double-check the Vikunja URL you entered and the reverse-proxy routing.
+If you see connection errors mentioning network access or HTML responses,
+double-check the Vikunja URL you entered and the reverse-proxy routing from the
+Troth server/container.
 
 ## Docker build
 
@@ -44,6 +48,7 @@ Run it:
 docker run -d \
   --name troth \
   -p 3000:3000 \
+  -e TROTH_SESSION_SECRET="replace-this-with-a-long-random-secret" \
   --restart unless-stopped \
   troth
 ```
@@ -91,10 +96,11 @@ Examples:
 4. Paste a Vikunja personal API token.
 5. Save the connection.
 
-Troth will normalize the URL to `/api/v1` automatically.
+Troth will normalize the URL to `/api/v1` automatically and store the token in
+an encrypted HTTP-only session cookie.
 
-If your Vikunja instance is only reachable on your LAN, VPN, or Tailscale, open
-Troth from a browser that can also reach that Vikunja URL.
+If your Vikunja instance is only reachable on your LAN, VPN, or Tailscale, the
+important requirement is that the Troth server/container can reach that URL.
 
 ## Updating
 
