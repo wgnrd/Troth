@@ -1,38 +1,30 @@
-import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
-import {
-	VikunjaClient,
-	VikunjaClientError,
-	normalizeVikunjaBaseUrl,
-	type ConnectionSettings
-} from '$lib/api/vikunja';
+import { VikunjaClientError, normalizeVikunjaBaseUrl } from '$lib/api/vikunja';
+import { connectSession, disconnectSession, type ConnectionSummary } from '$lib/api/troth/client';
 
-const STORAGE_KEY = 'troth.vikunja.connection';
+export type ConnectionDetails = ConnectionSummary;
 
 export type ConnectionState = {
-	settings: ConnectionSettings | null;
+	settings: ConnectionDetails | null;
 	status: 'idle' | 'checking' | 'connected' | 'error';
 	error: string | null;
 };
 
 function createConnectionStore() {
-	const initialSettings = browser ? readStoredConnection() : null;
 	const initialState: ConnectionState = {
-		settings: initialSettings,
-		status: initialSettings ? 'connected' : 'idle',
+		settings: null,
+		status: 'idle',
 		error: null
 	};
 
 	const { subscribe, set, update } = writable<ConnectionState>(initialState);
 
 	async function connect(input: { baseUrl: string; token: string }) {
-		let normalized: ConnectionSettings;
+		let normalizedBaseUrl: string;
 
 		try {
-			normalized = {
-				baseUrl: normalizeVikunjaBaseUrl(input.baseUrl),
-				token: normalizeToken(input.token)
-			};
+			normalizedBaseUrl = normalizeVikunjaBaseUrl(input.baseUrl);
+			normalizeToken(input.token);
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : 'Could not validate the connection details.';
@@ -47,15 +39,13 @@ function createConnectionStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(normalized);
-			await client.checkConnection();
-
-			if (browser) {
-				localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-			}
+			const settings = await connectSession({
+				baseUrl: normalizedBaseUrl,
+				token: input.token
+			});
 
 			set({
-				settings: normalized,
+				settings,
 				status: 'connected',
 				error: null
 			});
@@ -72,10 +62,8 @@ function createConnectionStore() {
 		}
 	}
 
-	function disconnect() {
-		if (browser) {
-			localStorage.removeItem(STORAGE_KEY);
-		}
+	async function disconnect() {
+		await disconnectSession();
 
 		set({
 			settings: null,
@@ -87,7 +75,14 @@ function createConnectionStore() {
 	return {
 		subscribe,
 		connect,
-		disconnect
+		disconnect,
+		hydrate(settings: ConnectionDetails | null) {
+			set({
+				settings,
+				status: settings ? 'connected' : 'idle',
+				error: null
+			});
+		}
 	};
 }
 
@@ -101,31 +96,6 @@ export function normalizeToken(rawToken: string): string {
 	}
 
 	return token;
-}
-
-function readStoredConnection(): ConnectionSettings | null {
-	const raw = localStorage.getItem(STORAGE_KEY);
-
-	if (!raw) {
-		return null;
-	}
-
-	try {
-		const parsed = JSON.parse(raw) as Partial<ConnectionSettings>;
-
-		if (!parsed.baseUrl || !parsed.token) {
-			localStorage.removeItem(STORAGE_KEY);
-			return null;
-		}
-
-		return {
-			baseUrl: normalizeVikunjaBaseUrl(parsed.baseUrl),
-			token: normalizeToken(parsed.token)
-		};
-	} catch {
-		localStorage.removeItem(STORAGE_KEY);
-		return null;
-	}
 }
 
 function toMessage(error: unknown) {

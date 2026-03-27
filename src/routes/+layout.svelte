@@ -1,8 +1,13 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { connection } from '$lib/stores/connection';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	$effect(() => {
+		connection.hydrate(data.connection);
+	});
 </script>
 
 <svelte:head>

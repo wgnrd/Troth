@@ -1,6 +1,11 @@
 import { get, writable } from 'svelte/store';
-import { VikunjaClient } from '$lib/api/vikunja';
 import type { AppList, CreateProjectInput, UpdateProjectInput } from '$lib/api/vikunja';
+import {
+	createProject as createTrothProject,
+	deleteProject as deleteTrothProject,
+	fetchProjects as fetchTrothProjects,
+	updateProject as updateTrothProject
+} from '$lib/api/troth/client';
 import { getDescendantProjectIds } from '$lib/lists/tree';
 import { connection } from './connection';
 
@@ -30,7 +35,7 @@ function createListsStore() {
 
 	connection.subscribe(($connection) => {
 		const nextKey = $connection.settings
-			? `${$connection.settings.baseUrl}|${$connection.settings.token}`
+			? `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}`
 			: '';
 
 		if (nextKey !== lastConnectionKey) {
@@ -58,8 +63,7 @@ function createListsStore() {
 		update((value) => ({ ...value, loading: true, error: null, mutationError: null }));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const items = await client.fetchProjects();
+			const items = await fetchTrothProjects();
 			set({
 				items,
 				loading: false,
@@ -97,8 +101,7 @@ function createListsStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const createdProject = await client.createProject(input);
+			const createdProject = await createTrothProject(input);
 
 			update((state) => ({
 				...state,
@@ -135,8 +138,7 @@ function createListsStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const updatedProject = await client.updateProject(input);
+			const updatedProject = await updateTrothProject(input);
 
 			update((state) => ({
 				...state,
@@ -181,8 +183,7 @@ function createListsStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			await client.deleteProject(id);
+			await deleteTrothProject(id);
 
 			update((state) => ({
 				...state,

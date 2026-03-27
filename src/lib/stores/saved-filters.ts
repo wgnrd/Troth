@@ -1,6 +1,6 @@
 import { get, writable } from 'svelte/store';
-import { VikunjaClient } from '$lib/api/vikunja';
 import type { AppSavedFilter } from '$lib/api/vikunja';
+import { fetchSavedFilters } from '$lib/api/troth/client';
 import { connection } from './connection';
 
 export type SavedFiltersState = {
@@ -23,7 +23,7 @@ function createSavedFiltersStore() {
 
 	connection.subscribe(($connection) => {
 		const nextKey = $connection.settings
-			? `${$connection.settings.baseUrl}|${$connection.settings.token}`
+			? `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}`
 			: '';
 
 		if (nextKey !== lastConnectionKey) {
@@ -51,8 +51,7 @@ function createSavedFiltersStore() {
 		update((value) => ({ ...value, loading: true, error: null }));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const items = await client.fetchSavedFilters();
+			const items = await fetchSavedFilters();
 
 			set({
 				items,

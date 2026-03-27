@@ -182,7 +182,7 @@
 			return;
 		}
 
-		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.token}`;
+		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}`;
 
 		if (nextKey !== lastLoadKey) {
 			lastLoadKey = nextKey;
@@ -455,7 +455,7 @@
 				<div class="min-w-0 space-y-2">
 					<p class="text-sm font-medium text-foreground">Troth is not connected to Vikunja yet.</p>
 					<p class="text-sm text-muted-foreground">
-						Add your base URL and API token in Settings before loading tasks.
+						Connect Troth to Vikunja in Settings before loading tasks.
 					</p>
 					<Button href={resolve('/settings')} size="sm">Open Settings</Button>
 				</div>

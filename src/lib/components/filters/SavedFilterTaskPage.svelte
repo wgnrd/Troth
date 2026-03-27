@@ -3,7 +3,8 @@
 	import { resolve } from '$app/paths';
 	import { Filter, RefreshCcw, Settings2 } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { VikunjaClient, type AppTask, type UpdateTaskInput } from '$lib/api/vikunja';
+	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import { fetchSavedFilterTasks } from '$lib/api/troth/client';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
@@ -97,7 +98,7 @@
 			return;
 		}
 
-		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.token}|${filterId}`;
+		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}|${filterId}`;
 
 		if (nextKey !== lastLoadKey) {
 			lastLoadKey = nextKey;
@@ -129,8 +130,7 @@
 		filterTasksError = null;
 
 		try {
-			const client = new VikunjaClient(current);
-			filterTaskSnapshot = await client.fetchSavedFilterTasks(filterId);
+			filterTaskSnapshot = await fetchSavedFilterTasks(filterId);
 			filterTasksLoaded = true;
 		} catch (error) {
 			filterTasksError =
@@ -290,7 +290,7 @@
 				<div class="min-w-0 space-y-2">
 					<p class="text-sm font-medium text-foreground">Troth is not connected to Vikunja yet.</p>
 					<p class="text-sm text-muted-foreground">
-						Add your base URL and API token in Settings before loading saved filters.
+						Connect Troth to Vikunja in Settings before loading saved filters.
 					</p>
 					<Button href={resolve('/settings')} size="sm">Open Settings</Button>
 				</div>

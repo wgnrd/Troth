@@ -7,20 +7,20 @@
 	const route = getRouteMeta('/settings');
 
 	let baseUrl = $state($connection.settings?.baseUrl ?? '');
-	let token = $state($connection.settings?.token ?? '');
+	let token = $state('');
 	let syncedSettingsKey = $state(
-		$connection.settings ? `${$connection.settings.baseUrl}|${$connection.settings.token}` : ''
+		$connection.settings ? `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}` : ''
 	);
 
 	$effect(() => {
 		const nextKey = $connection.settings
-			? `${$connection.settings.baseUrl}|${$connection.settings.token}`
+			? `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}`
 			: '';
 
 		if (nextKey !== syncedSettingsKey) {
 			syncedSettingsKey = nextKey;
 			baseUrl = $connection.settings?.baseUrl ?? '';
-			token = $connection.settings?.token ?? '';
+			token = '';
 		}
 	});
 
@@ -37,11 +37,6 @@
 		}
 	});
 
-	const maskedToken = $derived(
-		$connection.settings
-			? `${$connection.settings.token.slice(0, 4)}…${$connection.settings.token.slice(-4)}`
-			: 'Not set'
-	);
 	const resolvedApiUrl = $derived.by(() => {
 		try {
 			return baseUrl.trim() ? normalizeVikunjaBaseUrl(baseUrl) : null;
@@ -79,9 +74,11 @@
 
 		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm">
 			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-				Saved token
+				Session storage
 			</p>
-			<p class="mt-2 text-sm text-foreground">{maskedToken}</p>
+			<p class="mt-2 text-sm text-foreground">
+				{$connection.settings ? 'Stored in an HTTP-only server session' : 'No saved session'}
+			</p>
 		</div>
 	</div>
 
@@ -129,7 +126,7 @@
 				spellcheck="false"
 			/>
 			<p class="text-sm text-muted-foreground">
-				The token is stored in this browser only for this MVP step.
+				The token is sent to Troth once and kept in an HTTP-only server session.
 			</p>
 		</div>
 

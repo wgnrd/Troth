@@ -1,6 +1,12 @@
 import { get, writable } from 'svelte/store';
-import { VikunjaClient, VikunjaTaskMutationError } from '$lib/api/vikunja';
 import type { AppTask, CreateTaskInput, UpdateTaskInput } from '$lib/api/vikunja';
+import {
+	createTask as createTrothTask,
+	deleteTask as deleteTrothTask,
+	fetchTasks,
+	TrothTaskMutationError,
+	updateTask as updateTrothTask
+} from '$lib/api/troth/client';
 import { connection } from './connection';
 
 export type SubtaskSummary = {
@@ -36,7 +42,7 @@ function createTasksStore() {
 
 	connection.subscribe(($connection) => {
 		const nextKey = $connection.settings
-			? `${$connection.settings.baseUrl}|${$connection.settings.token}`
+			? `${$connection.settings.baseUrl}|${$connection.settings.sessionKey}`
 			: '';
 
 		if (nextKey !== lastConnectionKey) {
@@ -64,8 +70,7 @@ function createTasksStore() {
 		update((value) => ({ ...value, loading: true, error: null }));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const items = await client.fetchTasks();
+			const items = await fetchTasks();
 
 			set({
 				items,
@@ -122,8 +127,7 @@ function createTasksStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const createdTask = await client.createTask(input);
+			const createdTask = await createTrothTask(input);
 
 			update((state) => ({
 				...state,
@@ -133,7 +137,7 @@ function createTasksStore() {
 
 			return createdTask;
 		} catch (error) {
-			if (error instanceof VikunjaTaskMutationError && error.task) {
+			if (error instanceof TrothTaskMutationError && error.task) {
 				update((state) => ({
 					...state,
 					creating: false,
@@ -158,7 +162,7 @@ function createTasksStore() {
 
 		return mutateTask(
 			input.id,
-			async (client) => client.updateTask(input, currentTask?.parentTaskId ?? null),
+			async () => updateTrothTask(input, currentTask?.parentTaskId ?? null),
 			(task) => ({
 				...task,
 				title: input.title,
@@ -202,7 +206,14 @@ function createTasksStore() {
 
 		return mutateTask(
 			id,
-			async (client) => client.setTaskCompleted(payload, completed, currentTask.parentTaskId),
+			async () =>
+				updateTrothTask(
+					{
+						...payload,
+						completed
+					},
+					currentTask.parentTaskId
+				),
 			(task) => ({
 				...task,
 				completed,
@@ -237,8 +248,7 @@ function createTasksStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			await client.deleteTask(id);
+			await deleteTrothTask(id);
 
 			update((state) => ({
 				...state,
@@ -280,7 +290,7 @@ function createTasksStore() {
 
 	async function mutateTask(
 		id: number,
-		request: (client: VikunjaClient) => Promise<AppTask>,
+		request: () => Promise<AppTask>,
 		optimisticUpdate: (task: AppTask) => AppTask
 	) {
 		const current = get(connection);
@@ -303,8 +313,7 @@ function createTasksStore() {
 		}));
 
 		try {
-			const client = new VikunjaClient(current.settings);
-			const savedTask = await request(client);
+			const savedTask = await request();
 
 			update((state) => ({
 				...state,
@@ -314,7 +323,7 @@ function createTasksStore() {
 
 			return savedTask;
 		} catch (error) {
-			if (error instanceof VikunjaTaskMutationError && error.task) {
+			if (error instanceof TrothTaskMutationError && error.task) {
 				update((state) => ({
 					...state,
 					items: state.items.map((task) => (task.id === id ? error.task! : task)),
