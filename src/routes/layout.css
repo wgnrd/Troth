@@ -126,6 +126,23 @@
 		@apply font-sans;
 		scrollbar-gutter: stable;
 	}
+
+	/* Prevent iOS Safari from auto-zooming focused form controls under 16px. */
+	input,
+	textarea,
+	select {
+		font-size: 16px;
+	}
+}
+
+@media (min-width: 640px) {
+	@layer base {
+		input,
+		textarea,
+		select {
+			font-size: 0.875rem;
+		}
+	}
 }
 
 @custom-variant data-open {
