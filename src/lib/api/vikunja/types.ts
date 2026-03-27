@@ -33,8 +33,28 @@ export type VikunjaProject = {
 	hex_color?: string;
 	identifier?: string;
 	parent_project_id?: number | null;
+	position?: number;
+	max_permission?: number;
+	views?: Array<Record<string, unknown>>;
 	created?: string;
 	updated?: string;
+};
+
+export type VikunjaSavedFilter = {
+	id: number;
+	title: string;
+	description?: string;
+	filters?: Record<string, unknown>;
+	is_favorite?: boolean;
+	created?: string;
+	updated?: string;
+};
+
+export type VikunjaProjectView = {
+	id: number;
+	title?: string;
+	position?: number;
+	view_kind?: 'list' | 'gantt' | 'table' | 'kanban';
 };
 
 export type AppList = {
@@ -45,6 +65,13 @@ export type AppList = {
 	color: string | null;
 	identifier: string | null;
 	parentId: number | null;
+};
+
+export type AppSavedFilter = {
+	id: number;
+	title: string;
+	description: string;
+	position: number | null;
 };
 
 export type CreateProjectInput = {

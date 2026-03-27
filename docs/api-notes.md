@@ -21,6 +21,8 @@ For this step, the token is persisted in browser local storage through `src/lib/
 The current API layer wraps only the endpoints needed for the first real task flow:
 
 - `GET /projects`
+- `GET /projects/{id}/views`
+- `GET /projects/{id}/views/{view}/tasks`
 - `GET /tasks`
 - `PUT /projects/{id}/tasks`
 - `POST /tasks/{id}`
@@ -30,6 +32,9 @@ Connection testing also uses the project fetch path, since it requires valid aut
 ## Assumptions and limitations
 
 - Vikunja projects are treated as the app’s lists/projects surface for now.
+- Troth currently excludes saved filters from its project loading path, even if a Vikunja instance returns them alongside projects.
+- Troth also excludes Vikunja virtual or system entries with non-positive ids, such as built-in smart views like `Today`, from the project loading path.
+- Saved filters are surfaced separately from projects, using the non-positive ids Vikunja exposes through the project index.
 - Task filtering for Today, Inbox, All Active, and Completed happens client-side after loading the user’s tasks.
 - The Inbox view assumes there is a Vikunja project named `Inbox`. If that project does not exist, the route stays functional but shows an explicit empty/instruction state.
 - Due dates are edited as date-only values in the UI and mapped back to Vikunja as noon UTC timestamps to avoid common timezone drift in this MVP step.

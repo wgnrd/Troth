@@ -47,7 +47,9 @@
 	);
 	const mobileMoreActive = $derived.by(() => {
 		const href = activeRoute?.href;
-		return Boolean(href && !mobilePrimaryRoutes.some((route) => route.href === href));
+		return page.url.pathname.startsWith('/filters/')
+			? true
+			: Boolean(href && !mobilePrimaryRoutes.some((route) => route.href === href));
 	});
 	const mobileComposerFixedListId = $derived.by(() => {
 		if (page.url.pathname === '/inbox') {

@@ -4,9 +4,15 @@ export {
 	VikunjaTaskMutationError,
 	normalizeVikunjaBaseUrl
 } from './client';
-export { mapProjectToList, mapTaskToAppTask } from './mappers';
+export {
+	isSavedFilter,
+	mapProjectToList,
+	mapProjectToSavedFilter,
+	mapTaskToAppTask
+} from './mappers';
 export type {
 	AppList,
+	AppSavedFilter,
 	AppTask,
 	ConnectionSettings,
 	CreateProjectInput,
@@ -14,5 +20,7 @@ export type {
 	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaProject,
+	VikunjaProjectView,
+	VikunjaSavedFilter,
 	VikunjaTask
 } from './types';

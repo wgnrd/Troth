@@ -261,6 +261,23 @@ function createTasksStore() {
 		update((state) => ({ ...state, mutationError: null }));
 	}
 
+	function removeTasksByListIds(listIds: number[]) {
+		if (listIds.length === 0) {
+			return;
+		}
+
+		const listIdSet = new Set(listIds);
+
+		update((state) => ({
+			...state,
+			items: state.items.filter((task) => task.listId === null || !listIdSet.has(task.listId)),
+			mutatingIds: state.mutatingIds.filter((id) => {
+				const task = state.items.find((item) => item.id === id);
+				return !task || task.listId === null || !listIdSet.has(task.listId);
+			})
+		}));
+	}
+
 	async function mutateTask(
 		id: number,
 		request: (client: VikunjaClient) => Promise<AppTask>,
@@ -325,7 +342,8 @@ function createTasksStore() {
 		updateTask,
 		setCompleted,
 		deleteTask,
-		clearMutationError
+		clearMutationError,
+		removeTasksByListIds
 	};
 }
 

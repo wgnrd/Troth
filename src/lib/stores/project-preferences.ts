@@ -7,6 +7,7 @@ const STORAGE_KEY = 'troth.projects.preferences';
 export type ProjectPreferencesState = {
 	hiddenProjectIds: number[];
 	expandedProjectIds: number[];
+	projectsSectionExpanded: boolean;
 };
 
 function createProjectPreferencesStore() {
@@ -14,7 +15,8 @@ function createProjectPreferencesStore() {
 		? readStoredPreferences()
 		: {
 				hiddenProjectIds: [],
-				expandedProjectIds: []
+				expandedProjectIds: [],
+				projectsSectionExpanded: true
 			};
 
 	const { subscribe, update } = writable<ProjectPreferencesState>(initialState);
@@ -52,10 +54,43 @@ function createProjectPreferencesStore() {
 		});
 	}
 
+	function toggleProjectsSection() {
+		update((state) => {
+			const nextState = {
+				...state,
+				projectsSectionExpanded: !state.projectsSectionExpanded
+			};
+
+			writeStoredPreferences(nextState);
+			return nextState;
+		});
+	}
+
+	function removeProjectIds(projectIds: number[]) {
+		if (projectIds.length === 0) {
+			return;
+		}
+
+		const projectIdSet = new Set(projectIds);
+
+		update((state) => {
+			const nextState = {
+				...state,
+				hiddenProjectIds: state.hiddenProjectIds.filter((id) => !projectIdSet.has(id)),
+				expandedProjectIds: state.expandedProjectIds.filter((id) => !projectIdSet.has(id))
+			};
+
+			writeStoredPreferences(nextState);
+			return nextState;
+		});
+	}
+
 	return {
 		subscribe,
 		toggleHidden,
-		toggleCollapsed
+		toggleCollapsed,
+		toggleProjectsSection,
+		removeProjectIds
 	};
 }
 
@@ -67,7 +102,8 @@ function readStoredPreferences(): ProjectPreferencesState {
 	if (!raw) {
 		return {
 			hiddenProjectIds: [],
-			expandedProjectIds: []
+			expandedProjectIds: [],
+			projectsSectionExpanded: true
 		};
 	}
 
@@ -80,13 +116,16 @@ function readStoredPreferences(): ProjectPreferencesState {
 				: [],
 			expandedProjectIds: Array.isArray(parsed.expandedProjectIds)
 				? parsed.expandedProjectIds.filter((value): value is number => typeof value === 'number')
-				: []
+				: [],
+			projectsSectionExpanded:
+				typeof parsed.projectsSectionExpanded === 'boolean' ? parsed.projectsSectionExpanded : true
 		};
 	} catch {
 		localStorage.removeItem(STORAGE_KEY);
 		return {
 			hiddenProjectIds: [],
-			expandedProjectIds: []
+			expandedProjectIds: [],
+			projectsSectionExpanded: true
 		};
 	}
 }

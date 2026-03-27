@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
-	import { Hash, Layers3, PencilLine, Plus, RefreshCcw, Settings2 } from '@lucide/svelte';
+	import { Hash, Layers3, PencilLine, Plus, RefreshCcw, Settings2, Trash2 } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import ProjectEditor from '$lib/components/projects/ProjectEditor.svelte';
 	import { connection } from '$lib/stores/connection';
@@ -71,6 +71,23 @@
 	}) {
 		const updatedProject = await lists.updateProject(input);
 		return Boolean(updatedProject);
+	}
+
+	async function handleDeleteProject(project: AppList) {
+		const confirmed = confirm(`Delete "${project.title}" and its nested projects?`);
+
+		if (!confirmed) {
+			return;
+		}
+
+		const deletedProjectIds = await lists.deleteProject(project.id);
+
+		if (!deletedProjectIds) {
+			return;
+		}
+
+		projectPreferences.removeProjectIds(deletedProjectIds);
+		tasks.removeTasksByListIds(deletedProjectIds);
 	}
 
 	function openCreateProject() {
@@ -213,7 +230,7 @@
 								{/if}
 							</div>
 
-							<div class="flex w-14 shrink-0 items-center justify-end gap-1">
+							<div class="flex shrink-0 items-center justify-end gap-1">
 								<span class="min-w-4 text-right text-xs text-stone-500">{openTaskCount}</span>
 								<Button
 									variant="ghost"
@@ -225,6 +242,18 @@
 									}}
 								>
 									<PencilLine class="size-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									class="text-destructive/80 hover:bg-destructive/8 hover:text-destructive"
+									aria-label={`Delete ${node.list.title}`}
+									disabled={$lists.mutatingIds.includes(node.list.id)}
+									onclick={() => {
+										void handleDeleteProject(node.list);
+									}}
+								>
+									<Trash2 class="size-4" />
 								</Button>
 							</div>
 						</div>
@@ -249,7 +278,7 @@
 											</span>
 											<span class="truncate">{entry.list.title}</span>
 										</a>
-										<span class="flex w-14 shrink-0 items-center justify-end gap-1">
+										<span class="flex shrink-0 items-center justify-end gap-1">
 											<span class="min-w-4 text-right text-xs text-stone-500"
 												>{entryOpenTaskCount}</span
 											>
@@ -264,6 +293,19 @@
 												}}
 											>
 												<PencilLine class="size-4" />
+											</button>
+											<button
+												type="button"
+												class="inline-flex size-7 items-center justify-center rounded-md text-destructive/70 transition hover:bg-destructive/8 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+												aria-label={`Delete ${entry.list.title}`}
+												disabled={$lists.mutatingIds.includes(entry.list.id)}
+												onclick={(event) => {
+													event.preventDefault();
+													event.stopPropagation();
+													void handleDeleteProject(entry.list);
+												}}
+											>
+												<Trash2 class="size-4" />
 											</button>
 										</span>
 									</div>

@@ -17,6 +17,7 @@ The app uses small Svelte stores instead of a larger query or state library.
 
 - `src/lib/stores/connection.ts` persists the Vikunja base URL and API token in browser local storage, validates input, and checks the connection before saving it.
 - `src/lib/stores/lists.ts` loads and refreshes Vikunja projects, then exposes them as app lists.
+- `src/lib/stores/saved-filters.ts` loads and refreshes Vikunja saved filters and smart views for the sidebar.
 - `src/lib/stores/tasks.ts` loads and refreshes tasks, and handles create, update, and complete/reopen writes with lightweight optimistic updates.
 
 Both the task and list stores reset themselves when the saved Vikunja connection changes so stale data does not linger across reconnects. Refresh failures now keep the last successful data in place and surface the error inline so the MVP stays usable during temporary API issues.
@@ -32,6 +33,8 @@ The first real task workflow lives in `src/lib/components/tasks/`.
 - `TaskListSkeleton.svelte` provides the subtle loading shell used across task views.
 
 Route-specific filtering lives in `src/lib/tasks/view.ts`. That file owns the readable helpers for Today, Inbox, Upcoming, All Active, and Completed so the classification rules stay out of the route components.
+
+Saved-filter task pages live under `src/lib/components/filters/` and reuse the same task list/editor components, but refresh their membership from Vikunja after task edits so filter results stay in sync.
 
 ## MVP behavior rules
 

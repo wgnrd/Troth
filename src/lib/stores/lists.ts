@@ -1,6 +1,7 @@
 import { get, writable } from 'svelte/store';
 import { VikunjaClient } from '$lib/api/vikunja';
 import type { AppList, CreateProjectInput, UpdateProjectInput } from '$lib/api/vikunja';
+import { getDescendantProjectIds } from '$lib/lists/tree';
 import { connection } from './connection';
 
 export type ListsState = {
@@ -154,6 +155,56 @@ function createListsStore() {
 		}
 	}
 
+	async function deleteProject(id: number) {
+		const current = get(connection);
+
+		if (!current.settings) {
+			update((state) => ({
+				...state,
+				mutationError: 'Add your Vikunja connection in Settings before deleting projects.'
+			}));
+			return null;
+		}
+
+		const snapshot = get({ subscribe }).items;
+		const projectIdsToRemove = getDescendantProjectIds(snapshot, id);
+
+		if (projectIdsToRemove.length === 0) {
+			return null;
+		}
+
+		update((state) => ({
+			...state,
+			mutationError: null,
+			mutatingIds: [...state.mutatingIds, ...projectIdsToRemove],
+			items: state.items.filter((item) => !projectIdsToRemove.includes(item.id))
+		}));
+
+		try {
+			const client = new VikunjaClient(current.settings);
+			await client.deleteProject(id);
+
+			update((state) => ({
+				...state,
+				mutatingIds: state.mutatingIds.filter(
+					(projectId) => !projectIdsToRemove.includes(projectId)
+				)
+			}));
+
+			return projectIdsToRemove;
+		} catch (error) {
+			update((state) => ({
+				...state,
+				items: snapshot,
+				mutatingIds: state.mutatingIds.filter(
+					(projectId) => !projectIdsToRemove.includes(projectId)
+				),
+				mutationError: error instanceof Error ? error.message : 'Could not delete the project.'
+			}));
+			return null;
+		}
+	}
+
 	function clearMutationError() {
 		update((state) => ({ ...state, mutationError: null }));
 	}
@@ -164,6 +215,7 @@ function createListsStore() {
 		refresh: () => load(true),
 		createProject,
 		updateProject,
+		deleteProject,
 		clearMutationError
 	};
 }

@@ -1,5 +1,6 @@
 import type {
 	AppList,
+	AppSavedFilter,
 	AppTask,
 	CreateProjectInput,
 	CreateTaskInput,
@@ -7,6 +8,7 @@ import type {
 	UpdateTaskInput,
 	VikunjaProject,
 	VikunjaProjectWrite,
+	VikunjaSavedFilter,
 	VikunjaTask,
 	VikunjaTaskWrite
 } from './types';
@@ -21,6 +23,35 @@ export function mapProjectToList(project: VikunjaProject): AppList {
 		identifier: project.identifier ?? null,
 		parentId: project.parent_project_id ?? null
 	};
+}
+
+export function mapProjectToSavedFilter(project: VikunjaProject): AppSavedFilter {
+	return {
+		id: project.id,
+		title: project.title,
+		description: project.description ?? '',
+		position: typeof project.position === 'number' ? project.position : null
+	};
+}
+
+export function isSavedFilter(
+	candidate: VikunjaProject | VikunjaSavedFilter
+): candidate is VikunjaSavedFilter {
+	return 'filters' in candidate;
+}
+
+export function isProjectLike(
+	candidate: VikunjaProject | VikunjaSavedFilter
+): candidate is VikunjaProject {
+	return (
+		'is_archived' in candidate ||
+		'hex_color' in candidate ||
+		'identifier' in candidate ||
+		'parent_project_id' in candidate ||
+		'position' in candidate ||
+		'max_permission' in candidate ||
+		'views' in candidate
+	);
 }
 
 export function mapTaskToAppTask(task: VikunjaTask): AppTask {

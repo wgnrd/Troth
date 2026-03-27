@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { ChevronDown, ChevronRight, Eye, EyeOff, Hash, X } from '@lucide/svelte';
+	import { ChevronDown, ChevronRight, Eye, EyeOff, Filter, Hash, X } from '@lucide/svelte';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
+	import { savedFilters } from '$lib/stores/saved-filters';
 	import {
 		buildProjectTree,
 		getEffectiveHiddenProjectIds,
@@ -83,6 +84,7 @@
 	const settingsRoute = appRoutes.find((item) => item.href === '/settings');
 	const ProjectsIcon = projectsRoute?.icon;
 	const SettingsIcon = settingsRoute?.icon;
+	const savedFilterEntries = $derived($savedFilters.items);
 	const allProjectLists = $derived($lists.items.filter((list) => !list.isArchived));
 	const hiddenProjectIds = $derived(
 		getEffectiveHiddenProjectIds(allProjectLists, $projectPreferences.hiddenProjectIds)
@@ -104,11 +106,16 @@
 	);
 
 	$effect(() => {
-		if (!$connection.settings || $lists.loaded || $lists.loading) {
+		if (
+			!$connection.settings ||
+			($lists.loaded && $savedFilters.loaded) ||
+			$lists.loading ||
+			$savedFilters.loading
+		) {
 			return;
 		}
 
-		void lists.load();
+		void Promise.all([lists.load(), savedFilters.load()]);
 	});
 </script>
 
@@ -155,13 +162,46 @@
 			</a>
 		{/each}
 
+		{#if $connection.settings && savedFilterEntries.length > 0}
+			<div class="pt-2">
+				<Separator class="mb-2 opacity-50" />
+				<p class="px-2.5 text-[0.72rem] font-medium text-muted-foreground/80">Saved Filters</p>
+
+				<div class="mt-2 space-y-1" aria-label="Saved filters">
+					{#each savedFilterEntries as entry (entry.id)}
+						{@const active = isActive(`/filters/${entry.id}`)}
+						<a
+							href={resolve(`/filters/${entry.id}`)}
+							onclick={onSelect}
+							class={cn(
+								'group flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.82rem] transition-colors',
+								active
+									? 'bg-primary/8 text-foreground'
+									: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
+							)}
+						>
+							<span
+								class={cn(
+									'rounded-lg p-1.5 transition-colors',
+									active
+										? 'bg-primary/12 text-foreground'
+										: 'text-muted-foreground group-hover:text-foreground'
+								)}
+							>
+								<Filter class="size-3.5" />
+							</span>
+							<span class="min-w-0 flex-1 truncate font-medium">{entry.title}</span>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		{#if projectsRoute && ProjectsIcon}
 			<div class="pt-2">
 				<Separator class="mb-2 opacity-50" />
 
-				<a
-					href={resolve(projectsRoute.href)}
-					onclick={onSelect}
+				<div
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
 						isExactActive(projectsRoute.href)
@@ -169,21 +209,45 @@
 							: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
 					)}
 				>
-					<span
-						class={cn(
-							'rounded-lg p-1.5 transition-colors',
-							isExactActive(projectsRoute.href)
-								? 'bg-primary/12 text-foreground'
-								: 'text-muted-foreground group-hover:text-foreground'
-						)}
+					<a
+						href={resolve(projectsRoute.href)}
+						onclick={onSelect}
+						class="flex min-w-0 flex-1 items-center gap-3"
 					>
-						<ProjectsIcon class="size-4" />
-					</span>
+						<span
+							class={cn(
+								'rounded-lg p-1.5 transition-colors',
+								isExactActive(projectsRoute.href)
+									? 'bg-primary/12 text-foreground'
+									: 'text-muted-foreground group-hover:text-foreground'
+							)}
+						>
+							<ProjectsIcon class="size-4" />
+						</span>
 
-					<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
-				</a>
+						<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
+					</a>
 
-				{#if $connection.settings && projectEntries.length > 0}
+					<button
+						type="button"
+						class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
+						aria-label={$projectPreferences.projectsSectionExpanded
+							? 'Collapse projects'
+							: 'Expand projects'}
+						onclick={(event) => {
+							stopEvent(event);
+							projectPreferences.toggleProjectsSection();
+						}}
+					>
+						{#if $projectPreferences.projectsSectionExpanded}
+							<ChevronDown class="size-3.5" />
+						{:else}
+							<ChevronRight class="size-3.5" />
+						{/if}
+					</button>
+				</div>
+
+				{#if $projectPreferences.projectsSectionExpanded && $connection.settings && projectEntries.length > 0}
 					<div class="mt-2 space-y-1" aria-label="Projects">
 						{#each projectEntries as entry (entry.list.id)}
 							{@const active = isActive(`/projects/${entry.list.id}`)}
@@ -255,7 +319,7 @@
 					</div>
 				{/if}
 
-				{#if hiddenProjects.length > 0}
+				{#if $projectPreferences.projectsSectionExpanded && hiddenProjects.length > 0}
 					<div class="mt-3 space-y-1" aria-label="Hidden projects">
 						<p class="pl-4 text-[0.72rem] font-medium text-muted-foreground/80">Hidden Projects</p>
 						{#each hiddenProjects as project (project.id)}

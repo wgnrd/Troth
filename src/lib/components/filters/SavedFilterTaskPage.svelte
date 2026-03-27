@@ -1,31 +1,29 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { FolderTree, RefreshCcw, Settings2, Trash2 } from '@lucide/svelte';
+	import { Filter, RefreshCcw, Settings2 } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import { VikunjaClient, type AppTask, type UpdateTaskInput } from '$lib/api/vikunja';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
+	import { savedFilters } from '$lib/stores/saved-filters';
 	import { filterTopLevelTasks, getSubtaskSummary, tasks } from '$lib/stores/tasks';
+	import { getEffectiveHiddenProjectIds } from '$lib/lists/tree';
 	import { fromDateInputValue, groupTasksByDate, sortTasks } from '$lib/tasks/view';
-	import {
-		findProjectById,
-		getDescendantProjectIds,
-		getEffectiveHiddenProjectIds
-	} from '$lib/lists/tree';
-	import TaskComposer from '$lib/components/tasks/TaskComposer.svelte';
 	import TaskEditor from '$lib/components/tasks/TaskEditor.svelte';
 	import TaskGroupedList from '$lib/components/tasks/TaskGroupedList.svelte';
 	import TaskListSkeleton from '$lib/components/tasks/TaskListSkeleton.svelte';
 
-	let { listId }: { listId: number } = $props();
+	let { filterId }: { filterId: number } = $props();
 
 	let selectedTaskId = $state<number | null>(null);
 	let lastLoadKey = $state('');
 	let exitingTaskIds = $state<number[]>([]);
-	let showQuickAddComposer = $state(false);
+	let filterTaskSnapshot = $state<AppTask[]>([]);
+	let filterTasksLoading = $state(false);
+	let filterTasksLoaded = $state(false);
+	let filterTasksError = $state<string | null>(null);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
@@ -34,16 +32,13 @@
 		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
 	);
 	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
-	const currentProject = $derived(findProjectById(activeLists, listId));
-	const visibleProjectIds = $derived(
-		currentProject ? getDescendantProjectIds(activeLists, currentProject.id) : []
-	);
-	const visibleProjectIdSet = $derived(new Set(visibleProjectIds));
+	const listsById = $derived(new Map(activeLists.map((list) => [list.id, list])));
+	const currentFilter = $derived($savedFilters.items.find((item) => item.id === filterId) ?? null);
 	const visibleTasks = $derived.by(() => {
-		const filteredTasks = filterTopLevelTasks($tasks.items).filter((task) => {
-			return !task.completed && task.listId !== null && visibleProjectIdSet.has(task.listId);
-		});
-		const exitingTasks = $tasks.items.filter(
+		const filteredTasks = filterTopLevelTasks(filterTaskSnapshot)
+			.map((task) => $tasks.items.find((item) => item.id === task.id) ?? task)
+			.filter((task) => task.listId === null || listsById.has(task.listId));
+		const exitingTasks = filterTopLevelTasks($tasks.items).filter(
 			(task) =>
 				exitingTaskIds.includes(task.id) && !filteredTasks.some((item) => item.id === task.id)
 		);
@@ -51,15 +46,20 @@
 		return sortTasks([...filteredTasks, ...exitingTasks]);
 	});
 	const groupedVisibleTasks = $derived(groupTasksByDate(visibleTasks));
-	const selectedTask = $derived(
-		selectedTaskId === null
-			? null
-			: ($tasks.items.find((task) => task.id === selectedTaskId) ?? null)
-	);
+	const selectedTask = $derived.by(() => {
+		if (selectedTaskId === null) {
+			return null;
+		}
+
+		return (
+			$tasks.items.find((task) => task.id === selectedTaskId) ??
+			filterTaskSnapshot.find((task) => task.id === selectedTaskId) ??
+			null
+		);
+	});
 	const isSavingSelectedTask = $derived(
 		selectedTask ? $tasks.mutatingIds.includes(selectedTask.id) : false
 	);
-	const listsById = $derived(new Map(activeLists.map((list) => [list.id, list])));
 	const subtaskSummaryByParentId = $derived.by(() => {
 		const summaries: Record<number, { total: number; open: number; completed: number }> = {};
 
@@ -73,40 +73,35 @@
 
 		return summaries;
 	});
-	const loadError = $derived($tasks.error ?? $lists.error);
+	const loadError = $derived(
+		filterTasksError ?? $savedFilters.error ?? $tasks.error ?? $lists.error
+	);
 	const hasVisibleTasks = $derived(visibleTasks.length > 0);
 	const showInitialLoading = $derived(
-		configured && $tasks.loading && !$tasks.loaded && !$lists.loaded
+		configured &&
+			(filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading) &&
+			!filterTasksLoaded
 	);
 	const showEmptyState = $derived(
-		configured && !showInitialLoading && !loadError && currentProject && !hasVisibleTasks
+		configured && !showInitialLoading && !loadError && currentFilter && !hasVisibleTasks
 	);
-	const nestedProjectCount = $derived(Math.max(visibleProjectIds.length - 1, 0));
-	const projectMeta = $derived.by(() => {
-		if (!currentProject) {
-			return undefined;
-		}
-
-		if (nestedProjectCount > 0) {
-			return `Includes ${nestedProjectCount} nested project${nestedProjectCount === 1 ? '' : 's'}`;
-		}
-
-		return currentProject.description || 'Grouped by due date';
-	});
+	const filterMeta = $derived(currentFilter?.description || 'Tasks matching this saved filter');
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
 			lastLoadKey = '';
 			selectedTaskId = null;
-			showQuickAddComposer = false;
+			filterTaskSnapshot = [];
+			filterTasksLoaded = false;
+			filterTasksError = null;
 			return;
 		}
 
-		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.token}`;
+		const nextKey = `${$connection.settings.baseUrl}|${$connection.settings.token}|${filterId}`;
 
 		if (nextKey !== lastLoadKey) {
 			lastLoadKey = nextKey;
-			void Promise.all([lists.load(), tasks.load()]);
+			void Promise.all([lists.load(), tasks.load(), savedFilters.load(), loadFilterTasks(true)]);
 		}
 	});
 
@@ -116,84 +111,48 @@
 		}
 	});
 
-	$effect(() => {
-		if (!browser || !configured || !currentProject) {
+	async function loadFilterTasks(force = false) {
+		const current = $connection.settings;
+
+		if (!current) {
+			filterTasksError = 'Add your Vikunja connection in Settings to load saved filters.';
+			filterTasksLoaded = false;
+			filterTaskSnapshot = [];
 			return;
 		}
 
-		function handleQuickAddShortcut(event: KeyboardEvent) {
-			if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
-				return;
-			}
-
-			if (event.key.toLowerCase() !== 'n') {
-				return;
-			}
-
-			const activeElement =
-				document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-			if (
-				activeElement &&
-				(activeElement.isContentEditable ||
-					activeElement instanceof HTMLInputElement ||
-					activeElement instanceof HTMLTextAreaElement ||
-					activeElement instanceof HTMLSelectElement)
-			) {
-				return;
-			}
-
-			event.preventDefault();
-			showQuickAddComposer = true;
+		if (filterTasksLoading && !force) {
+			return;
 		}
 
-		document.addEventListener('keydown', handleQuickAddShortcut);
+		filterTasksLoading = true;
+		filterTasksError = null;
 
-		return () => {
-			document.removeEventListener('keydown', handleQuickAddShortcut);
-		};
-	});
+		try {
+			const client = new VikunjaClient(current);
+			filterTaskSnapshot = await client.fetchSavedFilterTasks(filterId);
+			filterTasksLoaded = true;
+		} catch (error) {
+			filterTasksError =
+				error instanceof Error ? error.message : 'Could not load tasks for this saved filter.';
+		} finally {
+			filterTasksLoading = false;
+		}
+	}
 
 	async function handleRefresh() {
-		await Promise.all([lists.refresh(), tasks.refresh()]);
-	}
-
-	async function handleDeleteProject() {
-		if (!currentProject) {
-			return;
-		}
-
-		const confirmed = confirm(`Delete "${currentProject.title}" and its nested projects?`);
-
-		if (!confirmed) {
-			return;
-		}
-
-		const deletedProjectIds = await lists.deleteProject(currentProject.id);
-
-		if (!deletedProjectIds) {
-			return;
-		}
-
-		projectPreferences.removeProjectIds(deletedProjectIds);
-		tasks.removeTasksByListIds(deletedProjectIds);
-		selectedTaskId = null;
-		await goto(resolve('/projects'));
-	}
-
-	async function handleQuickAdd(input: {
-		title: string;
-		listId: number;
-		dueDate?: string | null;
-		priority?: number;
-		parentTaskId?: number | null;
-	}) {
-		const createdTask = await tasks.createTask(input);
-		return Boolean(createdTask);
+		await Promise.all([
+			lists.refresh(),
+			tasks.refresh(),
+			savedFilters.refresh(),
+			loadFilterTasks(true)
+		]);
 	}
 
 	async function handleSave(input: UpdateTaskInput) {
 		const savedTask = await tasks.updateTask(input);
+
+		await loadFilterTasks(true);
 
 		if (savedTask) {
 			selectedTaskId = savedTask.id;
@@ -210,6 +169,7 @@
 		}
 
 		await tasks.setCompleted(task.id, completed);
+		await loadFilterTasks(true);
 	}
 
 	function startTaskExit(taskId: number) {
@@ -240,6 +200,7 @@
 		}
 
 		await tasks.updateTask(buildUpdateInput(task, { dueDate }));
+		await loadFilterTasks(true);
 	}
 
 	async function handleRescheduleTask(task: AppTask, dateKey: string) {
@@ -258,10 +219,13 @@
 
 	async function handleListChange(task: AppTask, nextListId: number) {
 		await tasks.updateTask(buildUpdateInput(task, { listId: nextListId }));
+		await loadFilterTasks(true);
 	}
 
 	async function handleDelete(task: AppTask) {
 		const deleted = await tasks.deleteTask(task.id);
+
+		await loadFilterTasks(true);
 
 		if (deleted) {
 			selectedTaskId = null;
@@ -292,45 +256,27 @@
 	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 		<div class="space-y-1">
 			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
-				{currentProject?.title ?? 'Project'}
+				{currentFilter?.title ?? 'Saved Filter'}
 			</h1>
-			{#if projectMeta}
-				<p class="text-sm text-muted-foreground">{projectMeta}</p>
-			{/if}
+			<p class="text-sm text-muted-foreground">{filterMeta}</p>
 		</div>
 
 		{#if configured}
-			<div class="flex items-center gap-2 self-end">
-				{#if currentProject}
-					<Button
-						variant="ghost"
-						size="sm"
-						class="text-destructive/80 hover:bg-destructive/8 hover:text-destructive"
-						aria-label={`Delete ${currentProject.title}`}
-						disabled={$lists.mutatingIds.includes(currentProject.id)}
-						onclick={() => {
-							void handleDeleteProject();
-						}}
-					>
-						<Trash2 class="size-3.5" />
-						Delete Project
-					</Button>
-				{/if}
-
-				<Button
-					variant="outline"
-					size="sm"
-					class="hidden sm:inline-flex"
-					aria-label={$tasks.loading || $lists.loading
-						? 'Refreshing project tasks'
-						: 'Refresh project tasks'}
-					onclick={handleRefresh}
-					disabled={$tasks.loading || $lists.loading}
-				>
-					<RefreshCcw class="size-3.5" />
-					{$tasks.loading || $lists.loading ? 'Refreshing…' : 'Refresh'}
-				</Button>
-			</div>
+			<Button
+				variant="outline"
+				size="sm"
+				class="hidden self-end sm:inline-flex"
+				aria-label={filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading
+					? 'Refreshing saved filter'
+					: 'Refresh saved filter'}
+				onclick={handleRefresh}
+				disabled={filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading}
+			>
+				<RefreshCcw class="size-3.5" />
+				{filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading
+					? 'Refreshing…'
+					: 'Refresh'}
+			</Button>
 		{/if}
 	</div>
 
@@ -344,73 +290,27 @@
 				<div class="min-w-0 space-y-2">
 					<p class="text-sm font-medium text-foreground">Troth is not connected to Vikunja yet.</p>
 					<p class="text-sm text-muted-foreground">
-						Add your base URL and API token in Settings before loading project tasks.
+						Add your base URL and API token in Settings before loading saved filters.
 					</p>
 					<Button href={resolve('/settings')} size="sm">Open Settings</Button>
 				</div>
 			</div>
 		</div>
-	{:else if !currentProject && $lists.loaded}
+	{:else if !currentFilter && $savedFilters.loaded}
 		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
 			<div class="mx-auto flex max-w-md flex-col items-center text-center">
 				<div
 					class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]"
 				>
-					<FolderTree class="size-5" />
+					<Filter class="size-5" />
 				</div>
-				<p class="text-base font-medium text-foreground">Project not found</p>
+				<p class="text-base font-medium text-foreground">Saved filter not found</p>
 				<p class="mt-2 text-sm leading-6 text-muted-foreground">
-					This project is missing, archived, or no longer available from Vikunja.
+					This saved filter is missing or no longer available from Vikunja.
 				</p>
-				<Button href={resolve('/projects')} size="sm" class="mt-4">Back to Projects</Button>
 			</div>
 		</div>
 	{:else}
-		{#if currentProject}
-			{#if showQuickAddComposer}
-				<div class="hidden md:block">
-					<TaskComposer
-						lists={activeLists}
-						busy={$tasks.creating}
-						error={$tasks.mutationError}
-						fixedListId={currentProject.id}
-						autoFocus
-						placeholder={`Add to ${currentProject.title}`}
-						disabledMessage="Add a project in Vikunja before creating tasks."
-						onCollapse={() => {
-							showQuickAddComposer = false;
-						}}
-						onSubmit={handleQuickAdd}
-					/>
-				</div>
-			{:else}
-				<div class="hidden justify-start md:flex">
-					<Button
-						variant="outline"
-						size="sm"
-						class="group h-10 gap-2 rounded-full pr-2 pl-3"
-						aria-label={`Add to ${currentProject.title}`}
-						onclick={() => {
-							showQuickAddComposer = true;
-						}}
-					>
-						<span class="text-base leading-none">+</span>
-						<span>Add task</span>
-						<span
-							class="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100"
-							aria-hidden="true"
-						>
-							<kbd
-								class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset]"
-							>
-								N
-							</kbd>
-						</span>
-					</Button>
-				</div>
-			{/if}
-		{/if}
-
 		{#if loadError}
 			<div
 				class="rounded-[1.6rem] border border-destructive/30 bg-destructive/6 px-4 py-3 text-sm text-destructive"
@@ -427,10 +327,9 @@
 		{:else if showEmptyState}
 			<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
 				<div class="space-y-2 text-center sm:text-left">
-					<p class="text-sm font-medium text-foreground">No active tasks</p>
+					<p class="text-sm font-medium text-foreground">No matching tasks</p>
 					<p class="text-sm text-muted-foreground">
-						Nothing is scheduled in this project yet. Add a task or pick a nested project from the
-						sidebar.
+						There are no active tasks in this saved filter right now.
 					</p>
 				</div>
 			</div>
@@ -439,7 +338,7 @@
 				groups={groupedVisibleTasks}
 				lists={activeLists}
 				{listsById}
-				groupAriaLabelPrefix="Project tasks for"
+				groupAriaLabelPrefix="Saved filter tasks for"
 				showDueDateBadge={false}
 				{subtaskSummaryByParentId}
 				{exitingTaskIds}
@@ -474,7 +373,6 @@
 		selectedTaskId = task.id;
 		tasks.clearMutationError();
 	}}
-	onCreateTask={handleQuickAdd}
 	onToggleComplete={handleToggleComplete}
 	onDueDateChange={handleDueDateChange}
 	onListChange={handleListChange}

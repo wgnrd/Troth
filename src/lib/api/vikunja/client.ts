@@ -1,13 +1,17 @@
 import {
+	isProjectLike,
+	isSavedFilter,
 	mapCreateProjectInput,
 	mapCreateTaskInput,
 	mapProjectToList,
+	mapProjectToSavedFilter,
 	mapTaskToAppTask,
 	mapUpdateProjectInput,
 	mapUpdateTaskInput
 } from './mappers';
 import type {
 	AppList,
+	AppSavedFilter,
 	AppTask,
 	ConnectionSettings,
 	CreateProjectInput,
@@ -16,6 +20,8 @@ import type {
 	UpdateTaskInput,
 	VikunjaErrorResponse,
 	VikunjaProject,
+	VikunjaProjectView,
+	VikunjaSavedFilter,
 	VikunjaTask
 } from './types';
 
@@ -60,12 +66,77 @@ export class VikunjaClient {
 	}
 
 	async fetchProjects(options: { pageSize?: number } = {}): Promise<AppList[]> {
-		const projects = await this.getAllPages<VikunjaProject>('/projects', {
-			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
-			is_archived: 'false'
-		});
+		const projects = await this.fetchProjectIndexEntries(options);
 
-		return projects.map(mapProjectToList);
+		return projects
+			.filter(
+				(project): project is VikunjaProject =>
+					project.id > 0 && !isSavedFilter(project) && isProjectLike(project)
+			)
+			.map(mapProjectToList);
+	}
+
+	async fetchSavedFilters(options: { pageSize?: number } = {}): Promise<AppSavedFilter[]> {
+		const projects = await this.fetchProjectIndexEntries(options);
+
+		return projects
+			.filter(
+				(project): project is VikunjaProject =>
+					project.id <= 0 && !isSavedFilter(project) && isProjectLike(project)
+			)
+			.map(mapProjectToSavedFilter)
+			.sort((left, right) => {
+				if (left.position !== null && right.position !== null && left.position !== right.position) {
+					return left.position - right.position;
+				}
+
+				return left.title.localeCompare(right.title);
+			});
+	}
+
+	async fetchSavedFilterTasks(
+		filterId: number,
+		options: { pageSize?: number } = {}
+	): Promise<AppTask[]> {
+		const views = await this.request<VikunjaProjectView[]>(`/projects/${filterId}/views`, {
+			method: 'GET'
+		});
+		const selectedView =
+			[...views]
+				.sort((left, right) => {
+					const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
+					const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+
+					if (left.view_kind === 'list' && right.view_kind !== 'list') {
+						return -1;
+					}
+
+					if (left.view_kind !== 'list' && right.view_kind === 'list') {
+						return 1;
+					}
+
+					if (leftPosition !== rightPosition) {
+						return leftPosition - rightPosition;
+					}
+
+					return left.id - right.id;
+				})
+				.at(0) ?? null;
+
+		if (!selectedView) {
+			return [];
+		}
+
+		const tasks = await this.getAllPages<VikunjaTask>(
+			`/projects/${filterId}/views/${selectedView.id}/tasks`,
+			{
+				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+				sort_by: 'due_date',
+				order_by: 'asc'
+			}
+		);
+
+		return tasks.map(mapTaskToAppTask);
 	}
 
 	async fetchTasks(options: { pageSize?: number } = {}): Promise<AppTask[]> {
@@ -94,6 +165,23 @@ export class VikunjaClient {
 		});
 
 		return mapProjectToList(project);
+	}
+
+	async deleteProject(id: number): Promise<void> {
+		try {
+			await this.request<void>(`/projects/${id}`, {
+				method: 'DELETE'
+			});
+		} catch (error) {
+			if (error instanceof VikunjaClientError && error.status === 404) {
+				await this.request<void>(`/filters/${id}`, {
+					method: 'DELETE'
+				});
+				return;
+			}
+
+			throw error;
+		}
 	}
 
 	async createTask(input: CreateTaskInput): Promise<AppTask> {
@@ -189,6 +277,13 @@ export class VikunjaClient {
 	async deleteTask(id: number): Promise<void> {
 		await this.request<void>(`/tasks/${id}`, {
 			method: 'DELETE'
+		});
+	}
+
+	private async fetchProjectIndexEntries(options: { pageSize?: number } = {}) {
+		return this.getAllPages<VikunjaProject | VikunjaSavedFilter>('/projects', {
+			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+			is_archived: 'false'
 		});
 	}
 
