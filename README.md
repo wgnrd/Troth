@@ -1,42 +1,136 @@
-# sv
+# Troth
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Troth is a focused personal task client for Vikunja. It keeps the interface small and predictable around a few core views: Today, Inbox, Upcoming, All Active, Completed, projects, and saved filters.
 
-## Creating a project
+## Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+- SvelteKit 2
+- Svelte 5
+- TypeScript
+- Tailwind CSS 4
+- Bits UI and shadcn-svelte primitives
+- `pnpm`
 
-```sh
-# create a new project
-npx sv create my-app
+## What Troth Does
+
+- Connects to an existing Vikunja instance with a personal API token
+- Stores the normalized Vikunja base URL and token in an HTTP-only server session
+- Proxies browser requests through Troth’s own `/api/*` routes instead of calling Vikunja directly from the browser
+- Keeps task and project views intentionally simple rather than exposing all of Vikunja
+
+## Requirements
+
+- Node.js 22 or newer
+- `pnpm`
+- A running Vikunja instance
+- A Vikunja personal API token
+
+## Local Development
+
+Install dependencies:
+
+```bash
+pnpm install
 ```
 
-To recreate this project with the same configuration:
+Start the dev server:
 
-```sh
-# recreate this project
-npx sv@0.12.8 create --template minimal --types ts --add eslint prettier tailwindcss="plugins:none" --no-download-check --install npm .
+```bash
+pnpm dev
 ```
 
-## Developing
+Run checks:
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```bash
+pnpm check
+pnpm lint
 ```
 
-## Building
+Format files:
 
-To create a production version of your app:
-
-```sh
-npm run build
+```bash
+pnpm format
 ```
 
-You can preview the production build with `npm run preview`.
+## Build And Run
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Create a production build:
+
+```bash
+pnpm build
+```
+
+Run the built app:
+
+```bash
+node build
+```
+
+By default Troth listens on port `3000`.
+
+## Docker
+
+Build the image:
+
+```bash
+docker build -t troth .
+```
+
+Run it:
+
+```bash
+docker run -d \
+  --name troth \
+  -p 3000:3000 \
+  -e TROTH_SESSION_SECRET="replace-with-a-long-random-secret" \
+  troth
+```
+
+Important environment variables:
+
+- `TROTH_SESSION_SECRET`: required outside local development; used to encrypt the Vikunja session cookie
+- `TROTH_SESSION_SECURE`: set to `false` only if you intentionally run Troth over plain HTTP on a trusted LAN
+- `TROTH_BUILD_REF`: optional build label shown in the Settings page, for example a git hash or deployment tag
+- `HOST`: defaults to `0.0.0.0` in the runtime image
+- `PORT`: defaults to `3000` in the runtime image
+- `ORIGIN`: set this to the public Troth URL when deploying behind a fixed hostname
+
+## First-Run Setup
+
+1. Open Troth in the browser.
+2. Go to Settings.
+3. Enter your Vikunja URL.
+4. Paste a Vikunja personal API token.
+5. Save the connection.
+
+Troth accepts either:
+
+- a site URL such as `https://vikunja.example.com`
+- or a full API URL such as `https://vikunja.example.com/api/v1`
+
+Troth normalizes the URL to `/api/v1` automatically.
+
+## Using Troth With Dockerized Vikunja
+
+If Troth and Vikunja run on the same Docker network, the Vikunja URL entered in Troth Settings can be an internal container address such as:
+
+```text
+http://vikunja:3456
+```
+
+That works because Troth talks to Vikunja from the server side. The browser does not need direct access to the Vikunja container for normal task usage.
+
+## Project Commands
+
+- `pnpm dev`: start the dev server
+- `pnpm build`: create the production build
+- `pnpm check`: run Svelte and TypeScript checks
+- `pnpm lint`: run Prettier and ESLint
+- `pnpm format`: format the codebase
+
+## Docs
+
+- [docs/architecture.md](/home/wgnrd/Documents/Troth/docs/architecture.md)
+- [docs/deployment.md](/home/wgnrd/Documents/Troth/docs/deployment.md)
+- [docs/setup.md](/home/wgnrd/Documents/Troth/docs/setup.md)
+- [docs/api-notes.md](/home/wgnrd/Documents/Troth/docs/api-notes.md)

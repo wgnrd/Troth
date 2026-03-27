@@ -1,3 +1,4 @@
+import type { BuildInfo } from '$lib/server/build';
 import type { VikunjaSession, VikunjaSessionSummary } from '$lib/server/session';
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
@@ -10,6 +11,7 @@ declare global {
 		}
 		interface PageData {
 			connection: VikunjaSessionSummary | null;
+			build?: BuildInfo;
 		}
 		// interface PageState {}
 		// interface Platform {}

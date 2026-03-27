@@ -1,4 +1,4 @@
-import { error, json, type RequestEvent } from '@sveltejs/kit';
+import { error, isHttpError, json, type RequestEvent } from '@sveltejs/kit';
 import {
 	VikunjaClient,
 	VikunjaClientError,
@@ -23,6 +23,15 @@ export function getServerVikunjaClient(event: RequestEvent) {
 }
 
 export function toApiErrorResponse(cause: unknown) {
+	if (isHttpError(cause)) {
+		return json(
+			{
+				message: cause.body.message
+			},
+			{ status: cause.status }
+		);
+	}
+
 	if (cause instanceof VikunjaTaskMutationError) {
 		return json(
 			{

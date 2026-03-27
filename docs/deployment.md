@@ -19,6 +19,10 @@ That makes deployment much simpler:
 - In Troth, enter either your Vikunja site URL or full API URL in Settings.
 - Set `TROTH_SESSION_SECRET` in the Troth container environment before
   publishing it beyond a local dev setup.
+- If you intentionally run Troth over plain HTTP on a trusted LAN, set
+  `TROTH_SESSION_SECURE=false` so the browser will accept the session cookie.
+- Optionally set `TROTH_BUILD_REF` to a commit hash, tag, or deployment label
+  so the Settings page shows exactly which build is running.
 
 ## Important networking note
 
@@ -49,6 +53,8 @@ docker run -d \
   --name troth \
   -p 3000:3000 \
   -e TROTH_SESSION_SECRET="replace-this-with-a-long-random-secret" \
+  -e TROTH_SESSION_SECURE=false \
+  -e TROTH_BUILD_REF="9377f39-local" \
   --restart unless-stopped \
   troth
 ```

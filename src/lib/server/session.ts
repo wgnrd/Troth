@@ -86,11 +86,17 @@ function normalizeSessionToken(rawToken: string) {
 }
 
 function getCookieOptions() {
+	const configuredSecure = env.TROTH_SESSION_SECURE?.trim().toLowerCase();
+	const secure =
+		configuredSecure === 'false' || configuredSecure === '0' || configuredSecure === 'no'
+			? false
+			: !dev;
+
 	return {
 		httpOnly: true,
 		path: '/',
 		sameSite: 'lax' as const,
-		secure: !dev,
+		secure,
 		maxAge: SESSION_MAX_AGE
 	};
 }
