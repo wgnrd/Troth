@@ -5,6 +5,7 @@
 	import { findInboxList } from '$lib/tasks/view';
 	import { getRouteMeta, appRoutes } from '$lib/navigation';
 	import { Button } from '$lib/components/ui/button';
+	import { Toaster } from '$lib/components/ui/toast';
 	import AppSidebar from '$lib/components/app/app-sidebar.svelte';
 	import TaskComposer from '$lib/components/tasks/TaskComposer.svelte';
 	import { lists } from '$lib/stores/lists';
@@ -186,6 +187,8 @@
 			</main>
 		</div>
 	</div>
+
+	<Toaster />
 
 	{#if mobileMoreOpen}
 		<button

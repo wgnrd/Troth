@@ -49,6 +49,7 @@ Saved-filter task pages live under `src/lib/components/filters/` and reuse the s
 - Subtasks are stored as normal Vikunja tasks linked by a parent-task relation.
 - Main task lists stay flat and show only top-level tasks.
 - Parent rows show subtask progress like `2 of 5 done` when subtasks exist.
+- Completing or reopening a parent task cascades the same completion state to all of its subtasks.
 - Subtasks are managed primarily from the parent task editor and inherit only the parent project by default.
 
 These rules are intentionally simple. Troth does not try to mirror every Vikunja view; it keeps a small personal workflow with predictable overlaps between views.

@@ -84,11 +84,8 @@
 		</div>
 
 		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm sm:col-span-2">
-			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Build</p>
+			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Version</p>
 			<p class="mt-2 text-sm text-foreground">{data.build.label}</p>
-			<p class="mt-1 text-sm text-muted-foreground">
-				Version {data.build.version}{data.build.ref ? ` with build ref ${data.build.ref}` : ''}
-			</p>
 		</div>
 	</div>
 

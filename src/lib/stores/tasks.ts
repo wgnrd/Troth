@@ -7,6 +7,7 @@ import {
 	TrothTaskMutationError,
 	updateTask as updateTrothTask
 } from '$lib/api/troth/client';
+import { toast } from '$lib/stores/toasts';
 import { connection } from './connection';
 
 export type SubtaskSummary = {
@@ -23,6 +24,11 @@ export type TasksState = {
 	mutationError: string | null;
 	creating: boolean;
 	mutatingIds: number[];
+	completionVersion: number;
+};
+
+type TaskMutationOptions = {
+	showUndoToast?: boolean;
 };
 
 function createTasksStore() {
@@ -33,7 +39,8 @@ function createTasksStore() {
 		error: null,
 		mutationError: null,
 		creating: false,
-		mutatingIds: []
+		mutatingIds: [],
+		completionVersion: 0
 	};
 
 	const { subscribe, set, update } = writable<TasksState>(initialState);
@@ -79,7 +86,8 @@ function createTasksStore() {
 				error: null,
 				mutationError: null,
 				creating: false,
-				mutatingIds: []
+				mutatingIds: [],
+				completionVersion: state.completionVersion
 			});
 		} catch (error) {
 			update((value) => ({
@@ -157,8 +165,12 @@ function createTasksStore() {
 		}
 	}
 
-	async function updateTask(input: UpdateTaskInput) {
+	async function updateTask(input: UpdateTaskInput, options: TaskMutationOptions = {}) {
 		const currentTask = get({ subscribe }).items.find((task) => task.id === input.id);
+
+		if (currentTask && input.completed !== undefined && input.completed !== currentTask.completed) {
+			return mutateTaskCompletionCascade(currentTask, input, input.completed, options);
+		}
 
 		return mutateTask(
 			input.id,
@@ -184,7 +196,7 @@ function createTasksStore() {
 		);
 	}
 
-	async function setCompleted(id: number, completed: boolean) {
+	async function setCompleted(id: number, completed: boolean, options: TaskMutationOptions = {}) {
 		const currentTask = get({ subscribe }).items.find((task) => task.id === id);
 
 		if (!currentTask || currentTask.listId === null) {
@@ -204,22 +216,7 @@ function createTasksStore() {
 			completed
 		};
 
-		return mutateTask(
-			id,
-			async () =>
-				updateTrothTask(
-					{
-						...payload,
-						completed
-					},
-					currentTask.parentTaskId
-				),
-			(task) => ({
-				...task,
-				completed,
-				completedAt: completed ? new Date().toISOString() : null
-			})
-		);
+		return mutateTaskCompletionCascade(currentTask, payload, completed, options);
 	}
 
 	async function deleteTask(id: number) {
@@ -343,6 +340,132 @@ function createTasksStore() {
 		}
 	}
 
+	async function mutateTaskCompletionCascade(
+		currentTask: AppTask,
+		primaryInput: UpdateTaskInput,
+		completed: boolean,
+		options: TaskMutationOptions
+	) {
+		const current = get(connection);
+
+		if (!current.settings) {
+			update((state) => ({
+				...state,
+				mutationError: 'Add your Vikunja connection in Settings before saving tasks.'
+			}));
+			return null;
+		}
+
+		const snapshot = get({ subscribe }).items;
+		const affectedTasks = getTaskCascade(currentTask.id, snapshot);
+		const affectedTaskIds = affectedTasks.map((task) => task.id);
+		const affectedTaskIdSet = new Set(affectedTaskIds);
+		const completionTimestamp = completed ? new Date().toISOString() : null;
+
+		update((state) => ({
+			...state,
+			mutationError: null,
+			mutatingIds: [...new Set([...state.mutatingIds, ...affectedTaskIds])],
+			items: state.items.map((task) => {
+				if (!affectedTaskIdSet.has(task.id)) {
+					return task;
+				}
+
+				if (task.id === currentTask.id) {
+					return {
+						...task,
+						title: primaryInput.title,
+						description: primaryInput.description,
+						dueDate: primaryInput.dueDate,
+						repeatAfter: primaryInput.repeatAfter,
+						repeatMode: primaryInput.repeatMode,
+						priority: primaryInput.priority,
+						listId: primaryInput.listId,
+						parentTaskId: primaryInput.parentTaskId,
+						completed,
+						completedAt: completionTimestamp
+					};
+				}
+
+				return {
+					...task,
+					completed,
+					completedAt: completionTimestamp
+				};
+			})
+		}));
+
+		try {
+			const savedTasks = new Map<number, AppTask>();
+			const savedPrimaryTask = await updateTrothTask(
+				{
+					...primaryInput,
+					completed
+				},
+				currentTask.parentTaskId
+			);
+			savedTasks.set(savedPrimaryTask.id, savedPrimaryTask);
+
+			for (const task of affectedTasks) {
+				if (task.id === currentTask.id || task.listId === null) {
+					continue;
+				}
+
+				const savedTask = await updateTrothTask(
+					{
+						id: task.id,
+						title: task.title,
+						description: task.description,
+						dueDate: task.dueDate,
+						repeatAfter: task.repeatAfter,
+						repeatMode: task.repeatMode,
+						priority: task.priority,
+						listId: task.listId,
+						parentTaskId: task.parentTaskId,
+						completed
+					},
+					task.parentTaskId
+				);
+				savedTasks.set(savedTask.id, savedTask);
+			}
+
+			update((state) => ({
+				...state,
+				mutatingIds: state.mutatingIds.filter((value) => !affectedTaskIdSet.has(value)),
+				completionVersion: state.completionVersion + 1,
+				items: state.items.map((task) => savedTasks.get(task.id) ?? task)
+			}));
+
+			if (completed && options.showUndoToast !== false) {
+				showCompletionToast(savedPrimaryTask, affectedTasks.length - 1);
+			}
+
+			return savedPrimaryTask;
+		} catch (error) {
+			await load(true);
+			update((state) => ({
+				...state,
+				mutationError: error instanceof Error ? error.message : 'Could not save the task.'
+			}));
+			return null;
+		}
+	}
+
+	function showCompletionToast(task: AppTask, subtaskCount: number) {
+		const title =
+			subtaskCount > 0
+				? `Completed "${task.title}" and ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'}`
+				: `Completed "${task.title}"`;
+
+		toast.push({
+			title,
+			actionLabel: 'Undo',
+			onAction: async () => {
+				await setCompleted(task.id, false, { showUndoToast: false });
+			}
+		});
+	}
+
 	return {
 		subscribe,
 		load,
@@ -357,6 +480,31 @@ function createTasksStore() {
 }
 
 export const tasks = createTasksStore();
+
+function getTaskCascade(taskId: number, items: AppTask[]) {
+	const descendants: AppTask[] = [];
+	const childIds = [taskId];
+
+	while (childIds.length > 0) {
+		const parentId = childIds.shift();
+
+		if (parentId === undefined) {
+			continue;
+		}
+
+		for (const task of items) {
+			if (task.parentTaskId !== parentId) {
+				continue;
+			}
+
+			descendants.push(task);
+			childIds.push(task.id);
+		}
+	}
+
+	const rootTask = items.find((task) => task.id === taskId);
+	return rootTask ? [rootTask, ...descendants] : descendants;
+}
 
 export function filterTopLevelTasks(items: AppTask[]) {
 	return items.filter((task) => task.parentTaskId === null);

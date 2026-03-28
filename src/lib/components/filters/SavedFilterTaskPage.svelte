@@ -112,6 +112,22 @@
 		}
 	});
 
+	let lastCompletionVersion = $state(0);
+
+	$effect(() => {
+		if (!configured || !filterTasksLoaded) {
+			lastCompletionVersion = $tasks.completionVersion;
+			return;
+		}
+
+		if ($tasks.completionVersion === lastCompletionVersion) {
+			return;
+		}
+
+		lastCompletionVersion = $tasks.completionVersion;
+		void loadFilterTasks(true);
+	});
+
 	async function loadFilterTasks(force = false) {
 		const current = $connection.settings;
 
@@ -169,7 +185,6 @@
 		}
 
 		await tasks.setCompleted(task.id, completed);
-		await loadFilterTasks(true);
 	}
 
 	function startTaskExit(taskId: number) {
