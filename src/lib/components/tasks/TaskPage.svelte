@@ -170,7 +170,7 @@
 		}
 	});
 	const usesCollapsedQuickAdd = $derived(
-		view === 'today' || view === 'inbox' || view === 'upcoming'
+		view === 'today' || view === 'inbox' || view === 'upcoming' || view === 'active'
 	);
 	const showQuickAdd = $derived(view !== 'completed');
 
@@ -471,6 +471,7 @@
 						error={$tasks.mutationError}
 						fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
 						defaultListId={inboxList?.id ?? null}
+						defaultDueDate={view === 'inbox' ? null : undefined}
 						autoFocus
 						placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
 						disabledMessage={quickAddDisabledMessage}
@@ -515,6 +516,7 @@
 					error={$tasks.mutationError}
 					fixedListId={view === 'inbox' ? (inboxList?.id ?? null) : null}
 					defaultListId={inboxList?.id ?? null}
+					defaultDueDate={view === 'inbox' ? null : undefined}
 					placeholder={view === 'inbox' ? 'Add to Inbox' : 'Add a task'}
 					disabledMessage={quickAddDisabledMessage}
 					onSubmit={handleQuickAdd}

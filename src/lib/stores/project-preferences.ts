@@ -8,6 +8,7 @@ export type ProjectPreferencesState = {
 	hiddenProjectIds: number[];
 	expandedProjectIds: number[];
 	projectsSectionExpanded: boolean;
+	sidebarCollapsed: boolean;
 };
 
 function createProjectPreferencesStore() {
@@ -16,7 +17,8 @@ function createProjectPreferencesStore() {
 		: {
 				hiddenProjectIds: [],
 				expandedProjectIds: [],
-				projectsSectionExpanded: true
+				projectsSectionExpanded: true,
+				sidebarCollapsed: false
 			};
 
 	const { subscribe, update } = writable<ProjectPreferencesState>(initialState);
@@ -66,6 +68,18 @@ function createProjectPreferencesStore() {
 		});
 	}
 
+	function toggleSidebarCollapsed() {
+		update((state) => {
+			const nextState = {
+				...state,
+				sidebarCollapsed: !state.sidebarCollapsed
+			};
+
+			writeStoredPreferences(nextState);
+			return nextState;
+		});
+	}
+
 	function removeProjectIds(projectIds: number[]) {
 		if (projectIds.length === 0) {
 			return;
@@ -90,6 +104,7 @@ function createProjectPreferencesStore() {
 		toggleHidden,
 		toggleCollapsed,
 		toggleProjectsSection,
+		toggleSidebarCollapsed,
 		removeProjectIds
 	};
 }
@@ -103,7 +118,8 @@ function readStoredPreferences(): ProjectPreferencesState {
 		return {
 			hiddenProjectIds: [],
 			expandedProjectIds: [],
-			projectsSectionExpanded: true
+			projectsSectionExpanded: true,
+			sidebarCollapsed: false
 		};
 	}
 
@@ -118,14 +134,17 @@ function readStoredPreferences(): ProjectPreferencesState {
 				? parsed.expandedProjectIds.filter((value): value is number => typeof value === 'number')
 				: [],
 			projectsSectionExpanded:
-				typeof parsed.projectsSectionExpanded === 'boolean' ? parsed.projectsSectionExpanded : true
+				typeof parsed.projectsSectionExpanded === 'boolean' ? parsed.projectsSectionExpanded : true,
+			sidebarCollapsed:
+				typeof parsed.sidebarCollapsed === 'boolean' ? parsed.sidebarCollapsed : false
 		};
 	} catch {
 		localStorage.removeItem(STORAGE_KEY);
 		return {
 			hiddenProjectIds: [],
 			expandedProjectIds: [],
-			projectsSectionExpanded: true
+			projectsSectionExpanded: true,
+			sidebarCollapsed: false
 		};
 	}
 }

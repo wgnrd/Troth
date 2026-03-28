@@ -1,7 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { ChevronDown, ChevronRight, Eye, EyeOff, Filter, Hash, X } from '@lucide/svelte';
+	import {
+		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		Eye,
+		EyeOff,
+		Filter,
+		Hash,
+		X
+	} from '@lucide/svelte';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
@@ -32,6 +41,8 @@
 		mobile?: boolean;
 		onSelect?: () => void;
 	} = $props();
+
+	const compact = $derived(!mobile && $projectPreferences.sidebarCollapsed);
 
 	function isActive(href: string) {
 		return page.url.pathname === href || page.url.pathname.startsWith(`${href}/`);
@@ -119,15 +130,39 @@
 	});
 </script>
 
-<aside class={cn('flex h-full flex-col px-1.5 py-3 text-sidebar-foreground', className)}>
-	<div class="flex items-center justify-between gap-3 px-2.5 py-2">
-		<div class="min-w-0">
+<aside
+	class={cn(
+		'flex h-full flex-col px-1.5 py-3 text-sidebar-foreground',
+		compact ? 'items-center' : '',
+		className
+	)}
+>
+	<div
+		class={cn('flex items-center justify-between gap-3 px-2.5 py-2', compact ? 'w-full px-0' : '')}
+	>
+		<div class={cn('min-w-0', compact ? 'sr-only' : '')}>
 			<p class="truncate text-sm font-semibold">Troth</p>
 		</div>
 
 		{#if mobile}
 			<Button variant="ghost" size="icon-sm" onclick={onSelect} aria-label="Close navigation">
 				<X class="size-4" />
+			</Button>
+		{:else}
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class={cn(compact ? 'mx-auto' : '')}
+				onclick={() => {
+					projectPreferences.toggleSidebarCollapsed();
+				}}
+				aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'}
+			>
+				{#if compact}
+					<ChevronRight class="size-4" />
+				{:else}
+					<ChevronLeft class="size-4" />
+				{/if}
 			</Button>
 		{/if}
 	</div>
@@ -140,8 +175,11 @@
 			<a
 				href={resolve(item.href)}
 				onclick={onSelect}
+				aria-label={compact ? item.label : undefined}
+				title={compact ? item.label : undefined}
 				class={cn(
 					'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+					compact ? 'justify-center px-0' : '',
 					isActive(item.href)
 						? 'bg-primary/10 text-foreground'
 						: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
@@ -151,18 +189,20 @@
 					class={cn(
 						'rounded-lg p-1.5 transition-colors',
 						isActive(item.href)
-							? 'bg-primary/12 text-foreground'
+							? 'text-foreground'
 							: 'text-muted-foreground group-hover:text-foreground'
 					)}
 				>
 					<Icon class="size-4" />
 				</span>
 
-				<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+				{#if !compact}
+					<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+				{/if}
 			</a>
 		{/each}
 
-		{#if $connection.settings && savedFilterEntries.length > 0}
+		{#if !compact && $connection.settings && savedFilterEntries.length > 0}
 			<div class="pt-2">
 				<Separator class="mb-2 opacity-50" />
 				<p class="px-2.5 text-[0.72rem] font-medium text-muted-foreground/80">Saved Filters</p>
@@ -183,9 +223,7 @@
 							<span
 								class={cn(
 									'rounded-lg p-1.5 transition-colors',
-									active
-										? 'bg-primary/12 text-foreground'
-										: 'text-muted-foreground group-hover:text-foreground'
+									active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
 								)}
 							>
 								<Filter class="size-3.5" />
@@ -204,6 +242,7 @@
 				<div
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+						compact ? 'justify-center px-0' : '',
 						isExactActive(projectsRoute.href)
 							? 'bg-primary/10 text-foreground'
 							: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
@@ -212,42 +251,48 @@
 					<a
 						href={resolve(projectsRoute.href)}
 						onclick={onSelect}
-						class="flex min-w-0 flex-1 items-center gap-3"
+						aria-label={compact ? projectsRoute.label : undefined}
+						title={compact ? projectsRoute.label : undefined}
+						class={cn('flex items-center gap-3', compact ? '' : 'min-w-0 flex-1')}
 					>
 						<span
 							class={cn(
 								'rounded-lg p-1.5 transition-colors',
 								isExactActive(projectsRoute.href)
-									? 'bg-primary/12 text-foreground'
+									? 'text-foreground'
 									: 'text-muted-foreground group-hover:text-foreground'
 							)}
 						>
 							<ProjectsIcon class="size-4" />
 						</span>
 
-						<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
+						{#if !compact}
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
+						{/if}
 					</a>
 
-					<button
-						type="button"
-						class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
-						aria-label={$projectPreferences.projectsSectionExpanded
-							? 'Collapse projects'
-							: 'Expand projects'}
-						onclick={(event) => {
-							stopEvent(event);
-							projectPreferences.toggleProjectsSection();
-						}}
-					>
-						{#if $projectPreferences.projectsSectionExpanded}
-							<ChevronDown class="size-3.5" />
-						{:else}
-							<ChevronRight class="size-3.5" />
-						{/if}
-					</button>
+					{#if !compact}
+						<button
+							type="button"
+							class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
+							aria-label={$projectPreferences.projectsSectionExpanded
+								? 'Collapse projects'
+								: 'Expand projects'}
+							onclick={(event) => {
+								stopEvent(event);
+								projectPreferences.toggleProjectsSection();
+							}}
+						>
+							{#if $projectPreferences.projectsSectionExpanded}
+								<ChevronDown class="size-3.5" />
+							{:else}
+								<ChevronRight class="size-3.5" />
+							{/if}
+						</button>
+					{/if}
 				</div>
 
-				{#if $projectPreferences.projectsSectionExpanded && $connection.settings && projectEntries.length > 0}
+				{#if !compact && $projectPreferences.projectsSectionExpanded && $connection.settings && projectEntries.length > 0}
 					<div class="mt-2 space-y-1" aria-label="Projects">
 						{#each projectEntries as entry (entry.list.id)}
 							{@const active = isActive(`/projects/${entry.list.id}`)}
@@ -269,9 +314,7 @@
 										class={cn(
 											'flex size-5 shrink-0 items-center justify-center rounded-md transition-colors',
 											!entry.list.color &&
-												(active
-													? 'bg-primary/12 text-foreground'
-													: 'text-stone-400 group-hover:text-foreground')
+												(active ? 'text-foreground' : 'text-stone-400 group-hover:text-foreground')
 										)}
 										style={getProjectIconStyle(entry.list.color, active)}
 									>
@@ -319,7 +362,7 @@
 					</div>
 				{/if}
 
-				{#if $projectPreferences.projectsSectionExpanded && hiddenProjects.length > 0}
+				{#if !compact && $projectPreferences.projectsSectionExpanded && hiddenProjects.length > 0}
 					<div class="mt-3 space-y-1" aria-label="Hidden projects">
 						<p class="pl-4 text-[0.72rem] font-medium text-muted-foreground/80">Hidden Projects</p>
 						{#each hiddenProjects as project (project.id)}
@@ -360,8 +403,11 @@
 			<a
 				href={resolve(settingsRoute.href)}
 				onclick={onSelect}
+				aria-label={compact ? settingsRoute.label : undefined}
+				title={compact ? settingsRoute.label : undefined}
 				class={cn(
 					'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+					compact ? 'justify-center px-0' : '',
 					isActive(settingsRoute.href)
 						? 'bg-primary/10 text-foreground'
 						: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
@@ -377,7 +423,9 @@
 				>
 					<SettingsIcon class="size-4" />
 				</span>
-				<span class="min-w-0 flex-1 truncate text-sm font-medium">{settingsRoute.label}</span>
+				{#if !compact}
+					<span class="min-w-0 flex-1 truncate text-sm font-medium">{settingsRoute.label}</span>
+				{/if}
 			</a>
 		</div>
 	{/if}

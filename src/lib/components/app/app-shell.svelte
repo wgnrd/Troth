@@ -168,7 +168,12 @@
 	{/if}
 
 	<div
-		class="mx-auto flex min-h-screen max-w-[86rem] gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:grid lg:grid-cols-[14.5rem_minmax(0,44rem)] lg:justify-center lg:gap-8 lg:px-6"
+		class={cn(
+			'mx-auto flex min-h-screen max-w-[86rem] gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:grid lg:justify-center lg:px-6',
+			$projectPreferences.sidebarCollapsed
+				? 'lg:grid-cols-[4.75rem_minmax(0,44rem)] lg:gap-5'
+				: 'lg:grid-cols-[14.5rem_minmax(0,44rem)] lg:gap-8'
+		)}
 	>
 		<AppSidebar class="hidden lg:flex" />
 
@@ -253,6 +258,7 @@
 					error={$tasks.mutationError}
 					fixedListId={mobileComposerFixedListId}
 					defaultListId={mobileComposerDefaultListId}
+					defaultDueDate={page.url.pathname === '/inbox' ? null : undefined}
 					autoFocus
 					placeholder={mobileComposerPlaceholder}
 					disabledMessage={mobileComposerDisabledMessage}
