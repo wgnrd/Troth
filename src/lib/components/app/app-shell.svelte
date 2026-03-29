@@ -170,18 +170,18 @@
 
 	<div
 		class={cn(
-			'mx-auto flex min-h-screen max-w-[86rem] gap-2 px-3 py-3 sm:px-4 sm:py-4 lg:grid lg:justify-center lg:px-6',
+			'mx-auto flex min-h-screen max-w-[86rem] gap-2 px-3 py-2 sm:px-4 sm:py-3 lg:grid lg:justify-center lg:px-6',
 			$projectPreferences.sidebarCollapsed
 				? 'lg:grid-cols-[4.75rem_minmax(0,44rem)] lg:gap-5'
 				: 'lg:grid-cols-[14.5rem_minmax(0,44rem)] lg:gap-8'
 		)}
 	>
-		<AppSidebar class="hidden lg:flex" />
+		<AppSidebar class="hidden lg:sticky lg:top-3 lg:flex lg:h-[calc(100vh-1.5rem)] lg:self-start" />
 
 		<div class="flex min-w-0 flex-1 flex-col">
 			<main
 				id="app-main"
-				class={cn('flex-1 px-1 py-2 pb-28 sm:px-2 sm:py-3 sm:pb-32 lg:px-0 lg:py-6 lg:pb-6')}
+				class={cn('flex-1 px-1 py-1.5 pb-28 sm:px-2 sm:py-2.5 sm:pb-32 lg:px-0 lg:py-4 lg:pb-6')}
 			>
 				{@render children()}
 			</main>

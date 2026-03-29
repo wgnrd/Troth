@@ -1,7 +1,17 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
-	import { Hash, Layers3, PencilLine, Plus, RefreshCcw, Settings2, Trash2 } from '@lucide/svelte';
+	import {
+		Eye,
+		EyeOff,
+		Hash,
+		Layers3,
+		PencilLine,
+		Plus,
+		RefreshCcw,
+		Settings2,
+		Trash2
+	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import ProjectEditor from '$lib/components/projects/ProjectEditor.svelte';
 	import { connection } from '$lib/stores/connection';
@@ -28,6 +38,11 @@
 		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
 	);
 	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
+	const hiddenLists = $derived(
+		allActiveLists
+			.filter((list) => hiddenProjectIds.has(list.id))
+			.sort((left, right) => left.title.localeCompare(right.title))
+	);
 	const projectTree = $derived(buildProjectTree(activeLists));
 	const loadError = $derived($lists.error ?? $tasks.error);
 	const showInitialLoading = $derived(
@@ -102,8 +117,12 @@
 		projectEditorOpen = true;
 	}
 
+	function toggleHiddenProject(projectId: number) {
+		projectPreferences.toggleHidden(allActiveLists, projectId);
+	}
+
 	function getOpenTaskCount(listId: number) {
-		return countOpenTasksForProjectTree($tasks.items, getDescendantProjectIds(activeLists, listId));
+		return countOpenTasksForProjectTree($tasks.items, getDescendantProjectIds(allActiveLists, listId));
 	}
 
 	function getNestedEntries(node: ProjectTreeNode) {
@@ -119,9 +138,9 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-5 sm:gap-6">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-		<div class="space-y-1">
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-4 sm:gap-5">
+	<div class="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+		<div class="space-y-0.5">
 			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
 				Projects
 			</h1>
@@ -183,7 +202,7 @@
 				<div class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55"></div>
 			{/each}
 		</div>
-	{:else if activeLists.length === 0}
+	{:else if allActiveLists.length === 0}
 		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
 			<div class="space-y-2 text-center sm:text-left">
 				<p class="text-sm font-medium text-foreground">No projects yet</p>
@@ -232,6 +251,17 @@
 
 							<div class="flex shrink-0 items-center justify-end gap-1">
 								<span class="min-w-4 text-right text-xs text-stone-500">{openTaskCount}</span>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									class="text-muted-foreground hover:text-foreground"
+									aria-label={`Hide ${node.list.title}`}
+									onclick={() => {
+										toggleHiddenProject(node.list.id);
+									}}
+								>
+									<EyeOff class="size-4" />
+								</Button>
 								<Button
 									variant="ghost"
 									size="icon-sm"
@@ -285,6 +315,18 @@
 											<button
 												type="button"
 												class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
+												aria-label={`Hide ${entry.list.title}`}
+												onclick={(event) => {
+													event.preventDefault();
+													event.stopPropagation();
+													toggleHiddenProject(entry.list.id);
+												}}
+											>
+												<EyeOff class="size-4" />
+											</button>
+											<button
+												type="button"
+												class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
 												aria-label={`Edit ${entry.list.title}`}
 												onclick={(event) => {
 													event.preventDefault();
@@ -315,6 +357,71 @@
 					</div>
 				{/each}
 			</div>
+
+			{#if hiddenLists.length > 0}
+				<div class="pt-4">
+					<div
+						class="flex items-center gap-2 px-2 text-xs font-semibold tracking-[0.16em] text-foreground/72 uppercase"
+					>
+						<Eye class="size-3.5" />
+						Hidden Projects
+					</div>
+
+					<div class="mt-2 space-y-1">
+						{#each hiddenLists as project (project.id)}
+							{@const openTaskCount = getOpenTaskCount(project.id)}
+							<div
+								class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-white/68 hover:text-foreground"
+							>
+								<div class="flex min-w-0 flex-1 items-center gap-2">
+									<span
+										class="flex size-6 shrink-0 items-center justify-center rounded-lg text-stone-500"
+										style={getProjectHashStyle(project.color)}
+									>
+										<Hash class="size-3.5" />
+									</span>
+									<span class="truncate">{project.title}</span>
+								</div>
+
+								<div class="flex shrink-0 items-center gap-1">
+									<span class="min-w-4 text-right text-xs text-stone-500">{openTaskCount}</span>
+									<button
+										type="button"
+										class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
+										aria-label={`Show ${project.title}`}
+										onclick={() => {
+											toggleHiddenProject(project.id);
+										}}
+									>
+										<Eye class="size-4" />
+									</button>
+									<button
+										type="button"
+										class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-stone-100 hover:text-foreground"
+										aria-label={`Edit ${project.title}`}
+										onclick={() => {
+											openEditProject(project);
+										}}
+									>
+										<PencilLine class="size-4" />
+									</button>
+									<button
+										type="button"
+										class="inline-flex size-7 items-center justify-center rounded-md text-destructive/70 transition hover:bg-destructive/8 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+										aria-label={`Delete ${project.title}`}
+										disabled={$lists.mutatingIds.includes(project.id)}
+										onclick={() => {
+											void handleDeleteProject(project);
+										}}
+									>
+										<Trash2 class="size-4" />
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </section>
@@ -323,7 +430,7 @@
 	open={projectEditorOpen}
 	mode={editingProject ? 'edit' : 'create'}
 	project={editingProject}
-	lists={activeLists}
+	lists={allActiveLists}
 	busy={editingProject ? $lists.mutatingIds.includes(editingProject.id) : $lists.creating}
 	error={$lists.mutationError}
 	onClose={() => {

@@ -288,9 +288,9 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-5 sm:gap-6">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-		<div class="space-y-1">
+<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-4 sm:gap-5">
+	<div class="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+		<div class="space-y-0.5">
 			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
 				{currentProject?.title ?? 'Project'}
 			</h1>

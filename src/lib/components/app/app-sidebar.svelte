@@ -15,11 +15,13 @@
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
 	import { savedFilters } from '$lib/stores/saved-filters';
+	import { tasks } from '$lib/stores/tasks';
 	import {
 		buildProjectTree,
 		getEffectiveHiddenProjectIds,
 		type ProjectTreeNode
 	} from '$lib/lists/tree';
+	import { filterTasksForView } from '$lib/tasks/view';
 	import { appRoutes } from '$lib/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
@@ -133,6 +135,7 @@
 			.filter((list): list is (typeof allProjectLists)[number] => list !== null)
 			.sort((left, right) => left.title.localeCompare(right.title))
 	);
+	const inboxTaskCount = $derived(filterTasksForView('inbox', $tasks.items, visibleProjectLists).length);
 
 	$effect(() => {
 		if (
@@ -150,13 +153,13 @@
 
 <aside
 	class={cn(
-		'flex h-full flex-col px-1.5 py-3 text-sidebar-foreground',
+		'flex h-full min-h-0 flex-col overflow-hidden px-1.5 py-2 text-sidebar-foreground',
 		compact ? 'items-center' : '',
 		className
 	)}
 >
 	<div
-		class={cn('flex items-center justify-between gap-3 px-2.5 py-2', compact ? 'w-full px-0' : '')}
+		class={cn('flex items-center justify-between gap-3 px-2.5 py-1', compact ? 'w-full px-0' : '')}
 	>
 		<div class={cn('min-w-0', compact ? 'sr-only' : '')}>
 			<p class="truncate text-sm font-semibold">Troth</p>
@@ -185,9 +188,9 @@
 		{/if}
 	</div>
 
-	<Separator class="my-2 opacity-50" />
+	<Separator class="my-1.5 opacity-50" />
 
-	<nav aria-label="Primary" class="flex flex-1 flex-col gap-1">
+	<nav aria-label="Primary" class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
 		{#each routeGroups as group, index (group.label)}
 			{#if !compact}
 				{#if index > 0}
@@ -225,6 +228,18 @@
 
 						{#if !compact}
 							<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+							{#if item.href === '/inbox' && inboxTaskCount > 0}
+								<span
+									class={cn(
+										'ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums',
+										isActive(item.href)
+											? 'bg-primary/12 text-foreground'
+											: 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
+									)}
+								>
+									{inboxTaskCount}
+								</span>
+							{/if}
 						{/if}
 					</a>
 				{/each}
@@ -459,7 +474,7 @@
 	</nav>
 
 	{#if settingsRoute && SettingsIcon}
-		<div class="pt-2">
+		<div class="shrink-0 pt-2">
 			<Separator class="mb-2 opacity-50" />
 			<a
 				href={resolve(settingsRoute.href)}
