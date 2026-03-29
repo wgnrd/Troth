@@ -8,6 +8,9 @@ export type ProjectPreferencesState = {
 	hiddenProjectIds: number[];
 	expandedProjectIds: number[];
 	projectsSectionExpanded: boolean;
+	focusSectionExpanded: boolean;
+	planSectionExpanded: boolean;
+	browseSectionExpanded: boolean;
 	sidebarCollapsed: boolean;
 };
 
@@ -18,6 +21,9 @@ function createProjectPreferencesStore() {
 				hiddenProjectIds: [],
 				expandedProjectIds: [],
 				projectsSectionExpanded: true,
+				focusSectionExpanded: true,
+				planSectionExpanded: true,
+				browseSectionExpanded: true,
 				sidebarCollapsed: false
 			};
 
@@ -68,6 +74,23 @@ function createProjectPreferencesStore() {
 		});
 	}
 
+	function toggleSidebarSection(section: 'focus' | 'plan' | 'browse') {
+		update((state) => {
+			const nextState = {
+				...state,
+				focusSectionExpanded:
+					section === 'focus' ? !state.focusSectionExpanded : state.focusSectionExpanded,
+				planSectionExpanded:
+					section === 'plan' ? !state.planSectionExpanded : state.planSectionExpanded,
+				browseSectionExpanded:
+					section === 'browse' ? !state.browseSectionExpanded : state.browseSectionExpanded
+			};
+
+			writeStoredPreferences(nextState);
+			return nextState;
+		});
+	}
+
 	function toggleSidebarCollapsed() {
 		update((state) => {
 			const nextState = {
@@ -104,6 +127,7 @@ function createProjectPreferencesStore() {
 		toggleHidden,
 		toggleCollapsed,
 		toggleProjectsSection,
+		toggleSidebarSection,
 		toggleSidebarCollapsed,
 		removeProjectIds
 	};
@@ -119,6 +143,9 @@ function readStoredPreferences(): ProjectPreferencesState {
 			hiddenProjectIds: [],
 			expandedProjectIds: [],
 			projectsSectionExpanded: true,
+			focusSectionExpanded: true,
+			planSectionExpanded: true,
+			browseSectionExpanded: true,
 			sidebarCollapsed: false
 		};
 	}
@@ -135,6 +162,12 @@ function readStoredPreferences(): ProjectPreferencesState {
 				: [],
 			projectsSectionExpanded:
 				typeof parsed.projectsSectionExpanded === 'boolean' ? parsed.projectsSectionExpanded : true,
+			focusSectionExpanded:
+				typeof parsed.focusSectionExpanded === 'boolean' ? parsed.focusSectionExpanded : true,
+			planSectionExpanded:
+				typeof parsed.planSectionExpanded === 'boolean' ? parsed.planSectionExpanded : true,
+			browseSectionExpanded:
+				typeof parsed.browseSectionExpanded === 'boolean' ? parsed.browseSectionExpanded : true,
 			sidebarCollapsed:
 				typeof parsed.sidebarCollapsed === 'boolean' ? parsed.sidebarCollapsed : false
 		};
@@ -144,6 +177,9 @@ function readStoredPreferences(): ProjectPreferencesState {
 			hiddenProjectIds: [],
 			expandedProjectIds: [],
 			projectsSectionExpanded: true,
+			focusSectionExpanded: true,
+			planSectionExpanded: true,
+			browseSectionExpanded: true,
 			sidebarCollapsed: false
 		};
 	}
