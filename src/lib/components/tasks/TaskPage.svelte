@@ -11,6 +11,7 @@
 	import { getEffectiveHiddenProjectIds } from '$lib/lists/tree';
 	import DueDatePicker from './DueDatePicker.svelte';
 	import {
+		UPCOMING_DAY_WINDOW,
 		filterTasksForView,
 		findInboxList,
 		fromDateInputValue,
@@ -118,6 +119,13 @@
 		});
 	});
 	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
+	const headerMeta = $derived.by(() => {
+		if (view !== 'upcoming') {
+			return meta;
+		}
+
+		return `Here you can see the next ${UPCOMING_DAY_WINDOW} days, including today.`;
+	});
 	const showDueDateBadge = $derived(view !== 'today' && view !== 'upcoming');
 	const overdueTasks = $derived.by(() => {
 		if (view !== 'today') {
@@ -378,11 +386,13 @@
 	}
 
 	function isTaskOverdue(task: AppTask) {
-		if (!task.dueDate) {
+		const dueDate = task.dueDate?.trim();
+
+		if (!dueDate || dueDate.startsWith('0001-01-01')) {
 			return false;
 		}
 
-		const taskDate = new Date(task.dueDate);
+		const taskDate = new Date(dueDate);
 
 		if (Number.isNaN(taskDate.getTime())) {
 			return false;
@@ -425,8 +435,8 @@
 			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
 				{title}
 			</h1>
-			{#if meta}
-				<p class="text-sm text-muted-foreground">{meta}</p>
+			{#if headerMeta}
+				<p class="text-sm text-muted-foreground">{headerMeta}</p>
 			{/if}
 		</div>
 

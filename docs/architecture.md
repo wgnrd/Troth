@@ -43,7 +43,7 @@ Saved-filter task pages live under `src/lib/components/filters/` and reuse the s
 
 - `Today` shows incomplete tasks due today or earlier.
 - `Inbox` shows incomplete tasks in the project named `Inbox`.
-- `Upcoming` shows incomplete tasks due after today.
+- `Upcoming` shows incomplete tasks due in the next 7 days, including today.
 - `All Active` shows every incomplete task.
 - `Completed` shows completed tasks.
 - Subtasks are stored as normal Vikunja tasks linked by a parent-task relation.

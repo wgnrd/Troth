@@ -9,5 +9,5 @@
 	view="upcoming"
 	title={route?.label ?? 'Upcoming'}
 	meta="Plan your next days."
-	emptyState={route?.emptyState ?? 'Nothing upcoming yet.'}
+	emptyState="No tasks in the next 7 days, including today."
 />

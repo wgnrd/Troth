@@ -3,6 +3,7 @@ import { filterTopLevelTasks } from '$lib/stores/tasks';
 
 export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'completed';
 export type RepeatUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+export const UPCOMING_DAY_WINDOW = 7;
 
 const repeatUnitSeconds: Record<RepeatUnit, number> = {
 	minute: 60,
@@ -448,7 +449,7 @@ function isDueTodayOrEarlier(isoDate: string | null) {
 
 function isUpcoming(isoDate: string | null) {
 	const diffInDays = getDateDiffInDays(isoDate);
-	return diffInDays !== null && diffInDays >= 0;
+	return diffInDays !== null && diffInDays >= 0 && diffInDays < UPCOMING_DAY_WINDOW;
 }
 
 function compareCreatedAt(left: string | null, right: string | null) {

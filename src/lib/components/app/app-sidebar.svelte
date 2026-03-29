@@ -32,6 +32,11 @@
 		collapsed: boolean;
 	};
 
+	type RouteGroup = {
+		label: string;
+		items: typeof appRoutes;
+	};
+
 	let {
 		class: className,
 		mobile = false,
@@ -91,6 +96,19 @@
 	const primaryRoutes = appRoutes.filter(
 		(item) => item.href !== '/settings' && item.href !== '/projects'
 	);
+	const routeGroups: RouteGroup[] = [
+		{
+			label: 'Focus',
+			items: primaryRoutes.filter((item) => item.href === '/today')
+		},
+		{
+			label: 'Plan',
+			items: primaryRoutes.filter((item) =>
+				['/upcoming', '/inbox', '/active'].includes(item.href)
+			)
+		}
+	].filter((group) => group.items.length > 0);
+	const completedRoute = primaryRoutes.find((item) => item.href === '/completed');
 	const projectsRoute = appRoutes.find((item) => item.href === '/projects');
 	const settingsRoute = appRoutes.find((item) => item.href === '/settings');
 	const ProjectsIcon = projectsRoute?.icon;
@@ -170,17 +188,65 @@
 	<Separator class="my-2 opacity-50" />
 
 	<nav aria-label="Primary" class="flex flex-1 flex-col gap-1">
-		{#each primaryRoutes as item (item.href)}
-			{@const Icon = item.icon}
+		{#each routeGroups as group, index (group.label)}
+			{#if !compact}
+				{#if index > 0}
+					<Separator class="my-2 opacity-40" />
+				{/if}
+				<p class="px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80">{group.label}</p>
+			{/if}
+
+			<div class="space-y-1">
+				{#each group.items as item (item.href)}
+					{@const Icon = item.icon}
+					<a
+						href={resolve(item.href)}
+						onclick={onSelect}
+						aria-label={compact ? item.label : undefined}
+						title={compact ? item.label : undefined}
+						class={cn(
+							'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+							compact ? 'justify-center px-0' : '',
+							isActive(item.href)
+								? 'bg-primary/10 text-foreground'
+								: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+						)}
+					>
+						<span
+							class={cn(
+								'rounded-lg p-1.5 transition-colors',
+								isActive(item.href)
+									? 'text-foreground'
+									: 'text-muted-foreground group-hover:text-foreground'
+							)}
+						>
+							<Icon class="size-4" />
+						</span>
+
+						{#if !compact}
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+						{/if}
+					</a>
+				{/each}
+			</div>
+		{/each}
+
+		{#if !compact && (completedRoute || $connection.settings && savedFilterEntries.length > 0 || projectsRoute && ProjectsIcon)}
+			<Separator class="my-2 opacity-40" />
+			<p class="px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80">Browse</p>
+		{/if}
+
+		{#if completedRoute}
+			{@const Icon = completedRoute.icon}
 			<a
-				href={resolve(item.href)}
+				href={resolve(completedRoute.href)}
 				onclick={onSelect}
-				aria-label={compact ? item.label : undefined}
-				title={compact ? item.label : undefined}
+				aria-label={compact ? completedRoute.label : undefined}
+				title={compact ? completedRoute.label : undefined}
 				class={cn(
 					'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
 					compact ? 'justify-center px-0' : '',
-					isActive(item.href)
+					isActive(completedRoute.href)
 						? 'bg-primary/10 text-foreground'
 						: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
 				)}
@@ -188,7 +254,7 @@
 				<span
 					class={cn(
 						'rounded-lg p-1.5 transition-colors',
-						isActive(item.href)
+						isActive(completedRoute.href)
 							? 'text-foreground'
 							: 'text-muted-foreground group-hover:text-foreground'
 					)}
@@ -197,16 +263,13 @@
 				</span>
 
 				{#if !compact}
-					<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+					<span class="min-w-0 flex-1 truncate text-sm font-medium">{completedRoute.label}</span>
 				{/if}
 			</a>
-		{/each}
+		{/if}
 
 		{#if !compact && $connection.settings && savedFilterEntries.length > 0}
-			<div class="pt-2">
-				<Separator class="mb-2 opacity-50" />
-				<p class="px-2.5 text-[0.72rem] font-medium text-muted-foreground/80">Saved Filters</p>
-
+			<div>
 				<div class="mt-2 space-y-1" aria-label="Saved filters">
 					{#each savedFilterEntries as entry (entry.id)}
 						{@const active = isActive(`/filters/${entry.id}`)}
@@ -236,9 +299,7 @@
 		{/if}
 
 		{#if projectsRoute && ProjectsIcon}
-			<div class="pt-2">
-				<Separator class="mb-2 opacity-50" />
-
+			<div class={cn(!compact && $connection.settings && savedFilterEntries.length > 0 ? 'pt-2' : '')}>
 				<div
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
