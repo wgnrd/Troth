@@ -5,7 +5,8 @@
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
 	import { getSubtasks, getSubtaskSummary } from '$lib/stores/tasks';
-	import { formatTaskRepeat, getPriorityCheckboxTone, sortTasks } from '$lib/tasks/view';
+	import { getOrderedSubtasks, subtaskOrder } from '$lib/stores/subtask-order';
+	import { formatTaskRepeat, getPriorityCheckboxTone } from '$lib/tasks/view';
 	import { cn, notesToEditableMarkdown } from '$lib/utils';
 	import TaskComposer from './TaskComposer.svelte';
 	import TaskMetaFields from './TaskMetaFields.svelte';
@@ -68,6 +69,18 @@
 	let focusedTaskId = $state<number | null>(null);
 	let showSubtaskComposer = $state(false);
 	let notesFocused = $state(false);
+	let draggedSubtaskId = $state<number | null>(null);
+	let subtaskDropIndex = $state<number | null>(null);
+	let pressedSubtaskId = $state<number | null>(null);
+	let pressStartX = 0;
+	let pressStartY = 0;
+	let pointerX = $state(0);
+	let pointerY = $state(0);
+	let suppressOpenTaskId = $state<number | null>(null);
+
+	const DRAG_THRESHOLD = 6;
+	const DRAG_PREVIEW_OFFSET_X = 18;
+	const DRAG_PREVIEW_OFFSET_Y = 14;
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
@@ -84,8 +97,11 @@
 			return [];
 		}
 
-		return sortTasks(getSubtasks(task.id, allTasks));
+		return getOrderedSubtasks(task.id, getSubtasks(task.id, allTasks), $subtaskOrder);
 	});
+	const draggedSubtask = $derived(
+		draggedSubtaskId === null ? null : (subtasks.find((item) => item.id === draggedSubtaskId) ?? null)
+	);
 	const subtaskSummary = $derived.by(() => {
 		if (!task) {
 			return { total: 0, open: 0, completed: 0 };
@@ -351,6 +367,138 @@
 
 		return `color: color-mix(in srgb, ${color} 72%, rgb(68 64 60)); background-color: color-mix(in srgb, ${color} 14%, white); border-color: color-mix(in srgb, ${color} 24%, rgb(231 229 228));`;
 	}
+
+	function cleanupSubtaskPointerSession() {
+		pressedSubtaskId = null;
+		draggedSubtaskId = null;
+		subtaskDropIndex = null;
+
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('pointermove', handleSubtaskPointerMove);
+			window.removeEventListener('pointerup', handleSubtaskPointerUp);
+			window.removeEventListener('pointercancel', handleSubtaskPointerCancel);
+		}
+	}
+
+	function handleSubtaskPressStart(event: PointerEvent, subtask: AppTask) {
+		if (saving || mutatingIds.includes(subtask.id) || event.button !== 0) {
+			return;
+		}
+
+		pressedSubtaskId = subtask.id;
+		pressStartX = event.clientX;
+		pressStartY = event.clientY;
+		pointerX = event.clientX;
+		pointerY = event.clientY;
+
+		if (typeof window !== 'undefined') {
+			window.addEventListener('pointermove', handleSubtaskPointerMove);
+			window.addEventListener('pointerup', handleSubtaskPointerUp);
+			window.addEventListener('pointercancel', handleSubtaskPointerCancel);
+		}
+	}
+
+	function handleSubtaskPointerMove(event: PointerEvent) {
+		if (pressedSubtaskId === null) {
+			return;
+		}
+
+		const movedEnough =
+			Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) >= DRAG_THRESHOLD;
+
+		if (!movedEnough && draggedSubtaskId === null) {
+			return;
+		}
+
+		event.preventDefault();
+		pointerX = event.clientX;
+		pointerY = event.clientY;
+
+		if (draggedSubtaskId === null) {
+			draggedSubtaskId = pressedSubtaskId;
+		}
+
+		updateSubtaskDropIndex(event.clientY);
+	}
+
+	function updateSubtaskDropIndex(clientY: number) {
+		if (typeof document === 'undefined') {
+			return;
+		}
+
+		const itemElements = Array.from(
+			document.querySelectorAll<HTMLElement>('[data-subtask-index]')
+		).sort(
+			(left, right) =>
+				Number(left.dataset.subtaskIndex ?? '-1') - Number(right.dataset.subtaskIndex ?? '-1')
+		);
+
+		if (itemElements.length === 0) {
+			subtaskDropIndex = null;
+			return;
+		}
+
+		for (const element of itemElements) {
+			const index = Number(element.dataset.subtaskIndex ?? '-1');
+			const rect = element.getBoundingClientRect();
+			const midpoint = rect.top + rect.height / 2;
+
+			if (clientY < midpoint) {
+				subtaskDropIndex = index;
+				return;
+			}
+		}
+
+		subtaskDropIndex = itemElements.length;
+	}
+
+	async function handleSubtaskPointerUp(event: PointerEvent) {
+		updateSubtaskDropIndex(event.clientY);
+
+		const activeSubtaskId = draggedSubtaskId;
+		const targetIndex = subtaskDropIndex;
+
+		if (activeSubtaskId !== null) {
+			suppressOpenTaskId = activeSubtaskId;
+			setTimeout(() => {
+				if (suppressOpenTaskId === activeSubtaskId) {
+					suppressOpenTaskId = null;
+				}
+			}, 0);
+		}
+
+		cleanupSubtaskPointerSession();
+
+		if (!task || activeSubtaskId === null || targetIndex === null) {
+			return;
+		}
+
+		const currentIndex = subtasks.findIndex((item) => item.id === activeSubtaskId);
+
+		if (currentIndex < 0) {
+			return;
+		}
+
+		let nextIndex = targetIndex;
+
+		if (targetIndex > currentIndex) {
+			nextIndex -= 1;
+		}
+
+		subtaskOrder.reorder(task.id, subtasks, activeSubtaskId, nextIndex);
+	}
+
+	function handleSubtaskPointerCancel() {
+		cleanupSubtaskPointerSession();
+	}
+
+	function handleSubtaskOpen(subtask: AppTask) {
+		if (suppressOpenTaskId === subtask.id) {
+			return;
+		}
+
+		onOpenTask?.(subtask);
+	}
 </script>
 
 {#if open && task}
@@ -511,20 +659,47 @@
 						{/if}
 
 						{#if subtasks.length > 0}
-							<div class="space-y-0.5">
-								{#each subtasks as subtask (subtask.id)}
-									<TaskRow
-										task={subtask}
-										list={null}
-										{lists}
-										busy={mutatingIds.includes(subtask.id)}
-										class="px-2 py-2"
-										onOpen={onOpenTask}
-										{onToggleComplete}
-										{onDueDateChange}
-										{onListChange}
-									/>
+							<div
+								class={cn(
+									'space-y-0.5 rounded-[1.2rem] transition',
+									draggedSubtaskId !== null && 'bg-white/55'
+								)}
+							>
+								{#each subtasks as subtask, index (subtask.id)}
+									<div
+										class={cn(
+											'relative',
+											subtaskDropIndex === index &&
+												'before:absolute before:top-0 before:right-2 before:left-2 before:h-0.5 before:-translate-y-1/2 before:rounded-full before:bg-stone-300'
+										)}
+										data-subtask-index={index}
+									>
+										<TaskRow
+											task={subtask}
+											list={null}
+											{lists}
+											busy={mutatingIds.includes(subtask.id)}
+											dragging={draggedSubtaskId === subtask.id}
+											class={cn(
+												'min-w-0 px-2 py-2',
+												draggedSubtaskId !== null &&
+													draggedSubtaskId !== subtask.id &&
+													'transition-opacity opacity-90'
+											)}
+											onOpen={handleSubtaskOpen}
+											{onToggleComplete}
+											{onDueDateChange}
+											{onListChange}
+											onPressStart={handleSubtaskPressStart}
+										/>
+									</div>
 								{/each}
+
+								{#if subtaskDropIndex === subtasks.length}
+									<div class="relative h-0.5">
+										<div class="absolute right-2 bottom-0 left-2 h-0.5 rounded-full bg-stone-300"></div>
+									</div>
+								{/if}
 							</div>
 						{:else}
 							<p class="text-sm text-muted-foreground">
@@ -588,4 +763,30 @@
 			</div>
 		</div>
 	</aside>
+{/if}
+
+{#if open && draggedSubtask}
+	<div
+		class="pointer-events-none fixed top-0 left-0 z-[60] w-[min(24rem,calc(100vw-2rem))] rounded-[1.25rem] border border-stone-200/80 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(28,25,23,0.16)] backdrop-blur-sm"
+		style={`transform: translate(${pointerX + DRAG_PREVIEW_OFFSET_X}px, ${pointerY + DRAG_PREVIEW_OFFSET_Y}px);`}
+		aria-hidden="true"
+	>
+		<div class="flex items-start gap-3">
+			<span class="mt-0.5 text-stone-400">
+				<svg viewBox="0 0 16 16" class="size-4 fill-current">
+					<circle cx="5" cy="4" r="1.1"></circle>
+					<circle cx="5" cy="8" r="1.1"></circle>
+					<circle cx="5" cy="12" r="1.1"></circle>
+					<circle cx="11" cy="4" r="1.1"></circle>
+					<circle cx="11" cy="8" r="1.1"></circle>
+					<circle cx="11" cy="12" r="1.1"></circle>
+				</svg>
+			</span>
+
+			<div class="min-w-0">
+				<p class="truncate text-sm font-medium text-foreground">{draggedSubtask.title}</p>
+				<p class="mt-1 text-xs text-muted-foreground">Move within this subtask list</p>
+			</div>
+		</div>
+	</div>
 {/if}
