@@ -189,18 +189,18 @@ export function getDueDateBadgeTone(isoDate: string | null) {
 	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
 
 	if (diffInDays === 0) {
-		return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+		return 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-950/55 dark:text-amber-200 dark:hover:bg-amber-900/65';
 	}
 
 	if (diffInDays === 1) {
-		return 'bg-orange-100 text-orange-700 hover:bg-orange-200';
+		return 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-950/55 dark:text-orange-200 dark:hover:bg-orange-900/65';
 	}
 
 	if (diffInDays > 1 && diffInDays <= 5) {
 		return getWeekdayBadgeTone(date.getDay());
 	}
 
-	return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+	return 'bg-stone-100 text-muted-foreground hover:bg-stone-200 dark:bg-white/8 dark:text-muted-foreground dark:hover:bg-white/12';
 }
 
 export function getDueDateFieldTone(isoDate: string | null) {
@@ -222,11 +222,11 @@ export function getDueDateFieldTone(isoDate: string | null) {
 	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
 
 	if (diffInDays === 0) {
-		return 'border-amber-200 bg-amber-50/70';
+		return 'border-amber-200 bg-amber-50/70 dark:border-amber-900/70 dark:bg-amber-950/28';
 	}
 
 	if (diffInDays === 1) {
-		return 'border-orange-200 bg-orange-50/70';
+		return 'border-orange-200 bg-orange-50/70 dark:border-orange-900/70 dark:bg-orange-950/28';
 	}
 
 	if (diffInDays > 1 && diffInDays <= 5) {
@@ -283,28 +283,28 @@ export function getPriorityLabel(priority: number) {
 export function getPriorityCheckboxTone(priority: number) {
 	if (priority >= 5) {
 		return {
-			idle: 'bg-rose-100/85 text-rose-600 hover:bg-rose-150 hover:text-rose-700',
-			completed: 'bg-rose-100 text-rose-700'
+			idle: 'bg-rose-100/85 text-rose-600 hover:bg-rose-150 hover:text-rose-700 dark:bg-rose-950/55 dark:text-rose-200 dark:hover:bg-rose-900/65 dark:hover:text-rose-100',
+			completed: 'bg-rose-100 text-rose-700 dark:bg-rose-950/62 dark:text-rose-100'
 		};
 	}
 
 	if (priority >= 3) {
 		return {
-			idle: 'bg-orange-100/85 text-orange-600 hover:bg-orange-150 hover:text-orange-700',
-			completed: 'bg-orange-100 text-orange-700'
+			idle: 'bg-orange-100/85 text-orange-600 hover:bg-orange-150 hover:text-orange-700 dark:bg-orange-950/55 dark:text-orange-200 dark:hover:bg-orange-900/65 dark:hover:text-orange-100',
+			completed: 'bg-orange-100 text-orange-700 dark:bg-orange-950/62 dark:text-orange-100'
 		};
 	}
 
 	if (priority >= 1) {
 		return {
-			idle: 'bg-sky-100/85 text-sky-600 hover:bg-sky-150 hover:text-sky-700',
-			completed: 'bg-sky-100 text-sky-700'
+			idle: 'bg-sky-100/85 text-sky-600 hover:bg-sky-150 hover:text-sky-700 dark:bg-sky-950/55 dark:text-sky-200 dark:hover:bg-sky-900/65 dark:hover:text-sky-100',
+			completed: 'bg-sky-100 text-sky-700 dark:bg-sky-950/62 dark:text-sky-100'
 		};
 	}
 
 	return {
-		idle: 'bg-stone-100 text-muted-foreground hover:bg-stone-200 hover:text-foreground',
-		completed: 'bg-primary/14 text-primary'
+		idle: 'bg-stone-100 text-muted-foreground hover:bg-stone-200 hover:text-foreground dark:bg-white/8 dark:text-stone-300 dark:hover:bg-white/12 dark:hover:text-stone-100',
+		completed: 'bg-primary/14 text-primary dark:bg-primary/18 dark:text-primary'
 	};
 }
 

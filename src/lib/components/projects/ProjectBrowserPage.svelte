@@ -172,7 +172,7 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm">
+		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -199,11 +199,11 @@
 	{:else if showInitialLoading}
 		<div class="space-y-3">
 			{#each Array.from({ length: 3 }, (_, index) => index) as index (index)}
-				<div class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55"></div>
+				<div class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55 dark:bg-white/6"></div>
 			{/each}
 		</div>
 	{:else if allActiveLists.length === 0}
-		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
+		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
 			<div class="space-y-2 text-center sm:text-left">
 				<p class="text-sm font-medium text-foreground">No projects yet</p>
 				<p class="text-sm text-muted-foreground">
@@ -226,7 +226,7 @@
 					{@const nestedEntries = getNestedEntries(node)}
 					<div class="space-y-1">
 						<div
-							class="flex items-start justify-between gap-3 rounded-2xl px-3 py-3 transition hover:bg-white/72"
+							class="flex items-start justify-between gap-3 rounded-2xl px-3 py-3 transition hover:bg-white/72 dark:hover:bg-white/8"
 						>
 							<div class="min-w-0 space-y-1">
 								<div class="flex items-center gap-2">
@@ -293,7 +293,7 @@
 								{#each nestedEntries as entry (entry.list.id)}
 									{@const entryOpenTaskCount = getOpenTaskCount(entry.list.id)}
 									<div
-										class="flex items-center justify-between gap-3 rounded-xl py-2 pr-3 text-sm text-muted-foreground transition hover:bg-white/68 hover:text-foreground"
+										class="flex items-center justify-between gap-3 rounded-xl py-2 pr-3 text-sm text-muted-foreground transition hover:bg-white/68 hover:text-foreground dark:hover:bg-white/8"
 										style={`padding-left: ${entry.depth * 1.1 + 1.25}rem;`}
 									>
 										<a
@@ -371,7 +371,7 @@
 						{#each hiddenLists as project (project.id)}
 							{@const openTaskCount = getOpenTaskCount(project.id)}
 							<div
-								class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-white/68 hover:text-foreground"
+								class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition hover:bg-white/68 hover:text-foreground dark:hover:bg-white/8"
 							>
 								<div class="flex min-w-0 flex-1 items-center gap-2">
 									<span

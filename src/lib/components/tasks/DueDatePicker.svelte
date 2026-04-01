@@ -174,10 +174,10 @@
 
 	<Popover.Content
 		{align}
-		class="w-[22rem] overflow-hidden rounded-[1.75rem] border-border/70 bg-[linear-gradient(180deg,rgba(255,252,247,0.96),rgba(255,255,255,1))] p-0 shadow-[0_24px_80px_-36px_rgba(28,22,14,0.35)] backdrop-blur-sm"
+		class="w-[22rem] overflow-hidden rounded-[1.75rem] border-border/70 bg-[rgba(255,252,247,0.98)] p-0 shadow-[0_24px_80px_-36px_rgba(28,22,14,0.35)] backdrop-blur-sm dark:border-white/14 dark:bg-[color-mix(in_oklch,var(--color-popover)_82%,white_18%)] dark:shadow-[0_24px_80px_-42px_rgba(0,0,0,0.46)]"
 		data-task-composer-ignore-collapse="true"
 	>
-		<div class="border-b border-border/70 bg-muted/[0.22] px-3 py-3">
+		<div class="border-b border-border/70 bg-muted/[0.22] px-3 py-3 dark:border-white/12 dark:bg-white/10">
 			<div
 				class="mb-2 px-1 text-[0.68rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
 			>
@@ -187,8 +187,9 @@
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-amber-800 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900',
-						isToday && 'border-amber-300 bg-amber-50 text-amber-900'
+						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-amber-800 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900 dark:text-amber-50 dark:hover:border-amber-700/70 dark:hover:bg-amber-950/24 dark:hover:text-amber-50',
+						isToday &&
+							'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/80 dark:bg-amber-900/28 dark:text-amber-50'
 					)}
 					onclick={setToday}
 				>
@@ -201,8 +202,9 @@
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-orange-800 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900',
-						isTomorrow && 'border-orange-300 bg-orange-50 text-orange-900'
+						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-orange-800 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900 dark:text-orange-50 dark:hover:border-orange-700/70 dark:hover:bg-orange-950/22 dark:hover:text-orange-50',
+						isTomorrow &&
+							'border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700/80 dark:bg-orange-900/26 dark:text-orange-50'
 					)}
 					onclick={setTomorrow}
 				>
@@ -215,8 +217,9 @@
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-sky-800 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900',
-						isNextWeek && 'border-sky-300 bg-sky-50 text-sky-900'
+						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-sky-800 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900 dark:text-sky-50 dark:hover:border-sky-700/70 dark:hover:bg-sky-950/22 dark:hover:text-sky-50',
+						isNextWeek &&
+							'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700/80 dark:bg-sky-900/24 dark:text-sky-50'
 					)}
 					onclick={setNextWeek}
 				>
@@ -231,7 +234,7 @@
 
 		<div class="p-3">
 			<Calendar
-				class="rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+				class="rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
 				type="single"
 				value={calendarValue}
 				onValueChange={(nextValue: DateValue | undefined) => {
@@ -241,7 +244,7 @@
 		</div>
 
 		<div
-			class="flex items-center justify-between border-t border-border/70 bg-muted/[0.18] px-3 py-2.5"
+			class="flex items-center justify-between border-t border-border/70 bg-muted/[0.18] px-3 py-2.5 dark:border-white/12 dark:bg-white/9"
 		>
 			<div class="text-xs font-medium text-muted-foreground">{footerLabel}</div>
 			<Button

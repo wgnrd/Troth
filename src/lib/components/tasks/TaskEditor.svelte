@@ -520,7 +520,7 @@
 					{#if parentTask}
 						<button
 							type="button"
-							class="inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-stone-50/75 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-background/90"
+							class="inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-stone-50/75 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-background/90 dark:bg-white/7 dark:hover:bg-white/10"
 							onclick={() => {
 								onOpenTask?.(parentTask);
 							}}
@@ -605,7 +605,7 @@
 							id="task-description"
 							bind:value={description}
 							class={cn(
-								'w-full rounded-[1.2rem] border border-border/60 bg-stone-50/40 px-4 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground/65 focus:border-primary/30 focus:bg-background focus:ring-3 focus:ring-primary/10',
+								'w-full rounded-[1.2rem] border border-border/60 bg-stone-50/40 px-4 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground/65 focus:border-primary/30 focus:bg-background focus:ring-3 focus:ring-primary/10 dark:bg-white/6 dark:focus:bg-white/8',
 								description.trim() || notesFocused ? 'min-h-40' : 'min-h-12 sm:min-h-40'
 							)}
 							disabled={saving}
@@ -617,7 +617,7 @@
 						></textarea>
 					</div>
 
-					<section class="space-y-3 rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3">
+					<section class="space-y-3 rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3 dark:bg-white/6">
 						<div class="flex items-center justify-between gap-3">
 							<div class="min-w-0">
 								<p class="text-sm font-medium text-foreground">Subtasks</p>
@@ -662,7 +662,7 @@
 							<div
 								class={cn(
 									'space-y-0.5 rounded-[1.2rem] transition',
-									draggedSubtaskId !== null && 'bg-white/55'
+									draggedSubtaskId !== null && 'bg-white/55 dark:bg-white/6'
 								)}
 							>
 								{#each subtasks as subtask, index (subtask.id)}
@@ -767,7 +767,7 @@
 
 {#if open && draggedSubtask}
 	<div
-		class="pointer-events-none fixed top-0 left-0 z-[60] w-[min(24rem,calc(100vw-2rem))] rounded-[1.25rem] border border-stone-200/80 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(28,25,23,0.16)] backdrop-blur-sm"
+		class="pointer-events-none fixed top-0 left-0 z-[60] w-[min(24rem,calc(100vw-2rem))] rounded-[1.25rem] border border-stone-200/80 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(28,25,23,0.16)] backdrop-blur-sm dark:border-white/12 dark:bg-[color-mix(in_oklch,var(--color-card)_88%,transparent)] dark:shadow-none"
 		style={`transform: translate(${pointerX + DRAG_PREVIEW_OFFSET_X}px, ${pointerY + DRAG_PREVIEW_OFFSET_Y}px);`}
 		aria-hidden="true"
 	>

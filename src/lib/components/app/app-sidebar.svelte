@@ -183,7 +183,10 @@
 		class={cn('flex items-center justify-between gap-2 px-2 py-0.5', compact ? 'w-full px-0' : '')}
 	>
 		<div class={cn('flex min-w-0 items-center gap-1', compact ? 'justify-center' : '')}>
-			<img src="/logo.png" alt="Troth logo" class="size-10 shrink-0 object-contain" />
+			<picture class="size-10 shrink-0">
+				<source srcset="/favicon-dark.svg?v=3" media="(prefers-color-scheme: dark)" />
+				<img src="/favicon.svg?v=3" alt="Troth logo" class="size-10 shrink-0 object-contain" />
+			</picture>
 			<div class={cn('min-w-0 -translate-y-1', compact ? 'sr-only' : '')}>
 				<p class="truncate text-sm font-semibold">Troth</p>
 			</div>
@@ -406,7 +409,7 @@
 					{#if !compact}
 						<button
 							type="button"
-							class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
+							class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
 							aria-label={$projectPreferences.projectsSectionExpanded
 								? 'Collapse projects'
 								: 'Expand projects'}
@@ -459,7 +462,7 @@
 								<div class="flex items-center gap-0.5">
 									<button
 										type="button"
-										class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100 hover:bg-white/80 hover:text-foreground"
+										class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100 hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
 										aria-label={`Hide ${entry.list.title}`}
 										onclick={(event) => {
 											stopEvent(event);
@@ -472,7 +475,7 @@
 									{#if entry.hasChildren}
 										<button
 											type="button"
-											class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground"
+											class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
 											aria-label={entry.collapsed
 												? `Expand ${entry.list.title}`
 												: `Collapse ${entry.list.title}`}
@@ -513,7 +516,7 @@
 
 								<button
 									type="button"
-									class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 hover:bg-white/80 hover:text-foreground"
+									class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 opacity-0 transition group-hover:opacity-100 hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
 									aria-label={`Show ${project.title}`}
 									onclick={() => {
 										projectPreferences.toggleHidden(allProjectLists, project.id);

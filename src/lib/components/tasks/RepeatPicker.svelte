@@ -150,7 +150,7 @@
 		{#if mode !== 'none'}
 			<button
 				type="button"
-				class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 text-muted-foreground transition hover:bg-stone-50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+				class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/70 text-muted-foreground transition hover:bg-stone-50 hover:text-foreground dark:hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-50"
 				{disabled}
 				aria-label="Clear repeat settings"
 				onclick={handleClear}

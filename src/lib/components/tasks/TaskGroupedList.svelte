@@ -222,7 +222,7 @@
 				'space-y-3 rounded-[1.6rem] border border-transparent px-2 py-2 transition-all duration-200',
 				enableDragAndDrop && draggedTaskId !== null && group.key !== 'no-date' && 'border-dashed',
 				dropTargetKey === group.key &&
-					'border-stone-300 bg-white/68 shadow-[0_10px_24px_rgba(28,25,23,0.08)]'
+					'border-stone-300 bg-white/68 shadow-[0_10px_24px_rgba(28,25,23,0.08)] dark:border-white/12 dark:bg-white/7 dark:shadow-none'
 			)}
 			role="group"
 			aria-label={`${groupAriaLabelPrefix} ${group.title}`}
@@ -237,7 +237,7 @@
 
 			<div class="px-2">
 				<div
-					class="inline-flex items-center gap-2 rounded-full bg-white/72 px-3 py-2 text-xs text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset]"
+					class="inline-flex items-center gap-2 rounded-full bg-white/72 px-3 py-2 text-xs text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] dark:bg-white/7 dark:shadow-none"
 					aria-label={`${group.tasks.length} tasks planned for ${group.title}`}
 				>
 					<span class="font-medium">
@@ -294,7 +294,7 @@
 
 {#if draggedTask}
 	<div
-		class="pointer-events-none fixed top-0 left-0 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-[1.25rem] border border-stone-200/80 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(28,25,23,0.16)] backdrop-blur-sm"
+		class="pointer-events-none fixed top-0 left-0 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-[1.25rem] border border-stone-200/80 bg-white/96 px-4 py-3 shadow-[0_18px_40px_rgba(28,25,23,0.16)] backdrop-blur-sm dark:border-white/12 dark:bg-[color-mix(in_oklch,var(--color-card)_88%,transparent)] dark:shadow-none"
 		style={`transform: translate(${pointerX + DRAG_PREVIEW_OFFSET_X}px, ${pointerY + DRAG_PREVIEW_OFFSET_Y}px);`}
 		aria-hidden="true"
 	>

@@ -3,7 +3,24 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<link rel="icon" href="/logo.png" />
+		<script>
+			(() => {
+				const root = document.documentElement;
+				const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+				const applyTheme = (event) => {
+					root.classList.toggle('dark', event.matches);
+				};
+
+				applyTheme(media);
+
+				if (typeof media.addEventListener === 'function') {
+					media.addEventListener('change', applyTheme);
+				} else if (typeof media.addListener === 'function') {
+					media.addListener(applyTheme);
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

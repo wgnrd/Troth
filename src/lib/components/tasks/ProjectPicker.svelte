@@ -29,7 +29,7 @@
 	const treeEntries = $derived(flattenProjectTree(buildProjectTree(lists)));
 	const chipStyle = $derived(
 		mode === 'chip' && selectedList?.color
-			? `color: ${selectedList.color}; background-color: color-mix(in oklch, ${selectedList.color} 14%, white); border-color: color-mix(in oklch, ${selectedList.color} 24%, white);`
+			? `--project-chip-color: ${selectedList.color}; color: ${selectedList.color}; background-color: color-mix(in oklch, ${selectedList.color} 8%, white); border-color: color-mix(in oklch, ${selectedList.color} 20%, white);`
 			: undefined
 	);
 	const triggerClass = $derived(
@@ -37,8 +37,8 @@
 			? cn(
 					'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium transition',
 					selectedList?.color
-						? 'border-transparent hover:brightness-[0.98]'
-						: 'border-transparent bg-muted text-foreground/75 hover:bg-stone-200'
+						? 'border-transparent hover:brightness-[0.98] dark:hover:brightness-[1.08]'
+						: 'border-transparent bg-muted text-foreground/75 hover:bg-stone-200 dark:bg-white/8 dark:text-stone-200 dark:hover:bg-white/12'
 				)
 			: 'flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background px-3 text-sm outline-none transition focus-within:border-primary/30 focus-within:ring-3 focus-within:ring-primary/10'
 	);
@@ -81,7 +81,7 @@
 						'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition',
 						entry.list.id === value
 							? 'bg-muted text-foreground'
-							: 'text-foreground/80 hover:bg-stone-50'
+							: 'text-foreground/80 hover:bg-stone-50 dark:hover:bg-white/8'
 					)}
 					onclick={() => {
 						void handleSelect(entry.list.id);
@@ -105,3 +105,14 @@
 		</div>
 	</Popover.Content>
 </Popover.Root>
+
+<style>
+	:global(.dark [style*='--project-chip-color']) {
+		background-color: color-mix(
+			in oklch,
+			var(--project-chip-color) 16%,
+			transparent
+		) !important;
+		border-color: color-mix(in oklch, var(--project-chip-color) 38%, transparent) !important;
+	}
+</style>

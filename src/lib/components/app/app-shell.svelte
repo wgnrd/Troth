@@ -435,7 +435,7 @@
 					</div>
 				</div>
 
-				<div class="rounded-2xl border border-border/70 bg-white/70 p-4">
+				<div class="rounded-2xl border border-border/70 bg-white/70 p-4 dark:bg-white/7">
 					<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 						What Happens
 					</p>

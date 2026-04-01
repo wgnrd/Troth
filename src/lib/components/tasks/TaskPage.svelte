@@ -456,7 +456,7 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm">
+		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -510,7 +510,7 @@
 							aria-hidden="true"
 						>
 							<kbd
-								class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset]"
+								class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] dark:border-white/12 dark:bg-white/6 dark:shadow-none"
 							>
 								N
 							</kbd>
@@ -536,20 +536,22 @@
 
 		{#if view === 'today' && overdueTasks.length > 0}
 			<section
-				class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]"
+				class="rounded-[1.85rem] border px-4 py-4 shadow-none"
+				style="border-color: color-mix(in oklch, #e64553 72%, white); background: transparent;"
 			>
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="space-y-2">
 						<div
-							class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]"
+							class="inline-flex items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase shadow-none"
+							style="border: 1px solid color-mix(in oklch, #e64553 42%, white); background-color: color-mix(in oklch, #e64553 10%, transparent); color: #e64553;"
 						>
 							Overdue
 						</div>
-						<p class="text-sm font-medium text-rose-950">
+						<p class="text-sm font-medium" style="color: #e64553;">
 							{overdueTasks.length} overdue {overdueTasks.length === 1 ? 'task' : 'tasks'} still show
 							in Today
 						</p>
-						<p class="text-sm leading-6 text-rose-900/72">
+						<p class="text-sm leading-6" style="color: color-mix(in oklch, #e64553 82%, black 6%);">
 							Give them a fresh day with one quick move.
 						</p>
 					</div>
@@ -576,7 +578,7 @@
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						class="space-y-2"
-						rowClass="border border-rose-200/75 bg-rose-50/95 shadow-[0_1px_0_rgba(255,255,255,0.88)_inset] hover:border-rose-300/75 hover:bg-rose-100/85"
+						rowClass="border border-[#e64553]/35 bg-transparent shadow-none hover:border-[#e64553]/50 hover:bg-transparent"
 						onOpen={(task) => {
 							selectedTaskId = task.id;
 							tasks.clearMutationError();
@@ -591,21 +593,23 @@
 
 		{#if view === 'upcoming' && upcomingOverdueTasks.length > 0}
 			<section
-				class="rounded-[1.85rem] border border-rose-200/80 bg-rose-50/80 px-4 py-4 shadow-[0_10px_28px_rgba(190,92,100,0.08)]"
+				class="rounded-[1.85rem] border px-4 py-4 shadow-none"
+				style="border-color: color-mix(in oklch, #e64553 72%, white); background: transparent;"
 			>
 				<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div class="space-y-2">
 						<div
-							class="inline-flex items-center rounded-full bg-rose-100/90 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-rose-900 uppercase shadow-[0_1px_0_rgba(255,255,255,0.8)_inset]"
+							class="inline-flex items-center rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase shadow-none"
+							style="border: 1px solid color-mix(in oklch, #e64553 42%, white); background-color: color-mix(in oklch, #e64553 10%, transparent); color: #e64553;"
 						>
 							Due Today
 						</div>
-						<p class="text-sm font-medium text-rose-950">
+						<p class="text-sm font-medium" style="color: #e64553;">
 							{upcomingOverdueTasks.length} overdue task{upcomingOverdueTasks.length === 1
 								? ''
 								: 's'} need a new day
 						</p>
-						<p class="text-sm leading-6 text-rose-900/72">
+						<p class="text-sm leading-6" style="color: color-mix(in oklch, #e64553 82%, black 6%);">
 							Push them forward with one quick reschedule.
 						</p>
 					</div>
@@ -632,7 +636,7 @@
 						{exitingTaskIds}
 						mutatingIds={$tasks.mutatingIds}
 						class="space-y-2"
-						rowClass="border border-rose-200/75 bg-rose-50/95 shadow-[0_1px_0_rgba(255,255,255,0.88)_inset] hover:border-rose-300/75 hover:bg-rose-100/85"
+						rowClass="border border-[#e64553]/35 bg-transparent shadow-none hover:border-[#e64553]/50 hover:bg-transparent"
 						onOpen={(task) => {
 							selectedTaskId = task.id;
 							tasks.clearMutationError();
@@ -660,10 +664,10 @@
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
 			{#if view === 'inbox'}
-				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
+				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
 						<div
-							class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]"
+							class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-white/10 dark:bg-white/6 dark:text-stone-300 dark:shadow-none"
 						>
 							<Inbox class="size-5" />
 						</div>
@@ -675,10 +679,10 @@
 					</div>
 				</div>
 			{:else if view === 'today'}
-				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm">
+				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
 						<div
-							class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset]"
+							class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-amber-900/55 dark:bg-amber-950/35 dark:text-amber-200 dark:shadow-none"
 						>
 							<Sun class="size-5" />
 						</div>
@@ -689,7 +693,7 @@
 					</div>
 				</div>
 			{:else}
-				<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm">
+				<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
 					<div class="space-y-2 text-center sm:text-left">
 						<p class="text-sm font-medium text-foreground">{emptyStateTitle}</p>
 						<p class="text-sm text-muted-foreground">{emptyMessage}</p>

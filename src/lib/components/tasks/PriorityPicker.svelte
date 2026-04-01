@@ -67,7 +67,7 @@
 						'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition',
 						option.value === value
 							? 'bg-muted text-foreground'
-							: 'text-foreground/80 hover:bg-stone-50'
+							: 'text-foreground/80 hover:bg-stone-50 dark:hover:bg-white/8'
 					)}
 					onclick={() => {
 						void handleSelect(option.value);

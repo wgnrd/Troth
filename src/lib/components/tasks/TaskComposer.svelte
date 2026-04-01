@@ -536,7 +536,7 @@
 
 <form
 	bind:this={formEl}
-	class="relative rounded-[1.6rem] border border-border/70 bg-white/78 p-3 shadow-sm backdrop-blur"
+	class="relative rounded-[1.6rem] border border-border/70 bg-white/78 p-3 shadow-sm backdrop-blur dark:bg-white/7 dark:shadow-none"
 	onsubmit={handleSubmit}
 	onfocusin={handleFocusIn}
 >
@@ -652,7 +652,7 @@
 						class={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${
 							index === selectedSuggestionIndex
 								? 'bg-muted text-foreground'
-								: 'text-foreground/80 hover:bg-stone-50'
+								: 'text-foreground/80 hover:bg-stone-50 dark:hover:bg-white/8'
 						}`}
 						data-task-composer-ignore-collapse="true"
 						onmousedown={(event) => {

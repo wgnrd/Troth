@@ -25,9 +25,9 @@
 	{#if mode === 'tasks'}
 		<button
 			type="button"
-			class="flex min-h-12 w-full items-center gap-3 rounded-2xl bg-white/72 px-4 py-3 text-left text-sm text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-white/92"
+			class="flex min-h-12 w-full items-center gap-3 rounded-2xl bg-white/72 px-4 py-3 text-left text-sm text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-white/92 dark:bg-white/7 dark:ring-white/10 dark:hover:bg-white/10"
 		>
-			<span class="rounded-md bg-muted px-1.5 py-1 text-muted-foreground">
+			<span class="rounded-md bg-muted px-1.5 py-1 text-muted-foreground dark:bg-white/8 dark:text-stone-300">
 				<Plus class="size-3.5" />
 			</span>
 			<span>Add a task</span>
@@ -38,7 +38,7 @@
 				<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Tasks</p>
 			</div>
 
-			<div class="min-h-56 rounded-[1.6rem] bg-white/38 px-1 py-2">
+			<div class="min-h-56 rounded-[1.6rem] bg-white/38 px-1 py-2 dark:bg-white/5 dark:ring-1 dark:ring-white/7">
 				<div class="flex min-h-full items-center justify-center px-6 py-14">
 					<p class="text-sm text-muted-foreground">{emptyState}</p>
 				</div>
@@ -46,14 +46,14 @@
 		</div>
 	{:else}
 		<div class="space-y-3">
-			<div class="rounded-2xl bg-white/68 px-4 py-3 ring-1 ring-border/60">
+			<div class="rounded-2xl bg-white/68 px-4 py-3 ring-1 ring-border/60 dark:bg-white/7 dark:ring-white/10">
 				<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 					Server URL
 				</p>
 				<p class="mt-2 text-sm text-muted-foreground">Not connected</p>
 			</div>
 
-			<div class="rounded-2xl bg-white/68 px-4 py-3 ring-1 ring-border/60">
+			<div class="rounded-2xl bg-white/68 px-4 py-3 ring-1 ring-border/60 dark:bg-white/7 dark:ring-white/10">
 				<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 					Access token
 				</p>

@@ -64,7 +64,7 @@
 	</div>
 
 	<div class="grid gap-3 sm:grid-cols-2">
-		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm">
+		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm dark:bg-white/7 dark:shadow-none">
 			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 				Connection
 			</p>
@@ -74,7 +74,7 @@
 			{/if}
 		</div>
 
-		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm">
+		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm dark:bg-white/7 dark:shadow-none">
 			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
 				Session storage
 			</p>
@@ -83,14 +83,14 @@
 			</p>
 		</div>
 
-		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm sm:col-span-2">
+		<div class="rounded-2xl border border-border/70 bg-white/72 px-4 py-3 shadow-sm sm:col-span-2 dark:bg-white/7 dark:shadow-none">
 			<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Version</p>
 			<p class="mt-2 text-sm text-foreground">{data.build.label}</p>
 		</div>
 	</div>
 
 	<form
-		class="space-y-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-4 shadow-sm"
+		class="space-y-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
 		onsubmit={handleSubmit}
 	>
 		<div class="space-y-2">

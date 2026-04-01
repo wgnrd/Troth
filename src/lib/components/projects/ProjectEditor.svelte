@@ -329,7 +329,7 @@
 											'flex w-full items-center justify-between rounded-xl py-2 pr-3 text-left text-sm transition',
 											option.list.id === parentId
 												? 'bg-muted text-foreground'
-												: 'text-foreground/80 hover:bg-stone-50'
+												: 'text-foreground/80 hover:bg-stone-50 dark:hover:bg-white/8'
 										)}
 										style={`padding-left: ${option.depth * 0.95 + 0.9}rem;`}
 										onclick={() => {

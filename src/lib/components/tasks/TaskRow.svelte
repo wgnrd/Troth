@@ -130,7 +130,9 @@
 	class={cn(
 		'group relative flex gap-3 rounded-[1.35rem] px-3 py-3 transition-all duration-700',
 		descriptionPreview ? 'items-start' : 'items-center',
-		task.completed ? 'bg-stone-50/75' : 'hover:bg-white/70',
+		task.completed
+			? 'bg-stone-50/75 dark:bg-white/6'
+			: 'hover:bg-white/70 dark:hover:bg-white/8',
 		draggable && 'md:pl-9',
 		draggable && 'touch-none select-none',
 		exiting && 'translate-x-1 opacity-45',
