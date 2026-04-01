@@ -7,9 +7,16 @@
 			(() => {
 				const root = document.documentElement;
 				const media = window.matchMedia('(prefers-color-scheme: dark)');
+				const darkFavicon = '/favicon-dark.svg?v=3';
+				const lightFavicon = '/favicon.svg?v=3';
 
 				const applyTheme = (event) => {
 					root.classList.toggle('dark', event.matches);
+
+					const favicon = document.querySelector('#app-favicon');
+					if (favicon instanceof HTMLLinkElement) {
+						favicon.href = event.matches ? darkFavicon : lightFavicon;
+					}
 				};
 
 				applyTheme(media);
