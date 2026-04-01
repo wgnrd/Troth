@@ -82,6 +82,7 @@
 			? 'Create a project named Inbox in Vikunja to use this view.'
 			: 'Add a project in Vikunja before creating tasks.'
 	);
+	const overlayOpen = $derived(mobileMoreOpen || mobileTaskComposerOpen || helpOpen);
 
 	$effect(() => {
 		if (page.url.pathname) {
@@ -144,6 +145,27 @@
 		};
 	});
 
+	$effect(() => {
+		if (!overlayOpen) {
+			return;
+		}
+
+		const { documentElement, body } = document;
+		const previousHtmlOverflow = documentElement.style.overflow;
+		const previousBodyOverflow = body.style.overflow;
+		const previousOverscroll = body.style.overscrollBehavior;
+
+		documentElement.style.overflow = 'hidden';
+		body.style.overflow = 'hidden';
+		body.style.overscrollBehavior = 'none';
+
+		return () => {
+			documentElement.style.overflow = previousHtmlOverflow;
+			body.style.overflow = previousBodyOverflow;
+			body.style.overscrollBehavior = previousOverscroll;
+		};
+	});
+
 	async function handleMobileQuickAdd(input: {
 		title: string;
 		listId: number;
@@ -202,7 +224,7 @@
 
 		<div
 			id="mobile-more-sheet"
-			class="fixed inset-x-3 bottom-24 z-50 max-h-[min(70vh,38rem)] lg:hidden"
+			class="fixed inset-x-3 bottom-24 z-50 h-[min(70vh,38rem)] overflow-hidden overscroll-contain lg:hidden"
 		>
 			<AppSidebar
 				mobile
@@ -456,10 +478,11 @@
 				{@const Icon = route.icon}
 				<a
 					href={resolve(route.href)}
+					aria-label={route.label}
 					class={cn(
-						'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] font-medium transition',
+						'flex min-w-0 items-center justify-center rounded-[1.35rem] px-2 py-2 text-[0.68rem] font-medium transition',
 						activeRoute?.href === route.href
-							? 'text-foreground'
+							? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset,0_10px_24px_rgba(24,24,27,0.08)] dark:bg-white/10 dark:shadow-none'
 							: 'text-muted-foreground hover:text-foreground'
 					)}
 					aria-current={activeRoute?.href === route.href ? 'page' : undefined}
@@ -467,21 +490,18 @@
 					<span
 						class={cn(
 							'flex size-10 items-center justify-center rounded-2xl transition',
-							activeRoute?.href === route.href
-								? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset]'
-								: 'bg-transparent'
+							activeRoute?.href === route.href ? 'text-foreground' : 'bg-transparent'
 						)}
 					>
 						<Icon class="size-4.5" />
 					</span>
-					<span class="truncate">{route.label}</span>
 				</a>
 			{/each}
 
 			<div class="flex justify-center px-1 pb-1">
 				<button
 					type="button"
-					class="inline-flex size-14 -translate-y-3 items-center justify-center rounded-full border border-primary/20 bg-primary text-primary-foreground shadow-[0_16px_30px_rgba(60,93,78,0.28)] transition hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/15"
+					class="inline-flex size-14 items-center justify-center rounded-full border border-primary/20 bg-primary text-primary-foreground shadow-[0_16px_30px_rgba(60,93,78,0.28)] transition hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/15"
 					aria-label="Add task"
 					onclick={() => {
 						mobileTaskComposerOpen = true;
@@ -495,10 +515,11 @@
 				{@const Icon = route.icon}
 				<a
 					href={resolve(route.href)}
+					aria-label={route.label}
 					class={cn(
-						'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] font-medium transition',
+						'flex min-w-0 items-center justify-center rounded-[1.35rem] px-2 py-2 text-[0.68rem] font-medium transition',
 						activeRoute?.href === route.href
-							? 'text-foreground'
+							? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset,0_10px_24px_rgba(24,24,27,0.08)] dark:bg-white/10 dark:shadow-none'
 							: 'text-muted-foreground hover:text-foreground'
 					)}
 					aria-current={activeRoute?.href === route.href ? 'page' : undefined}
@@ -506,23 +527,23 @@
 					<span
 						class={cn(
 							'flex size-10 items-center justify-center rounded-2xl transition',
-							activeRoute?.href === route.href
-								? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset]'
-								: 'bg-transparent'
+							activeRoute?.href === route.href ? 'text-foreground' : 'bg-transparent'
 						)}
 					>
 						<Icon class="size-4.5" />
 					</span>
-					<span class="truncate">{route.label}</span>
 				</a>
 			{/each}
 
 			<button
 				type="button"
 				class={cn(
-					'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[0.68rem] font-medium transition',
-					mobileMoreActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+					'flex min-w-0 items-center justify-center rounded-[1.35rem] px-2 py-2 text-[0.68rem] font-medium transition',
+					mobileMoreActive
+						? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset,0_10px_24px_rgba(24,24,27,0.08)] dark:bg-white/10 dark:shadow-none'
+						: 'text-muted-foreground hover:text-foreground'
 				)}
+				aria-label="More"
 				aria-expanded={mobileMoreOpen}
 				aria-controls="mobile-more-sheet"
 				onclick={() => {
@@ -532,9 +553,7 @@
 				<span
 					class={cn(
 						'flex size-10 items-center justify-center rounded-2xl transition',
-						mobileMoreActive
-							? 'bg-primary/12 text-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset]'
-							: 'bg-transparent'
+						mobileMoreActive ? 'text-foreground' : 'bg-transparent'
 					)}
 				>
 					{#if showProgress}
@@ -543,7 +562,6 @@
 						<Ellipsis class="size-4.5" />
 					{/if}
 				</span>
-				<span class="truncate">More</span>
 			</button>
 		</div>
 	</nav>

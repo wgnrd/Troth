@@ -39,6 +39,21 @@ Start the dev server:
 pnpm dev
 ```
 
+Expose the dev server on your local network:
+
+```bash
+pnpm dev:lan
+```
+
+On iPhone, open the LAN URL shown in the terminal, such as
+`http://192.168.1.23:5173/`.
+
+The app shell, manifest, and service worker are now wired up, but Safari only
+treats service workers as fully active in a secure context. `localhost` counts;
+a plain LAN `http://` address does not. That means layout and install metadata
+are easy to test on your phone over the local network, while offline caching and
+full PWA behavior still need HTTPS.
+
 Run checks:
 
 ```bash
@@ -123,7 +138,9 @@ That works because Troth talks to Vikunja from the server side. The browser does
 ## Project Commands
 
 - `pnpm dev`: start the dev server
+- `pnpm dev:lan`: start the dev server on `0.0.0.0` for phone testing
 - `pnpm build`: create the production build
+- `pnpm preview:lan`: preview the built app on `0.0.0.0`
 - `pnpm check`: run Svelte and TypeScript checks
 - `pnpm lint`: run Prettier and ESLint
 - `pnpm format`: format the codebase

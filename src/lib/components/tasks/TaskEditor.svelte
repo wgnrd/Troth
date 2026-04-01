@@ -77,10 +77,16 @@
 	let pointerX = $state(0);
 	let pointerY = $state(0);
 	let suppressOpenTaskId = $state<number | null>(null);
+	let mobileSheetPointerId = $state<number | null>(null);
+	let mobileSheetStartX = 0;
+	let mobileSheetStartY = 0;
+	let mobileSheetOffsetY = $state(0);
+	let mobileSheetDragging = $state(false);
 
 	const DRAG_THRESHOLD = 6;
 	const DRAG_PREVIEW_OFFSET_X = 18;
 	const DRAG_PREVIEW_OFFSET_Y = 14;
+	const MOBILE_SHEET_CLOSE_THRESHOLD = 96;
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
@@ -499,6 +505,59 @@
 
 		onOpenTask?.(subtask);
 	}
+
+	function isMobileSheetGesture(event: PointerEvent) {
+		return event.pointerType !== 'mouse' && typeof window !== 'undefined' && window.innerWidth < 640;
+	}
+
+	function handleMobileSheetPointerDown(event: PointerEvent) {
+		if (!isMobileSheetGesture(event) || saving || !editorEl || editorEl.scrollTop > 0) {
+			return;
+		}
+
+		mobileSheetPointerId = event.pointerId;
+		mobileSheetStartX = event.clientX;
+		mobileSheetStartY = event.clientY;
+		mobileSheetOffsetY = 0;
+		mobileSheetDragging = true;
+		editorEl.setPointerCapture(event.pointerId);
+	}
+
+	function handleMobileSheetPointerMove(event: PointerEvent) {
+		if (!mobileSheetDragging || mobileSheetPointerId !== event.pointerId) {
+			return;
+		}
+
+		const deltaX = event.clientX - mobileSheetStartX;
+		const deltaY = event.clientY - mobileSheetStartY;
+
+		if (deltaY <= 0 || Math.abs(deltaX) > deltaY) {
+			mobileSheetOffsetY = 0;
+			return;
+		}
+
+		mobileSheetOffsetY = deltaY;
+	}
+
+	async function handleMobileSheetPointerEnd(event: PointerEvent) {
+		if (mobileSheetPointerId !== event.pointerId) {
+			return;
+		}
+
+		const shouldClose = mobileSheetOffsetY >= MOBILE_SHEET_CLOSE_THRESHOLD;
+
+		mobileSheetPointerId = null;
+		mobileSheetDragging = false;
+		mobileSheetOffsetY = 0;
+
+		if (editorEl?.hasPointerCapture(event.pointerId)) {
+			editorEl.releasePointerCapture(event.pointerId);
+		}
+
+		if (shouldClose) {
+			await handleClose();
+		}
+	}
 </script>
 
 {#if open && task}
@@ -511,11 +570,22 @@
 
 	<aside
 		bind:this={editorEl}
-		class="fixed top-1/2 left-1/2 z-50 max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-[52rem] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl"
+		class="fixed inset-x-0 bottom-0 z-50 max-h-[66vh] w-full overflow-y-auto rounded-t-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl transition-transform sm:inset-x-3 sm:bottom-3 sm:max-h-[calc(100vh-1.5rem)] sm:w-auto sm:rounded-[1.8rem] lg:top-1/2 lg:left-1/2 lg:bottom-auto lg:w-[calc(100vw-1.5rem)] lg:max-w-[52rem] lg:-translate-x-1/2 lg:-translate-y-1/2"
+		style:translate={`0 ${mobileSheetOffsetY}px`}
 		aria-label="Task editor"
 	>
 		<div class="space-y-4">
-			<div class="flex items-center justify-between gap-3">
+			<div class="space-y-3">
+				<div
+					role="presentation"
+					class="mx-auto h-1.5 w-12 rounded-full bg-stone-300/90 dark:bg-white/18 sm:hidden"
+					onpointerdown={handleMobileSheetPointerDown}
+					onpointermove={handleMobileSheetPointerMove}
+					onpointerup={handleMobileSheetPointerEnd}
+					onpointercancel={handleMobileSheetPointerEnd}
+				></div>
+
+				<div class="flex items-center justify-between gap-3">
 				<div class="min-w-0">
 					{#if parentTask}
 						<button
@@ -549,6 +619,7 @@
 					<X class="size-3.5" />
 					Close
 				</Button>
+			</div>
 			</div>
 
 			<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">

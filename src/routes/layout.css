@@ -137,27 +137,15 @@
 		color-scheme: dark;
 	}
 
-	/* Prevent iOS Safari from auto-zooming focused form controls under 16px. */
-	input,
-	textarea,
-	select {
-		font-size: 16px;
-	}
 }
 
-.dark body {
-	background-image:
-		radial-gradient(circle at top right, color-mix(in oklch, var(--color-primary) 14%, transparent), transparent 30%),
-		linear-gradient(180deg, color-mix(in oklch, var(--color-card) 55%, transparent), transparent 28%);
-	background-attachment: fixed;
-}
-
-@media (min-width: 640px) {
+/* Keep focused form controls at 16px on touch devices so iOS Safari does not zoom. */
+@media (hover: none) and (pointer: coarse) {
 	@layer base {
 		input,
 		textarea,
 		select {
-			font-size: 0.875rem;
+			font-size: 16px !important;
 		}
 	}
 }

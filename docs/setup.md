@@ -29,3 +29,16 @@ pnpm run dev
 ```
 
 Open the local URL shown in the terminal, usually `http://localhost:5173/`.
+
+## Test on iPhone over your LAN
+
+```bash
+pnpm run dev:lan
+```
+
+Open the `http://YOUR-HOST:5173/` URL from Safari on the same Wi-Fi network.
+
+Troth now includes a manifest, install icons, and a service worker. Safari on
+iPhone still requires a secure context for service-worker-backed behavior, so a
+plain LAN `http://` URL is useful for layout and install checks, but not for
+fully validating offline caching.
