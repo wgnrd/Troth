@@ -62,7 +62,7 @@
 	let parentTaskId = $state<number | null>(null);
 	let completed = $state(false);
 	let localError = $state<string | null>(null);
-	let syncedTaskId = $state<number | null>(null);
+	let syncedTaskKey = $state('');
 	let editorEl = $state<HTMLElement | null>(null);
 	let titleInput = $state<HTMLTextAreaElement | null>(null);
 	let previousFocus = $state<HTMLElement | null>(null);
@@ -189,11 +189,17 @@
 	);
 
 	$effect(() => {
-		if (!task || task.id === syncedTaskId) {
+		if (!task) {
 			return;
 		}
 
-		syncedTaskId = task.id;
+		const nextTaskKey = `${task.id}:${persistedPayloadKey}`;
+
+		if (nextTaskKey === syncedTaskKey) {
+			return;
+		}
+
+		syncedTaskKey = nextTaskKey;
 		title = task.title;
 		description = notesToEditableMarkdown(task.description);
 		dueDate = task.dueDate;
@@ -221,6 +227,7 @@
 			}
 			previousFocus = null;
 			focusedTaskId = null;
+			syncedTaskKey = '';
 			return;
 		}
 

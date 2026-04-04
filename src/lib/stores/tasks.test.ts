@@ -77,6 +77,10 @@ describe('createTasksStore', () => {
 		fetchTasksMock.mockImplementation(async () => cloneTasks(serverTasks));
 		updateTaskMock.mockImplementation(async (input) => {
 			if (input.id === 1 && input.completed === true) {
+				const staleParentResponse = cloneTask(
+					serverTasks.find((task) => task.id === 1) ?? buildTask({ id: 1, title: 'Weekly review' })
+				);
+
 				serverTasks = serverTasks.map((task) => {
 					if (task.id === 1) {
 						return {
@@ -90,7 +94,11 @@ describe('createTasksStore', () => {
 					return task;
 				});
 
-				return cloneTask(serverTasks.find((task) => task.id === 1)!);
+				return {
+					...staleParentResponse,
+					completed: true,
+					completedAt: '2026-04-04T09:00:00.000Z'
+				};
 			}
 
 			const existingTask = serverTasks.find((task) => task.id === input.id);
@@ -123,7 +131,7 @@ describe('createTasksStore', () => {
 		});
 	});
 
-	it('keeps recurring subtasks open after the parent is completed and tasks refresh', async () => {
+	it('uses the refreshed recurring parent and reopens subtasks after completion', async () => {
 		const store = createTasksStore();
 
 		await store.load(true);
@@ -136,16 +144,27 @@ describe('createTasksStore', () => {
 		expect(updateTaskMock).toHaveBeenCalledTimes(3);
 		expect(updateTaskMock).toHaveBeenNthCalledWith(
 			2,
-			expect.objectContaining({ id: 2, completed: false }),
+			expect.objectContaining({
+				id: 2,
+				completed: false,
+				dueDate: '2026-04-11T12:00:00.000Z'
+			}),
 			1
 		);
 		expect(updateTaskMock).toHaveBeenNthCalledWith(
 			3,
-			expect.objectContaining({ id: 3, completed: false }),
+			expect.objectContaining({
+				id: 3,
+				completed: false,
+				dueDate: '2026-04-11T12:00:00.000Z'
+			}),
 			1
 		);
 		expect(recurringSubtasks).toHaveLength(2);
 		expect(recurringSubtasks.every((task) => !task.completed)).toBe(true);
+		expect(recurringSubtasks.every((task) => task.dueDate === '2026-04-11T12:00:00.000Z')).toBe(
+			true
+		);
 		expect(state.items.find((task) => task.id === 1)?.dueDate).toBe('2026-04-11T12:00:00.000Z');
 	});
 });

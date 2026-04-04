@@ -390,8 +390,8 @@ export function createTasksStore() {
 
 				return {
 					...task,
-					completed: shouldReopenRecurringSubtasks ? task.completed : completed,
-					completedAt: shouldReopenRecurringSubtasks ? task.completedAt : completionTimestamp
+					completed,
+					completedAt: completionTimestamp
 				};
 			})
 		}));
@@ -405,6 +405,57 @@ export function createTasksStore() {
 				},
 				currentTask.parentTaskId
 			);
+
+			if (shouldReopenRecurringSubtasks) {
+				await load(true);
+
+				const refreshedTasks = get({ subscribe }).items;
+				const refreshedPrimaryTask =
+					refreshedTasks.find((task) => task.id === savedPrimaryTask.id) ?? savedPrimaryTask;
+				savedTasks.set(refreshedPrimaryTask.id, refreshedPrimaryTask);
+				const recurringSubtasks = getTaskCascade(savedPrimaryTask.id, refreshedTasks)
+					.slice(1)
+					.filter((task) => task.listId !== null);
+
+				for (const task of recurringSubtasks) {
+					const listId = task.listId;
+
+					if (listId === null) {
+						continue;
+					}
+
+					const savedTask = await updateTrothTask(
+						{
+							id: task.id,
+							title: task.title,
+							description: task.description,
+							dueDate: refreshedPrimaryTask.dueDate,
+							repeatAfter: task.repeatAfter,
+							repeatMode: task.repeatMode,
+							priority: task.priority,
+							listId,
+							parentTaskId: task.parentTaskId,
+							completed: false
+						},
+						task.parentTaskId
+					);
+					savedTasks.set(savedTask.id, savedTask);
+				}
+
+				update((state) => ({
+					...state,
+					mutatingIds: state.mutatingIds.filter((value) => !affectedTaskIdSet.has(value)),
+					completionVersion: state.completionVersion + 1,
+					items: state.items.map((task) => savedTasks.get(task.id) ?? task)
+				}));
+
+				if (options.showUndoToast !== false) {
+					showCompletionToast(refreshedPrimaryTask, affectedTasks.length - 1);
+				}
+
+				return refreshedPrimaryTask;
+			}
+
 			savedTasks.set(savedPrimaryTask.id, savedPrimaryTask);
 
 			const tasksToSync = shouldReopenRecurringSubtasks
