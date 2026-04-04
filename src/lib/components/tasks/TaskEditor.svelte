@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { Check, Circle, CornerUpLeft, Hash, Plus, X } from '@lucide/svelte';
 	import type { AppList, AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import { Button } from '$lib/components/ui/button';
@@ -82,11 +82,27 @@
 	let mobileSheetStartY = 0;
 	let mobileSheetOffsetY = $state(0);
 	let mobileSheetDragging = $state(false);
+	let isMobileSheetViewport = $state(false);
 
 	const DRAG_THRESHOLD = 6;
 	const DRAG_PREVIEW_OFFSET_X = 18;
 	const DRAG_PREVIEW_OFFSET_Y = 14;
 	const MOBILE_SHEET_CLOSE_THRESHOLD = 96;
+
+	onMount(() => {
+		const query = window.matchMedia('(max-width: 639px)');
+
+		const update = () => {
+			isMobileSheetViewport = query.matches;
+		};
+
+		update();
+		query.addEventListener('change', update);
+
+		return () => {
+			query.removeEventListener('change', update);
+		};
+	});
 
 	const priorityTone = $derived(getPriorityCheckboxTone(priority));
 	const repeatLabel = $derived(task ? formatTaskRepeat(task) : null);
@@ -106,7 +122,9 @@
 		return getOrderedSubtasks(task.id, getSubtasks(task.id, allTasks), $subtaskOrder);
 	});
 	const draggedSubtask = $derived(
-		draggedSubtaskId === null ? null : (subtasks.find((item) => item.id === draggedSubtaskId) ?? null)
+		draggedSubtaskId === null
+			? null
+			: (subtasks.find((item) => item.id === draggedSubtaskId) ?? null)
 	);
 	const subtaskSummary = $derived.by(() => {
 		if (!task) {
@@ -507,7 +525,9 @@
 	}
 
 	function isMobileSheetGesture(event: PointerEvent) {
-		return event.pointerType !== 'mouse' && typeof window !== 'undefined' && window.innerWidth < 640;
+		return (
+			event.pointerType !== 'mouse' && typeof window !== 'undefined' && window.innerWidth < 640
+		);
 	}
 
 	function handleMobileSheetPointerDown(event: PointerEvent) {
@@ -570,15 +590,15 @@
 
 	<aside
 		bind:this={editorEl}
-		class="fixed inset-x-0 bottom-0 z-50 max-h-[66vh] w-full overflow-y-auto rounded-t-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl transition-transform sm:inset-x-3 sm:bottom-3 sm:max-h-[calc(100vh-1.5rem)] sm:w-auto sm:rounded-[1.8rem] lg:top-1/2 lg:left-1/2 lg:bottom-auto lg:w-[calc(100vw-1.5rem)] lg:max-w-[52rem] lg:-translate-x-1/2 lg:-translate-y-1/2"
-		style:translate={`0 ${mobileSheetOffsetY}px`}
+		class="fixed inset-x-0 bottom-0 z-50 max-h-[66vh] w-full overflow-y-auto rounded-t-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl transition-transform sm:inset-x-3 sm:bottom-3 sm:max-h-[calc(100vh-1.5rem)] sm:w-auto sm:rounded-[1.8rem] lg:top-1/2 lg:bottom-auto lg:left-1/2 lg:w-[calc(100vw-1.5rem)] lg:max-w-[52rem] lg:-translate-x-1/2 lg:-translate-y-1/2"
+		style:translate={isMobileSheetViewport ? `0 ${mobileSheetOffsetY}px` : null}
 		aria-label="Task editor"
 	>
 		<div class="space-y-4">
 			<div class="space-y-3">
 				<div
 					role="presentation"
-					class="mx-auto h-1.5 w-12 rounded-full bg-stone-300/90 dark:bg-white/18 sm:hidden"
+					class="mx-auto h-1.5 w-12 rounded-full bg-stone-300/90 sm:hidden dark:bg-white/18"
 					onpointerdown={handleMobileSheetPointerDown}
 					onpointermove={handleMobileSheetPointerMove}
 					onpointerup={handleMobileSheetPointerEnd}
@@ -586,40 +606,40 @@
 				></div>
 
 				<div class="flex items-center justify-between gap-3">
-				<div class="min-w-0">
-					{#if parentTask}
-						<button
-							type="button"
-							class="inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-stone-50/75 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-background/90 dark:bg-white/7 dark:hover:bg-white/10"
-							onclick={() => {
-								onOpenTask?.(parentTask);
-							}}
-						>
-							<CornerUpLeft class="size-3.5 shrink-0 text-muted-foreground" />
-							<span class="truncate">{parentTask.title}</span>
-						</button>
-					{:else if currentList}
-						<a
-							href={resolve(`/projects/${currentList.id}`)}
-							class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:bg-background/90"
-							style={getProjectLinkStyle(currentList.color)}
-						>
-							<Hash class="size-3.5 shrink-0" />
-							<span class="truncate">{currentList.title}</span>
-						</a>
-					{/if}
-				</div>
+					<div class="min-w-0">
+						{#if parentTask}
+							<button
+								type="button"
+								class="inline-flex max-w-full items-center gap-2 rounded-full border border-border/70 bg-stone-50/75 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-background/90 dark:bg-white/7 dark:hover:bg-white/10"
+								onclick={() => {
+									onOpenTask?.(parentTask);
+								}}
+							>
+								<CornerUpLeft class="size-3.5 shrink-0 text-muted-foreground" />
+								<span class="truncate">{parentTask.title}</span>
+							</button>
+						{:else if currentList}
+							<a
+								href={resolve(`/projects/${currentList.id}`)}
+								class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition hover:bg-background/90"
+								style={getProjectLinkStyle(currentList.color)}
+							>
+								<Hash class="size-3.5 shrink-0" />
+								<span class="truncate">{currentList.title}</span>
+							</a>
+						{/if}
+					</div>
 
-				<Button
-					variant="ghost"
-					size="sm"
-					class="shrink-0 text-muted-foreground hover:text-foreground"
-					onclick={handleClose}
-				>
-					<X class="size-3.5" />
-					Close
-				</Button>
-			</div>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="shrink-0 text-muted-foreground hover:text-foreground"
+						onclick={handleClose}
+					>
+						<X class="size-3.5" />
+						Close
+					</Button>
+				</div>
 			</div>
 
 			<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
@@ -688,7 +708,9 @@
 						></textarea>
 					</div>
 
-					<section class="space-y-3 rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3 dark:bg-white/6">
+					<section
+						class="space-y-3 rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3 dark:bg-white/6"
+					>
 						<div class="flex items-center justify-between gap-3">
 							<div class="min-w-0">
 								<p class="text-sm font-medium text-foreground">Subtasks</p>
@@ -755,7 +777,7 @@
 												'min-w-0 px-2 py-2',
 												draggedSubtaskId !== null &&
 													draggedSubtaskId !== subtask.id &&
-													'transition-opacity opacity-90'
+													'opacity-90 transition-opacity'
 											)}
 											onOpen={handleSubtaskOpen}
 											{onToggleComplete}
@@ -768,7 +790,9 @@
 
 								{#if subtaskDropIndex === subtasks.length}
 									<div class="relative h-0.5">
-										<div class="absolute right-2 bottom-0 left-2 h-0.5 rounded-full bg-stone-300"></div>
+										<div
+											class="absolute right-2 bottom-0 left-2 h-0.5 rounded-full bg-stone-300"
+										></div>
 									</div>
 								{/if}
 							</div>
