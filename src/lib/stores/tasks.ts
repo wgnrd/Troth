@@ -361,7 +361,7 @@ export function createTasksStore() {
 		const affectedTaskIds = affectedTasks.map((task) => task.id);
 		const affectedTaskIdSet = new Set(affectedTaskIds);
 		const completionTimestamp = completed ? new Date().toISOString() : null;
-		const shouldReopenRecurringSubtasks = completed && isTaskRepeating(currentTask);
+		const shouldReopenRecurringSubtasks = completed && isTaskRepeating(primaryInput);
 
 		update((state) => ({
 			...state,
@@ -407,9 +407,7 @@ export function createTasksStore() {
 			);
 
 			if (shouldReopenRecurringSubtasks) {
-				await load(true);
-
-				const refreshedTasks = get({ subscribe }).items;
+				const refreshedTasks = await fetchTasks();
 				const refreshedPrimaryTask =
 					refreshedTasks.find((task) => task.id === savedPrimaryTask.id) ?? savedPrimaryTask;
 				savedTasks.set(refreshedPrimaryTask.id, refreshedPrimaryTask);
@@ -446,7 +444,7 @@ export function createTasksStore() {
 					...state,
 					mutatingIds: state.mutatingIds.filter((value) => !affectedTaskIdSet.has(value)),
 					completionVersion: state.completionVersion + 1,
-					items: state.items.map((task) => savedTasks.get(task.id) ?? task)
+					items: refreshedTasks.map((task) => savedTasks.get(task.id) ?? task)
 				}));
 
 				if (options.showUndoToast !== false) {
@@ -458,20 +456,12 @@ export function createTasksStore() {
 
 			savedTasks.set(savedPrimaryTask.id, savedPrimaryTask);
 
-			const tasksToSync = shouldReopenRecurringSubtasks
-				? getTaskCascade(savedPrimaryTask.id, await fetchTasks()).slice(1)
-				: affectedTasks.slice(1);
+			const tasksToSync = affectedTasks.slice(1);
 
 			for (const task of tasksToSync) {
 				if (task.listId === null) {
 					continue;
 				}
-
-				if (shouldReopenRecurringSubtasks && !task.completed) {
-					continue;
-				}
-
-				const nextCompleted = shouldReopenRecurringSubtasks ? false : completed;
 
 				const savedTask = await updateTrothTask(
 					{
@@ -484,7 +474,7 @@ export function createTasksStore() {
 						priority: task.priority,
 						listId: task.listId,
 						parentTaskId: task.parentTaskId,
-						completed: nextCompleted
+						completed
 					},
 					task.parentTaskId
 				);
