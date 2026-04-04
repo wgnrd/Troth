@@ -31,7 +31,7 @@ type TaskMutationOptions = {
 	showUndoToast?: boolean;
 };
 
-function createTasksStore() {
+export function createTasksStore() {
 	const initialState: TasksState = {
 		items: [],
 		loading: false,
@@ -361,6 +361,7 @@ function createTasksStore() {
 		const affectedTaskIds = affectedTasks.map((task) => task.id);
 		const affectedTaskIdSet = new Set(affectedTaskIds);
 		const completionTimestamp = completed ? new Date().toISOString() : null;
+		const shouldReopenRecurringSubtasks = completed && isTaskRepeating(currentTask);
 
 		update((state) => ({
 			...state,
@@ -389,8 +390,8 @@ function createTasksStore() {
 
 				return {
 					...task,
-					completed,
-					completedAt: completionTimestamp
+					completed: shouldReopenRecurringSubtasks ? task.completed : completed,
+					completedAt: shouldReopenRecurringSubtasks ? task.completedAt : completionTimestamp
 				};
 			})
 		}));
@@ -406,10 +407,20 @@ function createTasksStore() {
 			);
 			savedTasks.set(savedPrimaryTask.id, savedPrimaryTask);
 
-			for (const task of affectedTasks) {
-				if (task.id === currentTask.id || task.listId === null) {
+			const tasksToSync = shouldReopenRecurringSubtasks
+				? getTaskCascade(savedPrimaryTask.id, await fetchTasks()).slice(1)
+				: affectedTasks.slice(1);
+
+			for (const task of tasksToSync) {
+				if (task.listId === null) {
 					continue;
 				}
+
+				if (shouldReopenRecurringSubtasks && !task.completed) {
+					continue;
+				}
+
+				const nextCompleted = shouldReopenRecurringSubtasks ? false : completed;
 
 				const savedTask = await updateTrothTask(
 					{
@@ -422,7 +433,7 @@ function createTasksStore() {
 						priority: task.priority,
 						listId: task.listId,
 						parentTaskId: task.parentTaskId,
-						completed
+						completed: nextCompleted
 					},
 					task.parentTaskId
 				);
@@ -523,4 +534,13 @@ export function getSubtaskSummary(parentId: number, items: AppTask[]): SubtaskSu
 		completed,
 		open: subtasks.length - completed
 	};
+}
+
+function isTaskRepeating(task: Pick<AppTask, 'repeatAfter' | 'repeatMode'>) {
+	return Boolean(
+		(task.repeatAfter ?? 0) > 0 ||
+		task.repeatMode === 1 ||
+		task.repeatMode === 2 ||
+		task.repeatMode === 3
+	);
 }
