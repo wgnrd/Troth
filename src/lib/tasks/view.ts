@@ -39,6 +39,9 @@ export function findInboxList(lists: AppList[]) {
 
 export function sortTasks(tasks: AppTask[]) {
 	return [...tasks].sort((left, right) => {
+		const leftPriorityRank = getPrioritySortRank(left.priority);
+		const rightPriorityRank = getPrioritySortRank(right.priority);
+
 		const leftDueDate = normalizeDueDate(left.dueDate);
 		const rightDueDate = normalizeDueDate(right.dueDate);
 
@@ -47,7 +50,11 @@ export function sortTasks(tasks: AppTask[]) {
 		}
 
 		if (leftDueDate && rightDueDate) {
-			return leftDueDate.localeCompare(rightDueDate);
+			const dateOrder = leftDueDate.localeCompare(rightDueDate);
+
+			if (dateOrder !== 0) {
+				return dateOrder;
+			}
 		}
 
 		if (leftDueDate) {
@@ -58,18 +65,25 @@ export function sortTasks(tasks: AppTask[]) {
 			return 1;
 		}
 
+		if (leftPriorityRank !== rightPriorityRank) {
+			return leftPriorityRank - rightPriorityRank;
+		}
+
 		return right.id - left.id;
 	});
 }
 
 export function sortTodayTasks(tasks: AppTask[]) {
 	return [...tasks].sort((left, right) => {
+		const leftPriorityRank = getPrioritySortRank(left.priority);
+		const rightPriorityRank = getPrioritySortRank(right.priority);
+
 		if (left.completed !== right.completed) {
 			return left.completed ? 1 : -1;
 		}
 
-		if (left.priority !== right.priority) {
-			return right.priority - left.priority;
+		if (leftPriorityRank !== rightPriorityRank) {
+			return leftPriorityRank - rightPriorityRank;
 		}
 
 		const createdAtOrder = compareCreatedAt(left.createdAt, right.createdAt);
@@ -174,13 +188,13 @@ export function getDueDateBadgeTone(isoDate: string | null) {
 	const normalized = normalizeDueDate(isoDate);
 
 	if (!normalized) {
-		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200 dark:bg-white/5 dark:hover:bg-white/8';
 	}
 
 	const date = new Date(normalized);
 
 	if (Number.isNaN(date.getTime())) {
-		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+		return 'bg-stone-100 text-muted-foreground hover:bg-stone-200 dark:bg-white/5 dark:hover:bg-white/8';
 	}
 
 	const now = new Date();
@@ -575,21 +589,21 @@ function getWeekdayTone(day: number) {
 function getWeekdayBadgeTone(day: number) {
 	switch (day) {
 		case 1:
-			return 'bg-sky-100 text-sky-700 hover:bg-sky-200';
+			return 'bg-sky-100/85 text-sky-700 hover:bg-sky-100 dark:bg-sky-950/45 dark:text-sky-200 dark:hover:bg-sky-900/60';
 		case 2:
-			return 'bg-violet-100 text-violet-700 hover:bg-violet-200';
+			return 'bg-violet-100/85 text-violet-700 hover:bg-violet-100 dark:bg-violet-950/45 dark:text-violet-200 dark:hover:bg-violet-900/60';
 		case 3:
-			return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+			return 'bg-emerald-100/85 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/45 dark:text-emerald-200 dark:hover:bg-emerald-900/60';
 		case 4:
-			return 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200';
+			return 'bg-cyan-100/85 text-cyan-700 hover:bg-cyan-100 dark:bg-cyan-950/45 dark:text-cyan-200 dark:hover:bg-cyan-900/60';
 		case 5:
-			return 'bg-fuchsia-100 text-fuchsia-700 hover:bg-fuchsia-200';
+			return 'bg-fuchsia-100/85 text-fuchsia-700 hover:bg-fuchsia-100 dark:bg-fuchsia-950/45 dark:text-fuchsia-200 dark:hover:bg-fuchsia-900/60';
 		case 6:
-			return 'bg-rose-100 text-rose-700 hover:bg-rose-200';
+			return 'bg-rose-100/85 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/45 dark:text-rose-200 dark:hover:bg-rose-900/60';
 		case 0:
-			return 'bg-teal-100 text-teal-700 hover:bg-teal-200';
+			return 'bg-teal-100/85 text-teal-700 hover:bg-teal-100 dark:bg-teal-950/45 dark:text-teal-200 dark:hover:bg-teal-900/60';
 		default:
-			return 'bg-stone-100 text-muted-foreground hover:bg-stone-200';
+			return 'bg-stone-100/85 text-muted-foreground hover:bg-stone-100 dark:bg-white/8 dark:hover:bg-white/12';
 	}
 }
 
@@ -612,4 +626,20 @@ function getWeekdayFieldTone(day: number) {
 		default:
 			return 'border-border/70 bg-background';
 	}
+}
+
+function getPrioritySortRank(priority: number) {
+	if (priority >= 5) {
+		return 0;
+	}
+
+	if (priority >= 3) {
+		return 1;
+	}
+
+	if (priority === 0) {
+		return 2;
+	}
+
+	return 3;
 }

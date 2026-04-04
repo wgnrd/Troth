@@ -700,7 +700,7 @@
 								description.trim() || notesFocused ? 'min-h-40' : 'min-h-12 sm:min-h-40'
 							)}
 							disabled={saving}
-							placeholder="Add notes"
+							placeholder="Leave yourself a note"
 							onfocus={() => {
 								notesFocused = true;
 							}}
@@ -774,7 +774,7 @@
 											busy={mutatingIds.includes(subtask.id)}
 											dragging={draggedSubtaskId === subtask.id}
 											class={cn(
-												'min-w-0 px-2 py-2',
+												'min-w-0 px-2 py-2 select-none',
 												draggedSubtaskId !== null &&
 													draggedSubtaskId !== subtask.id &&
 													'opacity-90 transition-opacity'
