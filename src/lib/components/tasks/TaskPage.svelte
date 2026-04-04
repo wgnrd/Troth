@@ -53,6 +53,7 @@
 	);
 	const activeLists = $derived(allActiveLists.filter((list) => !hiddenProjectIds.has(list.id)));
 	const inboxList = $derived(findInboxList(activeLists));
+	const rescheduleFallbackListId = $derived(inboxList?.id ?? activeLists[0]?.id ?? null);
 	const visibleTasks = $derived.by(() => {
 		const filteredTasks = filterTasksForView(view, $tasks.items, activeLists);
 		const exitingTasks = $tasks.items.filter(
@@ -347,7 +348,7 @@
 			return;
 		}
 
-		const tasksToReschedule = [...overdueTasks].filter((task) => task.listId !== null);
+		const tasksToReschedule = [...overdueTasks];
 
 		await handleBulkReschedule(tasksToReschedule, dueDate);
 	}
@@ -357,7 +358,7 @@
 			return;
 		}
 
-		const tasksToReschedule = [...upcomingOverdueTasks].filter((task) => task.listId !== null);
+		const tasksToReschedule = [...upcomingOverdueTasks];
 
 		await handleBulkReschedule(tasksToReschedule, dueDate);
 	}
@@ -367,15 +368,28 @@
 			return;
 		}
 
+		if (
+			tasksToReschedule.some((task) => task.listId === null) &&
+			rescheduleFallbackListId === null
+		) {
+			return;
+		}
+
 		bulkRescheduling = true;
 
 		try {
 			await Promise.all(
 				tasksToReschedule.map((task) => {
+					const listId = task.listId ?? rescheduleFallbackListId;
+
+					if (listId === null) {
+						return Promise.resolve(null);
+					}
+
 					return tasks.updateTask(
 						buildUpdateInput(task, {
 							dueDate,
-							listId: task.listId as number
+							listId
 						})
 					);
 				})
@@ -456,7 +470,9 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -664,7 +680,9 @@
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
 			{#if view === 'inbox'}
-				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+				<div
+					class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+				>
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
 						<div
 							class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-white/10 dark:bg-white/6 dark:text-stone-300 dark:shadow-none"
@@ -679,7 +697,9 @@
 					</div>
 				</div>
 			{:else if view === 'today'}
-				<div class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+				<div
+					class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+				>
 					<div class="mx-auto flex max-w-md flex-col items-center text-center">
 						<div
 							class="mb-4 rounded-[1.4rem] border border-amber-200/70 bg-amber-50/75 p-3 text-amber-700 shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-amber-900/55 dark:bg-amber-950/35 dark:text-amber-200 dark:shadow-none"
@@ -693,7 +713,9 @@
 					</div>
 				</div>
 			{:else}
-				<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+				<div
+					class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+				>
 					<div class="space-y-2 text-center sm:text-left">
 						<p class="text-sm font-medium text-foreground">{emptyStateTitle}</p>
 						<p class="text-sm text-muted-foreground">{emptyMessage}</p>
