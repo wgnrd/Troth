@@ -4,6 +4,7 @@
 	import { Inbox, RefreshCcw, Settings2, Sun } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import CalendarDayPreview from './CalendarDayPreview.svelte';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
@@ -468,6 +469,8 @@
 			</Button>
 		{/if}
 	</div>
+
+	<CalendarDayPreview />
 
 	{#if !configured}
 		<div

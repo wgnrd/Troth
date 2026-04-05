@@ -1,12 +1,29 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { browser } from '$app/environment';
 	import './layout.css';
+	import type { CalendarFeedSummary } from '$lib/api/calendar';
+	import type { ConnectionSummary } from '$lib/api/troth/client';
+	import { calendarFeed } from '$lib/stores/calendar-feed';
 	import { connection } from '$lib/stores/connection';
 
-	let { children, data } = $props();
+	let {
+		children,
+		data
+	}: {
+		children: Snippet;
+		data: App.PageData & {
+			connection: ConnectionSummary | null;
+			calendarFeed: CalendarFeedSummary | null;
+		};
+	} = $props();
 
 	$effect(() => {
 		connection.hydrate(data.connection);
+	});
+
+	$effect(() => {
+		calendarFeed.hydrate(data.calendarFeed);
 	});
 
 	$effect(() => {

@@ -2,9 +2,16 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import type { Cookies } from '@sveltejs/kit';
+import {
+	CalendarFeedClientError,
+	getCalendarFeedHost,
+	normalizeCalendarFeedLabel,
+	normalizeCalendarFeedUrl
+} from '$lib/api/calendar';
 import { VikunjaClientError, normalizeVikunjaBaseUrl } from '$lib/api/vikunja';
 
 const SESSION_COOKIE = 'troth_session';
+const CALENDAR_FEED_COOKIE = 'troth_calendar_session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -16,6 +23,16 @@ export type VikunjaSession = {
 };
 
 export type VikunjaSessionSummary = Pick<VikunjaSession, 'baseUrl' | 'sessionKey'>;
+
+export type CalendarFeedSession = {
+	url: string;
+	label: string | null;
+	sessionKey: string;
+};
+
+export type CalendarFeedSessionSummary = Pick<CalendarFeedSession, 'label' | 'sessionKey'> & {
+	urlHost: string;
+};
 
 export function readVikunjaSession(cookies: Cookies): VikunjaSession | null {
 	const raw = cookies.get(SESSION_COOKIE);
@@ -64,6 +81,53 @@ export function clearVikunjaSession(cookies: Cookies) {
 	});
 }
 
+export function readCalendarFeedSession(cookies: Cookies): CalendarFeedSession | null {
+	const raw = cookies.get(CALENDAR_FEED_COOKIE);
+
+	if (!raw) {
+		return null;
+	}
+
+	try {
+		const decrypted = decryptPayload(raw);
+		const parsed = JSON.parse(decrypted) as Partial<CalendarFeedSession>;
+
+		if (!parsed.url || !parsed.sessionKey) {
+			return null;
+		}
+
+		return {
+			url: normalizeCalendarFeedUrl(parsed.url),
+			label: normalizeCalendarFeedLabel(parsed.label),
+			sessionKey: parsed.sessionKey
+		};
+	} catch {
+		return null;
+	}
+}
+
+export function writeCalendarFeedSession(
+	cookies: Cookies,
+	input: { url: string; label?: string | null }
+): CalendarFeedSession {
+	const session: CalendarFeedSession = {
+		url: normalizeCalendarFeedUrl(input.url),
+		label: normalizeCalendarFeedLabel(input.label),
+		sessionKey: randomBytes(16).toString('hex')
+	};
+
+	const payload = encryptPayload(JSON.stringify(session));
+	cookies.set(CALENDAR_FEED_COOKIE, payload, getCookieOptions());
+
+	return session;
+}
+
+export function clearCalendarFeedSession(cookies: Cookies) {
+	cookies.delete(CALENDAR_FEED_COOKIE, {
+		path: '/'
+	});
+}
+
 export function toSessionSummary(session: VikunjaSession | null): VikunjaSessionSummary | null {
 	if (!session) {
 		return null;
@@ -71,6 +135,20 @@ export function toSessionSummary(session: VikunjaSession | null): VikunjaSession
 
 	return {
 		baseUrl: session.baseUrl,
+		sessionKey: session.sessionKey
+	};
+}
+
+export function toCalendarFeedSessionSummary(
+	session: CalendarFeedSession | null
+): CalendarFeedSessionSummary | null {
+	if (!session) {
+		return null;
+	}
+
+	return {
+		label: session.label,
+		urlHost: getCalendarFeedHost(session.url),
 		sessionKey: session.sessionKey
 	};
 }
@@ -83,6 +161,17 @@ function normalizeSessionToken(rawToken: string) {
 	}
 
 	return token;
+}
+
+export function assertCalendarFeedSession(session: CalendarFeedSession | null) {
+	if (!session) {
+		throw new CalendarFeedClientError(
+			'Add an ICS calendar feed in Settings before loading events.',
+			401
+		);
+	}
+
+	return session;
 }
 
 function getCookieOptions() {

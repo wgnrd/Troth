@@ -1,3 +1,4 @@
+import type { AppCalendarEvent, CalendarFeedInput, CalendarFeedSummary } from '$lib/api/calendar';
 import type {
 	AppList,
 	AppSavedFilter,
@@ -59,6 +60,41 @@ export async function disconnectSession() {
 	await request('/api/session', {
 		method: 'DELETE'
 	});
+}
+
+export async function fetchCalendarFeed() {
+	const response = await request<{ calendarFeed: CalendarFeedSummary | null }>('/api/calendar', {
+		method: 'GET'
+	});
+
+	return response.calendarFeed;
+}
+
+export async function connectCalendarFeed(input: CalendarFeedInput) {
+	const response = await request<{ calendarFeed: CalendarFeedSummary }>('/api/calendar', {
+		method: 'PUT',
+		body: input
+	});
+
+	return response.calendarFeed;
+}
+
+export async function disconnectCalendarFeed() {
+	await request('/api/calendar', {
+		method: 'DELETE'
+	});
+}
+
+export async function fetchCalendarEvents(day: string, timezoneOffsetMinutes: number) {
+	const query = new URLSearchParams({
+		day,
+		timezoneOffsetMinutes: String(timezoneOffsetMinutes)
+	});
+	const response = await request<{ events: AppCalendarEvent[] }>(`/api/calendar/events?${query}`, {
+		method: 'GET'
+	});
+
+	return response.events;
 }
 
 export function fetchProjects() {
