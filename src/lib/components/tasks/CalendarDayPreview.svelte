@@ -1,46 +1,36 @@
 <script lang="ts">
-	import { CalendarDays, ChevronLeft, ChevronRight, RefreshCcw } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { calendarEvents } from '$lib/stores/calendar-events';
 	import { calendarFeed } from '$lib/stores/calendar-feed';
 	import { calendarPreviewPreferences } from '$lib/stores/calendar-preview-preferences';
+	import type { CalendarDayEventsState } from '$lib/stores/calendar-events';
 
 	const timeFormatter = new Intl.DateTimeFormat('en-US', {
 		hour: 'numeric',
 		minute: '2-digit'
 	});
 
-	const dayHeadingFormatter = new Intl.DateTimeFormat('en-US', {
-		weekday: 'long',
-		month: 'long',
-		day: 'numeric'
-	});
-
 	let selectedDay = $state(getTodayKey());
 
-	const configured = $derived(
-		Boolean($calendarFeed.settings) || $calendarPreviewPreferences.mockCalendarEnabled
-	);
-	const sourceLabel = $derived(
-		$calendarFeed.settings?.label ??
-			$calendarFeed.settings?.urlHost ??
-			($calendarPreviewPreferences.mockCalendarEnabled ? 'Demo calendar' : 'Calendar')
-	);
-	const heading = $derived(dayHeadingFormatter.format(parseDayKey(selectedDay)));
+	const emptyDayState: CalendarDayEventsState = {
+		items: [],
+		loading: false,
+		loaded: false,
+		error: null,
+		timezoneOffsetMinutes: 0
+	};
+
+	const configured = $derived(Boolean($calendarFeed.settings));
+	const visible = $derived($calendarPreviewPreferences.calendarVisible);
+	const dayState = $derived($calendarEvents.days[selectedDay] ?? emptyDayState);
 
 	$effect(() => {
-		if (!configured) {
+		if (!configured || !visible) {
 			return;
 		}
 
 		void calendarEvents.load(selectedDay);
 	});
-
-	function shiftDay(days: number) {
-		const nextDate = parseDayKey(selectedDay);
-		nextDate.setDate(nextDate.getDate() + days);
-		selectedDay = toDayKey(nextDate);
-	}
 
 	function formatEventTime(start: string, end: string, allDay: boolean) {
 		if (allDay) {
@@ -60,89 +50,96 @@
 		const day = `${date.getDate()}`.padStart(2, '0');
 		return `${year}-${month}-${day}`;
 	}
-
-	function parseDayKey(dayKey: string) {
-		const [year, month, day] = dayKey.split('-').map((part) => Number.parseInt(part, 10));
-		return new Date(year, (month || 1) - 1, day || 1);
-	}
 </script>
 
 {#if configured}
-	<section
-		class="rounded-[1.7rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm dark:bg-white/7 dark:shadow-none"
-	>
-		<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-			<div class="space-y-1">
-				<div
-					class="inline-flex items-center gap-2 rounded-full bg-background/85 px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-muted-foreground uppercase"
-				>
-					<CalendarDays class="size-3.5" />
-					Calendar preview
+	<section class="px-2">
+		{#if visible}
+			{#if dayState.error}
+				<div class="flex items-start justify-between gap-2">
+					<p class="text-sm text-destructive">{dayState.error}</p>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-auto self-start px-2 text-xs"
+						onclick={() => {
+							calendarPreviewPreferences.setCalendarVisible(false);
+						}}
+					>
+						Hide
+					</Button>
 				</div>
-				<p class="text-sm font-medium text-foreground">{heading}</p>
-				<p class="text-sm text-muted-foreground">Read-only events from {sourceLabel}.</p>
-			</div>
-
-			<div class="flex items-center gap-2 self-start">
-				<Button
-					variant="outline"
-					size="icon-sm"
-					aria-label="Previous day"
-					onclick={() => shiftDay(-1)}
-				>
-					<ChevronLeft class="size-4" />
-				</Button>
-				<Button variant="outline" size="icon-sm" aria-label="Next day" onclick={() => shiftDay(1)}>
-					<ChevronRight class="size-4" />
-				</Button>
+			{:else if dayState.loading && !dayState.loaded}
+				<div class="flex items-start justify-between gap-2">
+					<p class="text-xs text-muted-foreground">Loading calendar events…</p>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-auto self-start px-2 text-xs"
+						onclick={() => {
+							calendarPreviewPreferences.setCalendarVisible(false);
+						}}
+					>
+						Hide
+					</Button>
+				</div>
+			{:else if dayState.items.length === 0}
+				<div class="flex items-start justify-between gap-2">
+					<p class="text-xs text-muted-foreground">No events for this day.</p>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-auto self-start px-2 text-xs"
+						onclick={() => {
+							calendarPreviewPreferences.setCalendarVisible(false);
+						}}
+					>
+						Hide
+					</Button>
+				</div>
+			{:else}
+				<div class="space-y-1">
+					{#each dayState.items as event (event.id)}
+						<div
+							class="flex items-baseline justify-between gap-2 text-[0.72rem] leading-5 text-muted-foreground"
+						>
+							<div class="flex min-w-0 items-baseline gap-2">
+								<p class="w-[7.25rem] shrink-0 tabular-nums">
+									{formatEventTime(event.start, event.end, event.allDay)}
+								</p>
+								<p class="min-w-0 truncate text-left text-foreground/82">{event.title}</p>
+							</div>
+							<div class="shrink-0">
+								{#if event === dayState.items[0]}
+									<Button
+										variant="ghost"
+										size="sm"
+										class="h-auto px-2 text-[0.72rem]"
+										onclick={() => {
+											calendarPreviewPreferences.setCalendarVisible(false);
+										}}
+									>
+										Hide
+									</Button>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{:else}
+			<div class="flex items-start justify-between gap-2">
+				<p class="text-[0.72rem] text-muted-foreground">Calendar hidden.</p>
 				<Button
 					variant="ghost"
 					size="sm"
-					class="gap-2"
-					disabled={$calendarEvents.loading}
+					class="h-auto self-start px-2 text-[0.72rem]"
 					onclick={() => {
-						void calendarEvents.refresh();
+						calendarPreviewPreferences.setCalendarVisible(true);
 					}}
 				>
-					<RefreshCcw class="size-3.5" />
-					{$calendarEvents.loading ? 'Refreshing…' : 'Refresh'}
+					Show
 				</Button>
-			</div>
-		</div>
-
-		{#if $calendarEvents.error}
-			<div
-				class="mt-4 rounded-2xl border border-destructive/20 bg-destructive/6 px-3 py-3 text-sm text-destructive"
-			>
-				{$calendarEvents.error}
-			</div>
-		{:else if $calendarEvents.loading && (!$calendarEvents.loaded || $calendarEvents.day !== selectedDay)}
-			<div
-				class="mt-4 rounded-2xl border border-border/60 bg-background/70 px-3 py-4 text-sm text-muted-foreground"
-			>
-				Loading calendar events…
-			</div>
-		{:else if $calendarEvents.items.length === 0}
-			<div
-				class="mt-4 rounded-2xl border border-border/60 bg-background/70 px-3 py-4 text-sm text-muted-foreground"
-			>
-				No events for this day.
-			</div>
-		{:else}
-			<div class="mt-4 space-y-2">
-				{#each $calendarEvents.items as event (event.id)}
-					<div class="rounded-2xl border border-border/60 bg-background/78 px-3 py-3">
-						<div class="flex items-start justify-between gap-3">
-							<div class="min-w-0 space-y-1">
-								<p class="truncate text-sm font-medium text-foreground">{event.title}</p>
-								<p class="text-sm text-muted-foreground">
-									{formatEventTime(event.start, event.end, event.allDay)}
-								</p>
-							</div>
-							<p class="shrink-0 text-xs text-muted-foreground">{event.sourceLabel}</p>
-						</div>
-					</div>
-				{/each}
 			</div>
 		{/if}
 	</section>

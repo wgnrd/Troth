@@ -48,6 +48,13 @@ export function normalizeCalendarFeedUrl(rawUrl: string) {
 		throw new CalendarFeedClientError('Use an http, https, or webcal ICS feed URL.', 400);
 	}
 
+	if (url.hostname === 'calendar.google.com' && !url.pathname.includes('/ical/')) {
+		throw new CalendarFeedClientError(
+			'Use the Google Calendar secret ICS address, not the browser page URL.',
+			400
+		);
+	}
+
 	url.hash = '';
 	return url.toString();
 }

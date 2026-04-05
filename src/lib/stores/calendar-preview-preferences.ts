@@ -4,23 +4,23 @@ import { writable } from 'svelte/store';
 const STORAGE_KEY = 'troth.calendar.preview.preferences';
 
 export type CalendarPreviewPreferencesState = {
-	mockCalendarEnabled: boolean;
+	calendarVisible: boolean;
 };
 
 function createCalendarPreviewPreferencesStore() {
 	const initialState: CalendarPreviewPreferencesState = browser
 		? readStoredPreferences()
 		: {
-				mockCalendarEnabled: false
+				calendarVisible: true
 			};
 
 	const { subscribe, update } = writable<CalendarPreviewPreferencesState>(initialState);
 
-	function setMockCalendarEnabled(enabled: boolean) {
+	function setCalendarVisible(visible: boolean) {
 		update((state) => {
 			const nextState = {
 				...state,
-				mockCalendarEnabled: enabled
+				calendarVisible: visible
 			};
 
 			writeStoredPreferences(nextState);
@@ -30,7 +30,7 @@ function createCalendarPreviewPreferencesStore() {
 
 	return {
 		subscribe,
-		setMockCalendarEnabled
+		setCalendarVisible
 	};
 }
 
@@ -41,7 +41,7 @@ function readStoredPreferences(): CalendarPreviewPreferencesState {
 
 	if (!raw) {
 		return {
-			mockCalendarEnabled: false
+			calendarVisible: true
 		};
 	}
 
@@ -49,13 +49,12 @@ function readStoredPreferences(): CalendarPreviewPreferencesState {
 		const parsed = JSON.parse(raw) as Partial<CalendarPreviewPreferencesState>;
 
 		return {
-			mockCalendarEnabled:
-				typeof parsed.mockCalendarEnabled === 'boolean' ? parsed.mockCalendarEnabled : false
+			calendarVisible: typeof parsed.calendarVisible === 'boolean' ? parsed.calendarVisible : true
 		};
 	} catch {
 		localStorage.removeItem(STORAGE_KEY);
 		return {
-			mockCalendarEnabled: false
+			calendarVisible: true
 		};
 	}
 }

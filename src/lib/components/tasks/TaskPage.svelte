@@ -5,6 +5,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
 	import CalendarDayPreview from './CalendarDayPreview.svelte';
+	import { calendarEvents } from '$lib/stores/calendar-events';
+	import { calendarFeed } from '$lib/stores/calendar-feed';
+	import { calendarPreviewPreferences } from '$lib/stores/calendar-preview-preferences';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
 	import { projectPreferences } from '$lib/stores/project-preferences';
@@ -48,6 +51,8 @@
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
+	const calendarConfigured = $derived(Boolean($calendarFeed.settings));
+	const calendarVisible = $derived($calendarPreviewPreferences.calendarVisible);
 	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
 	const hiddenProjectIds = $derived(
 		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
@@ -121,6 +126,11 @@
 		});
 	});
 	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
+	const groupedVisibleCalendarDays = $derived(
+		view === 'upcoming' && calendarConfigured && calendarVisible
+			? groupedVisibleTasks.map((group) => group.key).filter((key) => key !== 'no-date')
+			: []
+	);
 	const headerMeta = $derived.by(() => {
 		if (view !== 'upcoming') {
 			return meta;
@@ -251,6 +261,19 @@
 		return () => {
 			document.removeEventListener('keydown', handleQuickAddShortcut);
 		};
+	});
+
+	$effect(() => {
+		if (
+			!calendarConfigured ||
+			!calendarVisible ||
+			view !== 'upcoming' ||
+			groupedVisibleCalendarDays.length === 0
+		) {
+			return;
+		}
+
+		void calendarEvents.loadMany(groupedVisibleCalendarDays);
 	});
 
 	async function handleRefresh() {
@@ -470,8 +493,6 @@
 		{/if}
 	</div>
 
-	<CalendarDayPreview />
-
 	{#if !configured}
 		<div
 			class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
@@ -551,6 +572,10 @@
 					onSubmit={handleQuickAdd}
 				/>
 			</div>
+		{/if}
+
+		{#if view === 'today'}
+			<CalendarDayPreview />
 		{/if}
 
 		{#if view === 'today' && overdueTasks.length > 0}
@@ -731,6 +756,8 @@
 					groups={groupedVisibleTasks}
 					lists={activeLists}
 					{listsById}
+					calendarEventsByDay={$calendarEvents.days}
+					showCalendarEvents={calendarConfigured && calendarVisible}
 					{showDueDateBadge}
 					{subtaskSummaryByParentId}
 					{exitingTaskIds}

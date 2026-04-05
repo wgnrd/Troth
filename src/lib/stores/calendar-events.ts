@@ -1,32 +1,35 @@
 import { get, writable } from 'svelte/store';
 import type { AppCalendarEvent } from '$lib/api/calendar';
-import { getMockCalendarEvents } from '$lib/calendar/mock';
 import { fetchCalendarEvents } from '$lib/api/troth/client';
 import { calendarFeed } from './calendar-feed';
-import { calendarPreviewPreferences } from './calendar-preview-preferences';
 
-export type CalendarEventsState = {
+export type CalendarDayEventsState = {
 	items: AppCalendarEvent[];
 	loading: boolean;
 	loaded: boolean;
 	error: string | null;
-	day: string | null;
 	timezoneOffsetMinutes: number;
+};
+
+export type CalendarEventsState = {
+	days: Record<string, CalendarDayEventsState>;
+};
+
+const INITIAL_DAY_STATE: CalendarDayEventsState = {
+	items: [],
+	loading: false,
+	loaded: false,
+	error: null,
+	timezoneOffsetMinutes: 0
 };
 
 function createCalendarEventsStore() {
 	const initialState: CalendarEventsState = {
-		items: [],
-		loading: false,
-		loaded: false,
-		error: null,
-		day: null,
-		timezoneOffsetMinutes: 0
+		days: {}
 	};
 
 	const { subscribe, set, update } = writable<CalendarEventsState>(initialState);
 	let lastCalendarFeedKey = '';
-	let lastMockCalendarEnabled = false;
 
 	calendarFeed.subscribe(($calendarFeed) => {
 		const nextKey = $calendarFeed.settings?.sessionKey ?? '';
@@ -37,96 +40,90 @@ function createCalendarEventsStore() {
 		}
 	});
 
-	calendarPreviewPreferences.subscribe(($preferences) => {
-		if ($preferences.mockCalendarEnabled !== lastMockCalendarEnabled) {
-			lastMockCalendarEnabled = $preferences.mockCalendarEnabled;
-			set(initialState);
-		}
-	});
-
 	async function load(day: string, force = false) {
 		const currentFeed = get(calendarFeed);
-		const preferences = get(calendarPreviewPreferences);
-
-		if (!currentFeed.settings && preferences.mockCalendarEnabled) {
-			set({
-				items: getMockCalendarEvents(day),
-				loading: false,
-				loaded: true,
-				error: null,
-				day,
-				timezoneOffsetMinutes: new Date().getTimezoneOffset()
-			});
-			return;
-		}
 
 		if (!currentFeed.settings) {
-			set({
-				...initialState,
-				error: null,
-				day
-			});
+			set(initialState);
 			return;
 		}
 
 		const timezoneOffsetMinutes = new Date().getTimezoneOffset();
-		const state = get({ subscribe });
+		const state = get({ subscribe }).days[day] ?? INITIAL_DAY_STATE;
 
 		if (
 			state.loading ||
-			(!force &&
-				state.loaded &&
-				state.day === day &&
-				state.timezoneOffsetMinutes === timezoneOffsetMinutes)
+			(!force && state.loaded && state.timezoneOffsetMinutes === timezoneOffsetMinutes)
 		) {
 			return;
 		}
 
 		update((value) => ({
 			...value,
-			loading: true,
-			error: null,
-			day,
-			timezoneOffsetMinutes
+			days: {
+				...value.days,
+				[day]: {
+					...(value.days[day] ?? INITIAL_DAY_STATE),
+					loading: true,
+					error: null,
+					timezoneOffsetMinutes
+				}
+			}
 		}));
 
 		try {
 			const items = await fetchCalendarEvents(day, timezoneOffsetMinutes);
 
-			set({
-				items,
-				loading: false,
-				loaded: true,
-				error: null,
-				day,
-				timezoneOffsetMinutes
-			});
+			update((value) => ({
+				...value,
+				days: {
+					...value.days,
+					[day]: {
+						items,
+						loading: false,
+						loaded: true,
+						error: null,
+						timezoneOffsetMinutes
+					}
+				}
+			}));
 		} catch (error) {
 			update((value) => ({
 				...value,
-				items: value.day === day ? value.items : [],
-				loading: false,
-				loaded: value.loaded,
-				error: error instanceof Error ? error.message : 'Could not load calendar events.',
-				day,
-				timezoneOffsetMinutes
+				days: {
+					...value.days,
+					[day]: {
+						...(value.days[day] ?? INITIAL_DAY_STATE),
+						items: value.days[day]?.items ?? [],
+						loading: false,
+						loaded: value.days[day]?.loaded ?? false,
+						error: error instanceof Error ? error.message : 'Could not load calendar events.',
+						timezoneOffsetMinutes
+					}
+				}
 			}));
 		}
 	}
 
-	async function refresh() {
-		const state = get({ subscribe });
+	async function loadMany(days: string[], force = false) {
+		const uniqueDays = [...new Set(days.filter((day) => day && day !== 'no-date'))];
 
-		if (!state.day) {
-			return;
-		}
+		await Promise.all(uniqueDays.map((day) => load(day, force)));
+	}
 
-		await load(state.day, true);
+	async function refresh(day: string) {
+		await load(day, true);
+	}
+
+	function getDay(day: string) {
+		return get({ subscribe }).days[day] ?? INITIAL_DAY_STATE;
 	}
 
 	return {
 		subscribe,
+		getDay,
 		load,
+		loadMany,
 		refresh
 	};
 }

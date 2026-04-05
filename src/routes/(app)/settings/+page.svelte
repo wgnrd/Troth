@@ -2,7 +2,6 @@
 	import { normalizeCalendarFeedLabel, normalizeCalendarFeedUrl } from '$lib/api/calendar';
 	import { normalizeVikunjaBaseUrl } from '$lib/api/vikunja';
 	import { calendarFeed } from '$lib/stores/calendar-feed';
-	import { calendarPreviewPreferences } from '$lib/stores/calendar-preview-preferences';
 	import { connection } from '$lib/stores/connection';
 	import { Button } from '$lib/components/ui/button';
 	import { getRouteMeta } from '$lib/navigation';
@@ -83,8 +82,6 @@
 			return null;
 		}
 	});
-
-	const canEnableMockCalendar = $derived(!$calendarFeed.settings);
 
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
@@ -246,43 +243,6 @@
 			</div>
 		</div>
 
-		<div class="rounded-2xl border border-border/70 bg-background/60 px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div class="space-y-1">
-					<p class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-						Mock calendar
-					</p>
-					<p class="text-sm font-medium text-foreground">
-						{$calendarPreviewPreferences.mockCalendarEnabled ? 'Enabled' : 'Disabled'}
-					</p>
-					<p class="text-sm text-muted-foreground">
-						Show demo events in the day preview when you do not have a real calendar feed yet.
-					</p>
-				</div>
-
-				<label class="inline-flex cursor-pointer items-center gap-3 text-sm text-foreground">
-					<input
-						type="checkbox"
-						class="size-4 rounded border-border/70"
-						checked={$calendarPreviewPreferences.mockCalendarEnabled}
-						disabled={!canEnableMockCalendar}
-						onchange={(event) => {
-							calendarPreviewPreferences.setMockCalendarEnabled(
-								(event.currentTarget as HTMLInputElement).checked
-							);
-						}}
-					/>
-					<span>Enable mock calendar</span>
-				</label>
-			</div>
-
-			{#if !canEnableMockCalendar}
-				<p class="mt-3 text-sm text-muted-foreground">
-					Disconnect the current ICS feed first to use mock calendar events.
-				</p>
-			{/if}
-		</div>
-
 		<div class="space-y-2">
 			<label
 				class="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase"
@@ -301,6 +261,10 @@
 			/>
 			<p class="text-sm text-muted-foreground">
 				<code>webcal://</code> links are accepted and stored as <code>https://</code>.
+			</p>
+			<p class="text-sm text-muted-foreground">
+				Google Calendar needs the private ICS link from <code>Settings &gt; Integrate calendar</code
+				>, not the normal calendar page URL.
 			</p>
 			{#if resolvedCalendarUrl}
 				<p class="text-sm text-muted-foreground">Feed URL Troth will test: {resolvedCalendarUrl}</p>
