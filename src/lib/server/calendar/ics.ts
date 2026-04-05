@@ -1,7 +1,9 @@
+import { lookup } from 'node:dns/promises';
 import ICAL from 'ical.js';
 import {
 	CalendarFeedClientError,
 	getCalendarFeedHost,
+	isUnsafeCalendarFeedHost,
 	type AppCalendarEvent
 } from '$lib/api/calendar';
 import type { CalendarFeedSession } from '$lib/server/session';
@@ -30,6 +32,8 @@ export async function verifyCalendarFeed(session: CalendarFeedSession) {
 }
 
 async function fetchCalendarFeedText(url: string) {
+	await assertSafeCalendarFeedUrl(url);
+
 	let response: Response;
 
 	try {
@@ -48,6 +52,29 @@ async function fetchCalendarFeedText(url: string) {
 	}
 
 	return await response.text();
+}
+
+async function assertSafeCalendarFeedUrl(url: string) {
+	const parsed = new URL(url);
+
+	if (isUnsafeCalendarFeedHost(parsed.hostname)) {
+		throw new CalendarFeedClientError('Use a public calendar feed URL.', 400);
+	}
+
+	let addresses: Array<{ address: string }>;
+
+	try {
+		addresses = await lookup(parsed.hostname, { all: true, verbatim: true });
+	} catch {
+		throw new CalendarFeedClientError('Could not resolve the ICS feed host.', 502);
+	}
+
+	if (
+		addresses.length === 0 ||
+		addresses.some(({ address }) => isUnsafeCalendarFeedHost(address))
+	) {
+		throw new CalendarFeedClientError('Use a public calendar feed URL.', 400);
+	}
 }
 
 function parseCalendarEvents(
@@ -88,7 +115,7 @@ function collectRecurringEvents(
 	dayEnd: Date,
 	sourceLabel: string
 ) {
-	const iterator = event.iterator();
+	const iterator = event.iterator(getIterationStart(event, dayStart));
 	let count = 0;
 
 	while (count < MAX_RECURRING_OCCURRENCES) {
@@ -118,6 +145,21 @@ function collectRecurringEvents(
 
 		count += 1;
 	}
+}
+
+function getIterationStart(event: InstanceType<typeof ICAL.Event>, dayStart: Date) {
+	const initialOccurrence = toOccurrence(event.startDate, event.endDate);
+
+	if (!initialOccurrence) {
+		return event.startDate;
+	}
+
+	const durationMs = Math.max(
+		initialOccurrence.end.getTime() - initialOccurrence.start.getTime(),
+		0
+	);
+	const iterationStart = new Date(dayStart.getTime() - durationMs);
+	return ICAL.Time.fromJSDate(iterationStart, false);
 }
 
 function parseCalendar(feedText: string) {

@@ -465,7 +465,12 @@ export function createTasksStore() {
 			);
 
 			if (shouldReopenRecurringSubtasks) {
-				const refreshedTasks = (await fetchTasks(lastLoadView)).items;
+				const pagedResponses = await Promise.all(
+					Array.from({ length: Math.max(1, get({ subscribe }).page) }, (_, index) =>
+						fetchTasks(lastLoadView, index + 1)
+					)
+				);
+				const refreshedTasks = pagedResponses.flatMap((response) => response.items);
 				const refreshedPrimaryTask =
 					refreshedTasks.find((task) => task.id === savedPrimaryTask.id) ?? savedPrimaryTask;
 				savedTasks.set(refreshedPrimaryTask.id, refreshedPrimaryTask);
@@ -502,7 +507,10 @@ export function createTasksStore() {
 					...state,
 					mutatingIds: state.mutatingIds.filter((value) => !affectedTaskIdSet.has(value)),
 					completionVersion: state.completionVersion + 1,
-					items: refreshedTasks.map((task) => savedTasks.get(task.id) ?? task)
+					items: refreshedTasks.map((task) => savedTasks.get(task.id) ?? task),
+					hasMore: pagedResponses.at(-1)?.hasMore ?? false,
+					page: pagedResponses.length,
+					view: lastLoadView
 				}));
 
 				if (options.showUndoToast !== false) {
