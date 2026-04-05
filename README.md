@@ -1,6 +1,20 @@
+<p align="center">
+  <img src="static/logo.png" alt="Troth logo" width="96" height="96">
+</p>
+
 # Troth
 
-Troth is a focused personal task client for Vikunja. It keeps the interface small and predictable around a few core views: Today, Inbox, Upcoming, All Active, Completed, projects, and saved filters.
+Troth is a focused personal task client for [Vikunja](https://vikunja.io/) for people who want a calmer, faster, more opinionated daily workflow.
+
+It keeps the interface small and predictable around a few core views: Today, Inbox, Upcoming, All Active, Completed, projects, and saved filters.
+
+## Why Troth
+
+- Built for people who already like Vikunja but want a more focused personal client
+- Keeps the UI intentionally small instead of exposing every backend concept everywhere
+- Routes all browser writes and reads through same-origin server endpoints
+- Stores Vikunja credentials in an HTTP-only encrypted server session
+- Adds lightweight calendar context without turning the app into a full calendar clone
 
 ## Stack
 
@@ -18,12 +32,23 @@ Troth is a focused personal task client for Vikunja. It keeps the interface smal
 - Proxies browser requests through Troth’s own `/api/*` routes instead of calling Vikunja directly from the browser
 - Keeps task and project views intentionally simple rather than exposing all of Vikunja
 
+## Quick Start
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Then open the local URL printed by Vite, connect your Vikunja instance in Settings, and start working.
+
 ## Requirements
 
 - Node.js 22 or newer
 - `pnpm`
 - A running Vikunja instance
 - A Vikunja personal API token
+
+Troth uses [Vikunja](https://vikunja.io/) as its task backend.
 
 ## Local Development
 
@@ -46,7 +71,7 @@ pnpm dev:lan
 ```
 
 On iPhone, open the LAN URL shown in the terminal, such as
-`http://192.168.1.23:5173/`.
+`http://YOUR-HOST:5173/`.
 
 The app shell, manifest, and service worker are now wired up, but Safari only
 treats service workers as fully active in a secure context. `localhost` counts;
@@ -147,7 +172,7 @@ That works because Troth talks to Vikunja from the server side. The browser does
 
 ## Docs
 
-- [docs/architecture.md](/home/wgnrd/Documents/Troth/docs/architecture.md)
-- [docs/deployment.md](/home/wgnrd/Documents/Troth/docs/deployment.md)
-- [docs/setup.md](/home/wgnrd/Documents/Troth/docs/setup.md)
-- [docs/api-notes.md](/home/wgnrd/Documents/Troth/docs/api-notes.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/deployment.md](docs/deployment.md)
+- [docs/setup.md](docs/setup.md)
+- [docs/api-notes.md](docs/api-notes.md)
