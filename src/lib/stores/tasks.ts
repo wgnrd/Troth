@@ -4,6 +4,7 @@ import {
 	createTask as createTrothTask,
 	deleteTask as deleteTrothTask,
 	fetchTasks,
+	type TaskPageResponse,
 	TrothTaskMutationError,
 	updateTask as updateTrothTask
 } from '$lib/api/troth/client';
@@ -25,11 +26,17 @@ export type TasksState = {
 	creating: boolean;
 	mutatingIds: number[];
 	completionVersion: number;
+	hasMore: boolean;
+	loadingMore: boolean;
+	page: number;
+	view: TaskLoadView;
 };
 
 type TaskMutationOptions = {
 	showUndoToast?: boolean;
 };
+
+type TaskLoadView = 'all' | 'active' | 'completed';
 
 export function createTasksStore() {
 	const initialState: TasksState = {
@@ -40,11 +47,16 @@ export function createTasksStore() {
 		mutationError: null,
 		creating: false,
 		mutatingIds: [],
-		completionVersion: 0
+		completionVersion: 0,
+		hasMore: false,
+		loadingMore: false,
+		page: 0,
+		view: 'all'
 	};
 
 	const { subscribe, set, update } = writable<TasksState>(initialState);
 	let lastConnectionKey = '';
+	let lastLoadView: TaskLoadView = 'all';
 	let temporaryId = -1;
 
 	connection.subscribe(($connection) => {
@@ -54,11 +66,15 @@ export function createTasksStore() {
 
 		if (nextKey !== lastConnectionKey) {
 			lastConnectionKey = nextKey;
+			lastLoadView = 'all';
 			set(initialState);
 		}
 	});
 
-	async function load(force = false) {
+	async function load(options: boolean | { force?: boolean; view?: TaskLoadView } = {}) {
+		const resolvedOptions = typeof options === 'boolean' ? { force: options } : options;
+		const force = resolvedOptions.force ?? false;
+		const view = resolvedOptions.view ?? 'all';
 		const current = get(connection);
 
 		if (!current.settings) {
@@ -70,24 +86,29 @@ export function createTasksStore() {
 		}
 
 		const state = get({ subscribe });
-		if (state.loading || (state.loaded && !force)) {
+		if (state.loading || (state.loaded && !force && lastLoadView === view)) {
 			return;
 		}
 
 		update((value) => ({ ...value, loading: true, error: null }));
 
 		try {
-			const items = await fetchTasks();
+			const response = await fetchTasks(view);
+			lastLoadView = view;
 
 			set({
-				items,
+				items: response.items,
 				loading: false,
 				loaded: true,
 				error: null,
 				mutationError: null,
 				creating: false,
 				mutatingIds: [],
-				completionVersion: state.completionVersion
+				completionVersion: state.completionVersion,
+				hasMore: response.hasMore,
+				loadingMore: false,
+				page: response.page,
+				view
 			});
 		} catch (error) {
 			update((value) => ({
@@ -95,6 +116,43 @@ export function createTasksStore() {
 				loading: false,
 				loaded: value.loaded,
 				error: error instanceof Error ? error.message : 'Could not load tasks.'
+			}));
+		}
+	}
+
+	async function loadNextPage() {
+		const state = get({ subscribe });
+
+		if (
+			state.loading ||
+			state.loadingMore ||
+			!state.loaded ||
+			!state.hasMore ||
+			(state.view !== 'active' && state.view !== 'completed')
+		) {
+			return;
+		}
+
+		update((value) => ({ ...value, loadingMore: true, error: null }));
+
+		try {
+			const response = await fetchTasks(state.view, state.page + 1);
+			const existingIds = new Set(state.items.map((task) => task.id));
+			const nextItems = response.items.filter((task) => !existingIds.has(task.id));
+
+			update((value) => ({
+				...value,
+				items: [...value.items, ...nextItems],
+				loadingMore: false,
+				hasMore: response.hasMore,
+				page: response.page,
+				view: state.view
+			}));
+		} catch (error) {
+			update((value) => ({
+				...value,
+				loadingMore: false,
+				error: error instanceof Error ? error.message : 'Could not load more tasks.'
 			}));
 		}
 	}
@@ -407,7 +465,7 @@ export function createTasksStore() {
 			);
 
 			if (shouldReopenRecurringSubtasks) {
-				const refreshedTasks = await fetchTasks();
+				const refreshedTasks = (await fetchTasks(lastLoadView)).items;
 				const refreshedPrimaryTask =
 					refreshedTasks.find((task) => task.id === savedPrimaryTask.id) ?? savedPrimaryTask;
 				savedTasks.set(refreshedPrimaryTask.id, refreshedPrimaryTask);
@@ -494,7 +552,7 @@ export function createTasksStore() {
 
 			return savedPrimaryTask;
 		} catch (error) {
-			await load(true);
+			await load({ force: true, view: lastLoadView });
 			update((state) => ({
 				...state,
 				mutationError: error instanceof Error ? error.message : 'Could not save the task.'
@@ -521,7 +579,8 @@ export function createTasksStore() {
 	return {
 		subscribe,
 		load,
-		refresh: () => load(true),
+		loadNextPage,
+		refresh: (view?: TaskLoadView) => load({ force: true, view }),
 		createTask,
 		updateTask,
 		setCompleted,

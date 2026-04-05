@@ -48,9 +48,11 @@
 	let bulkRescheduling = $state(false);
 	let showQuickAddComposer = $state(false);
 	let syncedQuickAddView = $state<TaskViewKey | null>(null);
+	let loadMoreTrigger = $state<HTMLDivElement | null>(null);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
+	const taskLoadView = $derived(view === 'active' || view === 'completed' ? view : 'all');
 	const calendarConfigured = $derived(Boolean($calendarFeed.settings));
 	const calendarVisible = $derived($calendarPreviewPreferences.calendarVisible);
 	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
@@ -193,6 +195,7 @@
 		view === 'today' || view === 'inbox' || view === 'upcoming' || view === 'active'
 	);
 	const showQuickAdd = $derived(view !== 'completed');
+	const usesInfiniteTaskPaging = $derived(view === 'active' || view === 'completed');
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
@@ -206,8 +209,41 @@
 
 		if (nextKey !== lastLoadKey) {
 			lastLoadKey = nextKey;
-			void Promise.all([lists.load(), tasks.load()]);
+			void Promise.all([lists.load(), tasks.load({ view: taskLoadView })]);
 		}
+	});
+
+	$effect(() => {
+		if (!browser || !$connection.settings) {
+			return;
+		}
+
+		void tasks.load({ view: taskLoadView });
+	});
+
+	$effect(() => {
+		if (!browser || !usesInfiniteTaskPaging || !loadMoreTrigger) {
+			return;
+		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (!entries.some((entry) => entry.isIntersecting)) {
+					return;
+				}
+
+				void tasks.loadNextPage();
+			},
+			{
+				rootMargin: '200px 0px'
+			}
+		);
+
+		observer.observe(loadMoreTrigger);
+
+		return () => {
+			observer.disconnect();
+		};
 	});
 
 	$effect(() => {
@@ -277,7 +313,7 @@
 	});
 
 	async function handleRefresh() {
-		await Promise.all([lists.refresh(), tasks.refresh()]);
+		await Promise.all([lists.refresh(), tasks.refresh(taskLoadView)]);
 	}
 
 	async function handleQuickAdd(input: {
@@ -792,22 +828,31 @@
 					/>
 				{/if}
 			{:else}
-				<TaskList
-					tasks={visibleTasks}
-					lists={activeLists}
-					{listsById}
-					{showDueDateBadge}
-					{subtaskSummaryByParentId}
-					{exitingTaskIds}
-					mutatingIds={$tasks.mutatingIds}
-					onOpen={(task) => {
-						selectedTaskId = task.id;
-						tasks.clearMutationError();
-					}}
-					onToggleComplete={handleToggleComplete}
-					onDueDateChange={handleDueDateChange}
-					onListChange={handleListChange}
-				/>
+				<div class="space-y-3">
+					<TaskList
+						tasks={visibleTasks}
+						lists={activeLists}
+						{listsById}
+						{showDueDateBadge}
+						{subtaskSummaryByParentId}
+						{exitingTaskIds}
+						mutatingIds={$tasks.mutatingIds}
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+						onToggleComplete={handleToggleComplete}
+						onDueDateChange={handleDueDateChange}
+						onListChange={handleListChange}
+					/>
+
+					{#if usesInfiniteTaskPaging && ($tasks.hasMore || $tasks.loadingMore)}
+						<div bind:this={loadMoreTrigger} class="h-6" aria-hidden="true"></div>
+						{#if $tasks.loadingMore}
+							<p class="px-2 text-xs text-muted-foreground">Loading more tasks…</p>
+						{/if}
+					{/if}
+				</div>
 			{/if}
 		{/if}
 	{/if}

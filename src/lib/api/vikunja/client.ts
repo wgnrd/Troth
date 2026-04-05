@@ -27,6 +27,18 @@ import type {
 
 const DEFAULT_PAGE_SIZE = 100;
 
+type TaskFetchOptions = {
+	pageSize?: number;
+	filter?: string;
+	pageLimit?: number;
+};
+
+type TaskPageOptions = {
+	page?: number;
+	pageSize?: number;
+	filter?: string;
+};
+
 export class VikunjaClientError extends Error {
 	status: number;
 
@@ -139,14 +151,44 @@ export class VikunjaClient {
 		return tasks.map(mapTaskToAppTask);
 	}
 
-	async fetchTasks(options: { pageSize?: number } = {}): Promise<AppTask[]> {
-		const tasks = await this.getAllPages<VikunjaTask>('/tasks', {
-			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
-			sort_by: 'due_date',
-			order_by: 'asc'
-		});
+	async fetchTasks(options: TaskFetchOptions = {}): Promise<AppTask[]> {
+		const tasks = await this.getAllPages<VikunjaTask>(
+			'/tasks',
+			{
+				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+				...(options.filter ? { filter: options.filter } : {}),
+				sort_by: 'due_date',
+				order_by: 'asc'
+			},
+			options.pageLimit
+		);
 
 		return tasks.map(mapTaskToAppTask);
+	}
+
+	async fetchTaskPage(
+		options: TaskPageOptions = {}
+	): Promise<{ items: AppTask[]; hasMore: boolean }> {
+		const page = options.page ?? 1;
+		const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
+
+		const response = await this.requestWithResponse<VikunjaTask[]>('/tasks', {
+			method: 'GET',
+			params: {
+				page: String(page),
+				per_page: String(pageSize),
+				...(options.filter ? { filter: options.filter } : {}),
+				sort_by: 'due_date',
+				order_by: 'asc'
+			}
+		});
+
+		const totalPages = Number(response.response.headers.get('x-pagination-total-pages') ?? '1');
+
+		return {
+			items: response.data.map(mapTaskToAppTask),
+			hasMore: page < totalPages
+		};
 	}
 
 	async createProject(input: CreateProjectInput): Promise<AppList> {
@@ -287,7 +329,11 @@ export class VikunjaClient {
 		});
 	}
 
-	private async getAllPages<T>(path: string, params: Record<string, string>): Promise<T[]> {
+	private async getAllPages<T>(
+		path: string,
+		params: Record<string, string>,
+		pageLimit?: number
+	): Promise<T[]> {
 		const pageSize = Number(params.per_page ?? DEFAULT_PAGE_SIZE);
 		let page = 1;
 		let totalPages = 1;
@@ -305,6 +351,11 @@ export class VikunjaClient {
 
 			results.push(...response.data);
 			totalPages = Number(response.response.headers.get('x-pagination-total-pages') ?? '1');
+
+			if (pageLimit) {
+				totalPages = Math.min(totalPages, pageLimit);
+			}
+
 			page += 1;
 		}
 

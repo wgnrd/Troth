@@ -14,6 +14,13 @@ export type ConnectionSummary = {
 	sessionKey: string;
 };
 
+export type TaskPageResponse = {
+	items: AppTask[];
+	hasMore: boolean;
+	page: number;
+	view: 'all' | 'active' | 'completed';
+};
+
 type ApiErrorPayload = {
 	message?: string;
 	task?: AppTask | null;
@@ -123,8 +130,15 @@ export function deleteProject(id: number) {
 	});
 }
 
-export function fetchTasks() {
-	return request<AppTask[]>('/api/tasks', {
+export function fetchTasks(view: 'all' | 'active' | 'completed' = 'all', page = 1) {
+	const query = new URLSearchParams();
+
+	if (view !== 'all') {
+		query.set('view', view);
+		query.set('page', String(page));
+	}
+
+	return request<TaskPageResponse>(`/api/tasks${query.size > 0 ? `?${query.toString()}` : ''}`, {
 		method: 'GET'
 	});
 }
