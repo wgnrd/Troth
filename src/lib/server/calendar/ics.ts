@@ -9,7 +9,7 @@ import {
 import type { CalendarFeedSession } from '$lib/server/session';
 
 const REQUEST_TIMEOUT_MS = 15000;
-const MAX_RECURRING_OCCURRENCES = 500;
+const MAX_RECURRING_OCCURRENCES = 10000;
 
 export async function fetchCalendarEventsForDay(
 	session: CalendarFeedSession,
@@ -115,7 +115,7 @@ function collectRecurringEvents(
 	dayEnd: Date,
 	sourceLabel: string
 ) {
-	const iterator = event.iterator(getIterationStart(event, dayStart));
+	const iterator = event.iterator();
 	let count = 0;
 
 	while (count < MAX_RECURRING_OCCURRENCES) {
@@ -145,21 +145,6 @@ function collectRecurringEvents(
 
 		count += 1;
 	}
-}
-
-function getIterationStart(event: InstanceType<typeof ICAL.Event>, dayStart: Date) {
-	const initialOccurrence = toOccurrence(event.startDate, event.endDate);
-
-	if (!initialOccurrence) {
-		return event.startDate;
-	}
-
-	const durationMs = Math.max(
-		initialOccurrence.end.getTime() - initialOccurrence.start.getTime(),
-		0
-	);
-	const iterationStart = new Date(dayStart.getTime() - durationMs);
-	return ICAL.Time.fromJSDate(iterationStart, false);
 }
 
 function parseCalendar(feedText: string) {

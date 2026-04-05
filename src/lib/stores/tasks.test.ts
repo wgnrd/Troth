@@ -1,9 +1,10 @@
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+import type { TaskPageResponse } from '$lib/api/troth/client';
 
 const { fetchTasksMock, updateTaskMock, toastPushMock } = vi.hoisted(() => ({
-	fetchTasksMock: vi.fn<() => Promise<AppTask[]>>(),
+	fetchTasksMock: vi.fn<() => Promise<TaskPageResponse>>(),
 	updateTaskMock:
 		vi.fn<(input: UpdateTaskInput, currentParentTaskId?: number | null) => Promise<AppTask>>(),
 	toastPushMock: vi.fn()
@@ -74,7 +75,12 @@ describe('createTasksStore', () => {
 			})
 		];
 
-		fetchTasksMock.mockImplementation(async () => cloneTasks(serverTasks));
+		fetchTasksMock.mockImplementation(async () => ({
+			items: cloneTasks(serverTasks),
+			hasMore: false,
+			page: 1,
+			view: 'all'
+		}));
 		updateTaskMock.mockImplementation(async (input) => {
 			if (input.id === 1 && input.completed === true) {
 				const staleParentResponse = cloneTask(
