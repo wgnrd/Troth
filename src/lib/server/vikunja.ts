@@ -1,4 +1,5 @@
 import { error, isHttpError, json, type RequestEvent } from '@sveltejs/kit';
+import { CalendarFeedClientError } from '$lib/api/calendar';
 import {
 	VikunjaClient,
 	VikunjaClientError,
@@ -43,6 +44,15 @@ export function toApiErrorResponse(cause: unknown) {
 	}
 
 	if (cause instanceof VikunjaClientError) {
+		return json(
+			{
+				message: cause.message
+			},
+			{ status: cause.status }
+		);
+	}
+
+	if (cause instanceof CalendarFeedClientError) {
 		return json(
 			{
 				message: cause.message

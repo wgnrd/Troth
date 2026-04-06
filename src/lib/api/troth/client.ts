@@ -1,3 +1,4 @@
+import type { AppCalendarEvent, CalendarFeedInput, CalendarFeedSummary } from '$lib/api/calendar';
 import type {
 	AppList,
 	AppSavedFilter,
@@ -11,6 +12,13 @@ import type {
 export type ConnectionSummary = {
 	baseUrl: string;
 	sessionKey: string;
+};
+
+export type TaskPageResponse = {
+	items: AppTask[];
+	hasMore: boolean;
+	page: number;
+	view: 'all' | 'active' | 'completed';
 };
 
 type ApiErrorPayload = {
@@ -61,6 +69,41 @@ export async function disconnectSession() {
 	});
 }
 
+export async function fetchCalendarFeed() {
+	const response = await request<{ calendarFeed: CalendarFeedSummary | null }>('/api/calendar', {
+		method: 'GET'
+	});
+
+	return response.calendarFeed;
+}
+
+export async function connectCalendarFeed(input: CalendarFeedInput) {
+	const response = await request<{ calendarFeed: CalendarFeedSummary }>('/api/calendar', {
+		method: 'PUT',
+		body: input
+	});
+
+	return response.calendarFeed;
+}
+
+export async function disconnectCalendarFeed() {
+	await request('/api/calendar', {
+		method: 'DELETE'
+	});
+}
+
+export async function fetchCalendarEvents(day: string, timezoneOffsetMinutes: number) {
+	const query = new URLSearchParams({
+		day,
+		timezoneOffsetMinutes: String(timezoneOffsetMinutes)
+	});
+	const response = await request<{ events: AppCalendarEvent[] }>(`/api/calendar/events?${query}`, {
+		method: 'GET'
+	});
+
+	return response.events;
+}
+
 export function fetchProjects() {
 	return request<AppList[]>('/api/projects', {
 		method: 'GET'
@@ -87,8 +130,15 @@ export function deleteProject(id: number) {
 	});
 }
 
-export function fetchTasks() {
-	return request<AppTask[]>('/api/tasks', {
+export function fetchTasks(view: 'all' | 'active' | 'completed' = 'all', page = 1) {
+	const query = new URLSearchParams();
+
+	if (view !== 'all') {
+		query.set('view', view);
+		query.set('page', String(page));
+	}
+
+	return request<TaskPageResponse>(`/api/tasks${query.size > 0 ? `?${query.toString()}` : ''}`, {
 		method: 'GET'
 	});
 }

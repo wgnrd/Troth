@@ -1,5 +1,7 @@
 <script lang="ts">
+	import type { AppCalendarEvent } from '$lib/api/calendar';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
+	import type { CalendarDayEventsState } from '$lib/stores/calendar-events';
 	import type { SubtaskSummary } from '$lib/stores/tasks';
 	import { cn } from '$lib/utils';
 	import TaskRow from './TaskRow.svelte';
@@ -14,6 +16,8 @@
 		groups,
 		lists,
 		listsById,
+		calendarEventsByDay = {} as Record<string, CalendarDayEventsState>,
+		showCalendarEvents = false,
 		groupAriaLabelPrefix = 'Upcoming tasks for',
 		showDueDateBadge = true,
 		subtaskSummaryByParentId = {} as Record<number, SubtaskSummary>,
@@ -29,6 +33,8 @@
 		groups: TaskGroup[];
 		lists: AppList[];
 		listsById: Map<number, AppList>;
+		calendarEventsByDay?: Record<string, CalendarDayEventsState>;
+		showCalendarEvents?: boolean;
 		groupAriaLabelPrefix?: string;
 		showDueDateBadge?: boolean;
 		subtaskSummaryByParentId?: Record<number, SubtaskSummary>;
@@ -53,6 +59,11 @@
 	const DRAG_THRESHOLD = 6;
 	const DRAG_PREVIEW_OFFSET_X = 18;
 	const DRAG_PREVIEW_OFFSET_Y = 14;
+
+	const timeFormatter = new Intl.DateTimeFormat('en-US', {
+		hour: 'numeric',
+		minute: '2-digit'
+	});
 
 	function findTask(taskId: number) {
 		return groups.flatMap((group) => group.tasks).find((task) => task.id === taskId) ?? null;
@@ -213,6 +224,22 @@
 
 		return 1;
 	}
+
+	function getCalendarState(day: string) {
+		return calendarEventsByDay[day] ?? null;
+	}
+
+	function getCalendarItems(day: string) {
+		return getCalendarState(day)?.items ?? [];
+	}
+
+	function formatEventTime(event: AppCalendarEvent) {
+		if (event.allDay) {
+			return 'All day';
+		}
+
+		return `${timeFormatter.format(new Date(event.start))}-${timeFormatter.format(new Date(event.end))}`;
+	}
 </script>
 
 <div class="space-y-4">
@@ -231,35 +258,46 @@
 			onpointermove={() => handleDropZoneMove(group.key)}
 			onpointerleave={() => handleDropZoneLeave(group.key)}
 		>
-			<p class="px-2 text-[0.9rem] font-semibold tracking-[0.18em] text-foreground/78 uppercase">
-				{group.title}
-			</p>
-
 			<div class="px-2">
-				<div
-					class="inline-flex items-center gap-2 rounded-full bg-white/72 px-3 py-2 text-xs text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.75)_inset] dark:bg-white/7 dark:shadow-none"
-					aria-label={`${group.tasks.length} tasks planned for ${group.title}`}
-				>
-					<span class="font-medium">
+				<div class="flex items-baseline gap-2">
+					<p class="text-[0.9rem] font-semibold tracking-[0.18em] text-foreground/78 uppercase">
+						{group.title}
+					</p>
+					<p
+						class="text-[0.68rem] font-medium tracking-[0.14em] text-muted-foreground uppercase"
+						aria-label={`${group.tasks.length} tasks planned for ${group.title}`}
+					>
 						{group.tasks.length}
 						{group.tasks.length === 1 ? 'task' : 'tasks'}
-					</span>
-					<span class="flex items-center gap-1" aria-hidden="true">
-						{#each Array.from({ length: 3 }, (_, dotIndex) => dotIndex) as dotIndex (dotIndex)}
-							<span
-								class={cn(
-									'h-1.5 w-5 rounded-full bg-stone-200/90',
-									dotIndex < getDensity(group.tasks.length) && 'bg-stone-400/80'
-								)}
-							></span>
-						{/each}
-					</span>
+					</p>
 				</div>
+
+				{#if showCalendarEvents && group.key !== 'no-date'}
+					{@const calendarState = getCalendarState(group.key)}
+					{@const calendarItems = getCalendarItems(group.key)}
+
+					{#if calendarState?.error}
+						<p class="mt-1.5 text-xs text-destructive">{calendarState.error}</p>
+					{:else if calendarState?.loading && !calendarState.loaded}
+						<p class="mt-1.5 text-[0.72rem] text-muted-foreground">Loading events…</p>
+					{:else if calendarItems.length > 0}
+						<div class="mt-1.5 space-y-0.5">
+							{#each calendarItems as event (event.id)}
+								<div
+									class="flex items-baseline gap-2 text-[0.72rem] leading-5 text-muted-foreground"
+								>
+									<span class="w-[7.25rem] shrink-0 tabular-nums">{formatEventTime(event)}</span>
+									<span class="min-w-0 truncate text-foreground/82">{event.title}</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				{/if}
 
 				{#if enableDragAndDrop && draggedTaskId !== null && group.key !== 'no-date'}
 					<p
 						class={cn(
-							'mt-2 text-xs text-muted-foreground transition',
+							'mt-1.5 text-xs text-muted-foreground transition',
 							dropTargetKey === group.key && 'text-foreground'
 						)}
 					>
