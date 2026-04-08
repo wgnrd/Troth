@@ -108,9 +108,7 @@
 		{
 			key: 'plan' as const,
 			label: 'Plan',
-			items: primaryRoutes.filter((item) =>
-				['/upcoming', '/inbox', '/active'].includes(item.href)
-			)
+			items: primaryRoutes.filter((item) => ['/upcoming', '/inbox', '/active'].includes(item.href))
 		}
 	].filter((group) => group.items.length > 0);
 	const completedRoute = primaryRoutes.find((item) => item.href === '/completed');
@@ -138,25 +136,16 @@
 			.filter((list): list is (typeof allProjectLists)[number] => list !== null)
 			.sort((left, right) => left.title.localeCompare(right.title))
 	);
-	const inboxTaskCount = $derived(filterTasksForView('inbox', $tasks.items, visibleProjectLists).length);
+	const inboxTaskCount = $derived(
+		filterTasksForView('inbox', $tasks.items, visibleProjectLists).length
+	);
 	const browseSectionVisible = $derived(
 		Boolean(
 			completedRoute ||
-				($connection.settings && savedFilterEntries.length > 0) ||
-				(projectsRoute && ProjectsIcon)
+			($connection.settings && savedFilterEntries.length > 0) ||
+			(projectsRoute && ProjectsIcon)
 		)
 	);
-
-	function isSidebarSectionExpanded(section: 'focus' | 'plan' | 'browse') {
-		switch (section) {
-			case 'focus':
-				return $projectPreferences.focusSectionExpanded;
-			case 'plan':
-				return $projectPreferences.planSectionExpanded;
-			case 'browse':
-				return $projectPreferences.browseSectionExpanded;
-		}
-	}
 
 	$effect(() => {
 		if (
@@ -223,72 +212,58 @@
 				{#if index > 0}
 					<Separator class="my-2 opacity-40" />
 				{/if}
-				<button
-					type="button"
-					class="flex w-full items-center justify-between gap-2 px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80 transition hover:text-foreground"
-					aria-label={isSidebarSectionExpanded(group.key)
-						? `Collapse ${group.label}`
-						: `Expand ${group.label}`}
-					onclick={() => {
-						projectPreferences.toggleSidebarSection(group.key);
-					}}
+				<div
+					class="flex w-full items-center gap-2 px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80"
 				>
 					<span>{group.label}</span>
-					{#if isSidebarSectionExpanded(group.key)}
-						<ChevronDown class="size-3.5" />
-					{:else}
-						<ChevronRight class="size-3.5" />
-					{/if}
-				</button>
-			{/if}
-
-			{#if compact || isSidebarSectionExpanded(group.key)}
-				<div class="space-y-1">
-					{#each group.items as item (item.href)}
-						{@const Icon = item.icon}
-						<a
-							href={resolve(item.href)}
-							onclick={onSelect}
-							aria-label={compact ? item.label : undefined}
-							title={compact ? item.label : undefined}
-							class={cn(
-								'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
-								compact ? 'justify-center px-0' : '',
-								isActive(item.href)
-									? 'bg-primary/10 text-foreground'
-									: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
-							)}
-						>
-							<span
-								class={cn(
-									'rounded-lg p-1.5 transition-colors',
-									isActive(item.href)
-										? 'text-foreground'
-										: 'text-muted-foreground group-hover:text-foreground'
-								)}
-							>
-								<Icon class="size-4" />
-							</span>
-
-							{#if !compact}
-								<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
-								{#if item.href === '/inbox' && inboxTaskCount > 0}
-									<span
-										class={cn(
-											'ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums',
-											isActive(item.href)
-												? 'bg-primary/12 text-foreground'
-												: 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
-										)}
-									>
-										{inboxTaskCount}
-									</span>
-								{/if}
-							{/if}
-						</a>
-					{/each}
 				</div>
 			{/if}
+
+			<div class="space-y-1">
+				{#each group.items as item (item.href)}
+					{@const Icon = item.icon}
+					<a
+						href={resolve(item.href)}
+						onclick={onSelect}
+						aria-label={compact ? item.label : undefined}
+						title={compact ? item.label : undefined}
+						class={cn(
+							'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+							compact ? 'justify-center px-0' : '',
+							isActive(item.href)
+								? 'bg-primary/10 text-foreground'
+								: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+						)}
+					>
+						<span
+							class={cn(
+								'rounded-lg p-1.5 transition-colors',
+								isActive(item.href)
+									? 'text-foreground'
+									: 'text-muted-foreground group-hover:text-foreground'
+							)}
+						>
+							<Icon class="size-4" />
+						</span>
+
+						{#if !compact}
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+							{#if item.href === '/inbox' && inboxTaskCount > 0}
+								<span
+									class={cn(
+										'ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums',
+										isActive(item.href)
+											? 'bg-primary/12 text-foreground'
+											: 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
+									)}
+								>
+									{inboxTaskCount}
+								</span>
+							{/if}
+						{/if}
+					</a>
+				{/each}
+			</div>
 		{/each}
 
 		{#if !compact && browseSectionVisible}
@@ -373,7 +348,9 @@
 		{/if}
 
 		{#if projectsRoute && ProjectsIcon && (compact || $projectPreferences.browseSectionExpanded)}
-			<div class={cn(!compact && $connection.settings && savedFilterEntries.length > 0 ? 'pt-2' : '')}>
+			<div
+				class={cn(!compact && $connection.settings && savedFilterEntries.length > 0 ? 'pt-2' : '')}
+			>
 				<div
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
@@ -405,29 +382,9 @@
 							<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
 						{/if}
 					</a>
-
-					{#if !compact}
-						<button
-							type="button"
-							class="inline-flex size-7 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
-							aria-label={$projectPreferences.projectsSectionExpanded
-								? 'Collapse projects'
-								: 'Expand projects'}
-							onclick={(event) => {
-								stopEvent(event);
-								projectPreferences.toggleProjectsSection();
-							}}
-						>
-							{#if $projectPreferences.projectsSectionExpanded}
-								<ChevronDown class="size-3.5" />
-							{:else}
-								<ChevronRight class="size-3.5" />
-							{/if}
-						</button>
-					{/if}
 				</div>
 
-				{#if !compact && $projectPreferences.projectsSectionExpanded && $connection.settings && projectEntries.length > 0}
+				{#if !compact && $connection.settings && projectEntries.length > 0}
 					<div class="mt-2 space-y-1" aria-label="Projects">
 						{#each projectEntries as entry (entry.list.id)}
 							{@const active = isActive(`/projects/${entry.list.id}`)}
@@ -497,7 +454,7 @@
 					</div>
 				{/if}
 
-				{#if !compact && $projectPreferences.projectsSectionExpanded && hiddenProjects.length > 0}
+				{#if !compact && hiddenProjects.length > 0}
 					<div class="mt-3 space-y-1" aria-label="Hidden projects">
 						<p class="pl-4 text-[0.72rem] font-medium text-muted-foreground/80">Hidden Projects</p>
 						{#each hiddenProjects as project (project.id)}
