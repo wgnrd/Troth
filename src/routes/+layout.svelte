@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { browser } from '$app/environment';
 	import './layout.css';
+	import '$lib/stores/theme';
 	import type { CalendarFeedSummary } from '$lib/api/calendar';
 	import type { ConnectionSummary } from '$lib/api/troth/client';
 	import { calendarFeed } from '$lib/stores/calendar-feed';
@@ -36,6 +37,49 @@
 </script>
 
 <svelte:head>
+	<script>
+		const defaultTheme = 'troth-light';
+		let storedTheme = defaultTheme;
+		const rawThemePreference = localStorage.getItem('troth.theme.preference');
+		if (
+			rawThemePreference === 'troth-light' ||
+			rawThemePreference === 'gruvbox' ||
+			rawThemePreference === 'gruvbox-light' ||
+			rawThemePreference === 'catppuccin' ||
+			rawThemePreference === 'catppuccin-latte' ||
+			rawThemePreference === 'dracula'
+		) {
+			storedTheme = rawThemePreference;
+		} else {
+			const legacyThemeMode = localStorage.getItem('troth.theme.mode');
+			if (legacyThemeMode === 'dark') {
+				storedTheme = 'gruvbox';
+			} else if (legacyThemeMode === 'light' || legacyThemeMode === 'system') {
+				storedTheme = 'troth-light';
+			}
+		}
+
+		const resolvedTheme =
+			storedTheme === 'gruvbox' || storedTheme === 'catppuccin' || storedTheme === 'dracula'
+				? 'dark'
+				: 'light';
+		const themeColor =
+			storedTheme === 'gruvbox'
+				? '#282828'
+				: storedTheme === 'gruvbox-light'
+					? '#fbf1c7'
+					: storedTheme === 'catppuccin'
+						? '#1e1e2e'
+						: storedTheme === 'dracula'
+							? '#282a36'
+							: storedTheme === 'catppuccin-latte'
+								? '#eff1f5'
+								: '#f4f1ea';
+		document.documentElement.dataset.theme = storedTheme;
+		document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+		document.documentElement.style.colorScheme = resolvedTheme;
+		document.querySelector('meta[name="theme-color"]')?.setAttribute('content', themeColor);
+	</script>
 	<title>Troth</title>
 	<meta name="description" content="Lightweight personal-todo frontend for Vikunja." />
 	<meta name="application-name" content="Troth" />
