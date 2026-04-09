@@ -5,6 +5,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+	--background: #f4f1ea;
+	--foreground: #26211f;
+	--card: #ffffff;
+	--card-foreground: #26211f;
+	--popover: #ffffff;
+	--popover-foreground: #26211f;
+	--primary: #3c3836;
+	--primary-foreground: #f9f5ef;
+	--secondary: #ece7dc;
+	--secondary-foreground: #3c3836;
+	--muted: #ece7dc;
+	--muted-foreground: #736b63;
+	--accent: #ece7dc;
+	--accent-foreground: #3c3836;
+	--destructive: #c0392b;
+	--border: #dfd8cc;
+	--input: #dfd8cc;
+	--ring: #b0a89c;
+	--chart-1: #a9b665;
+	--chart-2: #d79921;
+	--chart-3: #458588;
+	--chart-4: #b16286;
+	--chart-5: #cc7a3e;
+	--radius: 0.625rem;
+	--sidebar: #f9f5ef;
+	--sidebar-foreground: #26211f;
+	--sidebar-primary: #3c3836;
+	--sidebar-primary-foreground: #f9f5ef;
+	--sidebar-accent: #ece7dc;
+	--sidebar-accent-foreground: #3c3836;
+	--sidebar-border: #dfd8cc;
+	--sidebar-ring: #b0a89c;
+	--project-chip-base: #f4f1ea;
+	--project-chip-text-base: #26211f;
+}
+
+:root[data-theme='troth-light'] {
 	--background: oklch(0.985 0.006 82);
 	--foreground: oklch(0.147 0.004 49.25);
 	--card: oklch(1 0 0);
@@ -41,40 +78,112 @@
 	--project-chip-text-base: oklch(0.147 0.004 49.25);
 }
 
-.dark {
-	--background: oklch(0.21 0.018 18);
-	--foreground: oklch(0.94 0.018 85);
-	--card: oklch(0.27 0.022 20);
-	--card-foreground: oklch(0.94 0.018 85);
-	--popover: oklch(0.245 0.02 18);
-	--popover-foreground: oklch(0.94 0.018 85);
-	--primary: oklch(0.76 0.13 78);
-	--primary-foreground: oklch(0.22 0.02 18);
-	--secondary: oklch(0.32 0.024 24);
-	--secondary-foreground: oklch(0.91 0.016 82);
-	--muted: oklch(0.295 0.018 20);
-	--muted-foreground: oklch(0.74 0.024 65);
-	--accent: oklch(0.36 0.038 52);
-	--accent-foreground: oklch(0.95 0.016 85);
-	--destructive: oklch(0.65 0.19 26);
-	--border: oklch(0.38 0.018 24 / 65%);
-	--input: oklch(0.34 0.02 22 / 85%);
-	--ring: oklch(0.67 0.09 74);
-	--chart-1: oklch(0.79 0.12 76);
-	--chart-2: oklch(0.68 0.1 58);
-	--chart-3: oklch(0.58 0.08 36);
-	--chart-4: oklch(0.48 0.06 26);
-	--chart-5: oklch(0.39 0.04 18);
-	--sidebar: oklch(0.24 0.02 18);
-	--sidebar-foreground: oklch(0.94 0.018 85);
-	--sidebar-primary: oklch(0.76 0.13 78);
-	--sidebar-primary-foreground: oklch(0.22 0.02 18);
-	--sidebar-accent: oklch(0.32 0.024 24);
-	--sidebar-accent-foreground: oklch(0.94 0.018 85);
-	--sidebar-border: oklch(0.38 0.018 24 / 60%);
-	--sidebar-ring: oklch(0.67 0.09 74);
-	--project-chip-base: oklch(0.27 0.022 20);
-	--project-chip-text-base: oklch(0.91 0.016 82);
+:root[data-theme='gruvbox-light'] {
+	--background: #fbf1c7;
+	--foreground: #3c3836;
+	--card: #f2e5bc;
+	--card-foreground: #3c3836;
+	--popover: #f2e5bc;
+	--popover-foreground: #3c3836;
+	--primary: #b57614;
+	--primary-foreground: #fbf1c7;
+	--secondary: #ebdbb2;
+	--secondary-foreground: #3c3836;
+	--muted: #ebdbb2;
+	--muted-foreground: #7c6f64;
+	--accent: #d5c4a1;
+	--accent-foreground: #3c3836;
+	--destructive: #cc241d;
+	--border: #d5c4a1;
+	--input: #d5c4a1;
+	--ring: #b57614;
+	--chart-1: #b57614;
+	--chart-2: #79740e;
+	--chart-3: #076678;
+	--chart-4: #8f3f71;
+	--chart-5: #af3a03;
+	--sidebar: #f2e5bc;
+	--sidebar-foreground: #3c3836;
+	--sidebar-primary: #b57614;
+	--sidebar-primary-foreground: #fbf1c7;
+	--sidebar-accent: #ebdbb2;
+	--sidebar-accent-foreground: #3c3836;
+	--sidebar-border: #d5c4a1;
+	--sidebar-ring: #b57614;
+	--project-chip-base: #f2e5bc;
+	--project-chip-text-base: #3c3836;
+}
+
+:root[data-theme='gruvbox'] {
+	--background: #282828;
+	--foreground: #ebdbb2;
+	--card: #32302f;
+	--card-foreground: #ebdbb2;
+	--popover: #32302f;
+	--popover-foreground: #ebdbb2;
+	--primary: #d79921;
+	--primary-foreground: #282828;
+	--secondary: #3c3836;
+	--secondary-foreground: #ebdbb2;
+	--muted: #3c3836;
+	--muted-foreground: #bdae93;
+	--accent: #504945;
+	--accent-foreground: #fbf1c7;
+	--destructive: #fb4934;
+	--border: rgb(146 131 116 / 65%);
+	--input: rgb(124 111 100 / 85%);
+	--ring: #d79921;
+	--chart-1: #d79921;
+	--chart-2: #b8bb26;
+	--chart-3: #83a598;
+	--chart-4: #d3869b;
+	--chart-5: #fe8019;
+	--sidebar: #1d2021;
+	--sidebar-foreground: #ebdbb2;
+	--sidebar-primary: #d79921;
+	--sidebar-primary-foreground: #282828;
+	--sidebar-accent: #3c3836;
+	--sidebar-accent-foreground: #ebdbb2;
+	--sidebar-border: rgb(146 131 116 / 60%);
+	--sidebar-ring: #d79921;
+	--project-chip-base: #32302f;
+	--project-chip-text-base: #ebdbb2;
+}
+
+:root[data-theme='catppuccin'] {
+	--background: #1e1e2e;
+	--foreground: #cdd6f4;
+	--card: #313244;
+	--card-foreground: #cdd6f4;
+	--popover: #313244;
+	--popover-foreground: #cdd6f4;
+	--primary: #cba6f7;
+	--primary-foreground: #1e1e2e;
+	--secondary: #45475a;
+	--secondary-foreground: #cdd6f4;
+	--muted: #45475a;
+	--muted-foreground: #a6adc8;
+	--accent: #585b70;
+	--accent-foreground: #f5e0dc;
+	--destructive: #f38ba8;
+	--border: rgb(166 173 200 / 35%);
+	--input: rgb(166 173 200 / 30%);
+	--ring: #89b4fa;
+	--chart-1: #89b4fa;
+	--chart-2: #a6e3a1;
+	--chart-3: #f9e2af;
+	--chart-4: #cba6f7;
+	--chart-5: #f38ba8;
+	--sidebar: #181825;
+	--sidebar-foreground: #cdd6f4;
+	--sidebar-primary: #cba6f7;
+	--sidebar-primary-foreground: #1e1e2e;
+	--sidebar-accent: #313244;
+	--sidebar-accent-foreground: #cdd6f4;
+	--sidebar-border: rgb(166 173 200 / 28%);
+	--sidebar-ring: #89b4fa;
+	--project-chip-base: #313244;
+	--project-chip-text-base: #cdd6f4;
 }
 
 @theme inline {
@@ -136,7 +245,6 @@
 	html.dark {
 		color-scheme: dark;
 	}
-
 }
 
 /* Keep focused form controls at 16px on touch devices so iOS Safari does not zoom. */

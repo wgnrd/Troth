@@ -5,6 +5,7 @@
 	import { connection } from '$lib/stores/connection';
 	import { Button } from '$lib/components/ui/button';
 	import { getRouteMeta } from '$lib/navigation';
+	import { theme, themeOptions } from '$lib/stores/theme';
 
 	let { data } = $props();
 
@@ -95,6 +96,10 @@
 			label: normalizeCalendarFeedLabel(calendarLabel)
 		});
 	}
+
+	const activeTheme = $derived(
+		themeOptions.find((option) => option.value === $theme.selected) ?? themeOptions[0]
+	);
 </script>
 
 <section class="mx-auto flex w-full max-w-[42rem] flex-col gap-6">
@@ -138,6 +143,35 @@
 			<p class="mt-2 text-sm text-foreground">{data.build.label}</p>
 		</div>
 	</div>
+
+	<section
+		class="space-y-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
+	>
+		<div class="space-y-1">
+			<h2 class="text-base font-semibold tracking-tight text-foreground">Appearance</h2>
+			<p class="text-sm text-muted-foreground">
+				Choose the theme Troth should use. This preference stays in this browser.
+			</p>
+		</div>
+
+		<div class="grid gap-2 sm:grid-cols-2">
+			{#each themeOptions as option (option.value)}
+				<button
+					type="button"
+					class={`rounded-2xl border px-4 py-3 text-left transition ${$theme.selected === option.value ? 'border-primary/35 bg-primary/8 shadow-sm' : 'border-border/70 bg-white/72 hover:bg-background dark:bg-white/7'}`}
+					onclick={() => theme.setTheme(option.value)}
+					aria-pressed={$theme.selected === option.value}
+				>
+					<p class="text-sm font-medium text-foreground">{option.label}</p>
+					<p class="mt-1 text-sm text-muted-foreground">{option.description}</p>
+				</button>
+			{/each}
+		</div>
+
+		<p class="text-sm text-muted-foreground">
+			Current theme: {activeTheme.label}
+		</p>
+	</section>
 
 	<form
 		class="space-y-4 rounded-[1.75rem] border border-border/70 bg-white/80 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
