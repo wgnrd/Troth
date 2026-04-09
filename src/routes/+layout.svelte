@@ -45,7 +45,9 @@
 			rawThemePreference === 'troth-light' ||
 			rawThemePreference === 'gruvbox' ||
 			rawThemePreference === 'gruvbox-light' ||
-			rawThemePreference === 'catppuccin'
+			rawThemePreference === 'catppuccin' ||
+			rawThemePreference === 'catppuccin-latte' ||
+			rawThemePreference === 'dracula'
 		) {
 			storedTheme = rawThemePreference;
 		} else {
@@ -58,7 +60,9 @@
 		}
 
 		const resolvedTheme =
-			storedTheme === 'gruvbox' || storedTheme === 'catppuccin' ? 'dark' : 'light';
+			storedTheme === 'gruvbox' || storedTheme === 'catppuccin' || storedTheme === 'dracula'
+				? 'dark'
+				: 'light';
 		const themeColor =
 			storedTheme === 'gruvbox'
 				? '#282828'
@@ -66,7 +70,11 @@
 					? '#fbf1c7'
 					: storedTheme === 'catppuccin'
 						? '#1e1e2e'
-						: '#f4f1ea';
+						: storedTheme === 'dracula'
+							? '#282a36'
+							: storedTheme === 'catppuccin-latte'
+								? '#eff1f5'
+								: '#f4f1ea';
 		document.documentElement.dataset.theme = storedTheme;
 		document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
 		document.documentElement.style.colorScheme = resolvedTheme;

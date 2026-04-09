@@ -5,7 +5,13 @@ const STORAGE_KEY = 'troth.theme.preference';
 const LEGACY_MODE_KEY = 'troth.theme.mode';
 
 export type ResolvedTheme = 'light' | 'dark';
-export type ThemeId = 'troth-light' | 'gruvbox' | 'gruvbox-light' | 'catppuccin';
+export type ThemeId =
+	| 'troth-light'
+	| 'gruvbox'
+	| 'gruvbox-light'
+	| 'catppuccin'
+	| 'catppuccin-latte'
+	| 'dracula';
 
 export type ThemeState = {
 	selected: ThemeId;
@@ -18,6 +24,14 @@ export type ThemeOption = {
 	description: string;
 	resolved: ResolvedTheme;
 	themeColor: string;
+	preview: {
+		background: string;
+		card: string;
+		text: string;
+		muted: string;
+		accent: string;
+		swatches: string[];
+	};
 };
 
 export const themeOptions: ThemeOption[] = [
@@ -26,28 +40,90 @@ export const themeOptions: ThemeOption[] = [
 		label: 'Troth Light',
 		description: "Troth's soft neutral light theme.",
 		resolved: 'light',
-		themeColor: '#f4f1ea'
+		themeColor: '#f4f1ea',
+		preview: {
+			background: '#f4f1ea',
+			card: '#fffcf7',
+			text: '#26211f',
+			muted: '#7b7267',
+			accent: '#6f8f55',
+			swatches: ['#f4f1ea', '#dfd8cc', '#6f8f55', '#458588']
+		}
 	},
 	{
 		value: 'gruvbox',
 		label: 'Gruvbox',
 		description: 'Warm Gruvbox dark with strong contrast.',
 		resolved: 'dark',
-		themeColor: '#282828'
+		themeColor: '#282828',
+		preview: {
+			background: '#282828',
+			card: '#32302f',
+			text: '#ebdbb2',
+			muted: '#bdae93',
+			accent: '#d79921',
+			swatches: ['#282828', '#3c3836', '#d79921', '#83a598']
+		}
 	},
 	{
 		value: 'gruvbox-light',
 		label: 'Gruvbox Light',
 		description: 'Gruvbox light with warm paper tones.',
 		resolved: 'light',
-		themeColor: '#fbf1c7'
+		themeColor: '#fbf1c7',
+		preview: {
+			background: '#fbf1c7',
+			card: '#fefbf0',
+			text: '#3c3836',
+			muted: '#7c6f64',
+			accent: '#b57614',
+			swatches: ['#fbf1c7', '#d5c4a1', '#b57614', '#076678']
+		}
 	},
 	{
 		value: 'catppuccin',
 		label: 'Catppuccin',
 		description: 'Muted mauve-forward dark theme.',
 		resolved: 'dark',
-		themeColor: '#1e1e2e'
+		themeColor: '#1e1e2e',
+		preview: {
+			background: '#1e1e2e',
+			card: '#313244',
+			text: '#cdd6f4',
+			muted: '#a6adc8',
+			accent: '#cba6f7',
+			swatches: ['#1e1e2e', '#313244', '#cba6f7', '#89b4fa']
+		}
+	},
+	{
+		value: 'catppuccin-latte',
+		label: 'Catppuccin Latte',
+		description: 'Creamy Catppuccin light with soft pastel accents.',
+		resolved: 'light',
+		themeColor: '#eff1f5',
+		preview: {
+			background: '#eff1f5',
+			card: '#ffffff',
+			text: '#4c4f69',
+			muted: '#7c7f93',
+			accent: '#8839ef',
+			swatches: ['#eff1f5', '#ccd0da', '#8839ef', '#1e66f5']
+		}
+	},
+	{
+		value: 'dracula',
+		label: 'Dracula',
+		description: 'Classic Dracula dark with vivid neon accents.',
+		resolved: 'dark',
+		themeColor: '#282a36',
+		preview: {
+			background: '#282a36',
+			card: '#313443',
+			text: '#f8f8f2',
+			muted: '#b2b6d3',
+			accent: '#bd93f9',
+			swatches: ['#282a36', '#44475a', '#bd93f9', '#8be9fd']
+		}
 	}
 ];
 
@@ -133,6 +209,8 @@ function isThemeId(value: unknown): value is ThemeId {
 		value === 'troth-light' ||
 		value === 'gruvbox' ||
 		value === 'gruvbox-light' ||
-		value === 'catppuccin'
+		value === 'catppuccin' ||
+		value === 'catppuccin-latte' ||
+		value === 'dracula'
 	);
 }
