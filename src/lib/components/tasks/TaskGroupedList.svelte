@@ -307,24 +307,32 @@
 			</div>
 
 			<div class="space-y-1.5">
-				{#each group.tasks as task (task.id)}
-					<TaskRow
-						{task}
-						list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
-						{lists}
-						{showDueDateBadge}
-						subtaskSummary={subtaskSummaryByParentId[task.id] ?? null}
-						exiting={exitingTaskIds.includes(task.id)}
-						busy={mutatingIds.includes(task.id)}
-						draggable={enableDragAndDrop}
-						dragging={draggedTaskId === task.id}
-						onOpen={handleOpen}
-						{onToggleComplete}
-						{onDueDateChange}
-						{onListChange}
-						onPressStart={handlePressStart}
-					/>
-				{/each}
+				{#if group.tasks.length === 0}
+					<div
+						class="rounded-[1.25rem] border border-dashed border-border/70 bg-background/35 px-4 py-4 text-sm text-muted-foreground"
+					>
+						No tasks planned.
+					</div>
+				{:else}
+					{#each group.tasks as task (task.id)}
+						<TaskRow
+							{task}
+							list={task.listId !== null ? (listsById.get(task.listId) ?? null) : null}
+							{lists}
+							{showDueDateBadge}
+							subtaskSummary={subtaskSummaryByParentId[task.id] ?? null}
+							exiting={exitingTaskIds.includes(task.id)}
+							busy={mutatingIds.includes(task.id)}
+							draggable={enableDragAndDrop}
+							dragging={draggedTaskId === task.id}
+							onOpen={handleOpen}
+							{onToggleComplete}
+							{onDueDateChange}
+							{onListChange}
+							onPressStart={handlePressStart}
+						/>
+					{/each}
+				{/if}
 			</div>
 		</section>
 	{/each}

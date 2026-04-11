@@ -118,6 +118,25 @@ export function groupTasksByDate(tasks: AppTask[]) {
 	}));
 }
 
+export function groupUpcomingTasksByDate(tasks: AppTask[]) {
+	const groupsByDate = new Map(groupTasksByDate(tasks).map((group) => [group.key, group.tasks]));
+	const today = new Date();
+	const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+	return Array.from({ length: UPCOMING_DAY_WINDOW }, (_, offset) => {
+		const groupDate = new Date(startDate);
+		groupDate.setDate(startDate.getDate() + offset);
+
+		const key = toDateKey(groupDate);
+
+		return {
+			key,
+			title: formatTaskGroupHeading(key),
+			tasks: groupsByDate.get(key) ?? []
+		};
+	});
+}
+
 export function formatTaskDate(isoDate: string | null) {
 	const normalized = normalizeDueDate(isoDate);
 
@@ -538,6 +557,10 @@ function getDateBucketKey(isoDate: string | null) {
 		return null;
 	}
 
+	return toDateKey(date);
+}
+
+function toDateKey(date: Date) {
 	const year = date.getFullYear();
 	const month = String(date.getMonth() + 1).padStart(2, '0');
 	const day = String(date.getDate()).padStart(2, '0');

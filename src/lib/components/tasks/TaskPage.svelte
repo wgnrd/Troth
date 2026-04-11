@@ -19,7 +19,7 @@
 		filterTasksForView,
 		findInboxList,
 		fromDateInputValue,
-		groupTasksByDate,
+		groupUpcomingTasksByDate,
 		sortTodayTasks,
 		sortTasks,
 		type TaskViewKey
@@ -100,7 +100,7 @@
 		configured && $tasks.loading && !$tasks.loaded && !$lists.loaded
 	);
 	const showEmptyState = $derived(
-		configured && !showInitialLoading && !loadError && !hasVisibleTasks
+		configured && !showInitialLoading && !loadError && !hasVisibleTasks && view !== 'upcoming'
 	);
 	const upcomingOverdueTasks = $derived.by(() => {
 		if (view !== 'upcoming') {
@@ -119,7 +119,9 @@
 			return isTaskOverdue(task);
 		});
 	});
-	const groupedVisibleTasks = $derived(view === 'upcoming' ? groupTasksByDate(visibleTasks) : []);
+	const groupedVisibleTasks = $derived(
+		view === 'upcoming' ? groupUpcomingTasksByDate(visibleTasks) : []
+	);
 	const groupedVisibleCalendarDays = $derived(
 		view === 'upcoming' && calendarConfigured && calendarVisible
 			? groupedVisibleTasks.map((group) => group.key).filter((key) => key !== 'no-date')
@@ -664,7 +666,7 @@
 					</div>
 				</div>
 			{/if}
-		{:else if hasVisibleTasks}
+		{:else if hasVisibleTasks || view === 'upcoming'}
 			{#if view === 'upcoming'}
 				<TaskGroupedList
 					groups={groupedVisibleTasks}
