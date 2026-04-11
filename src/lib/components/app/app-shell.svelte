@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page, navigating } from '$app/state';
-	import { CircleHelp, Ellipsis, LoaderCircle, Plus, X } from '@lucide/svelte';
+	import { Ellipsis, LoaderCircle, Plus, X } from '@lucide/svelte';
 	import { findInboxList } from '$lib/tasks/view';
 	import { getRouteMeta, appRoutes } from '$lib/navigation';
 	import { Button } from '$lib/components/ui/button';
@@ -16,7 +16,6 @@
 
 	let { children } = $props();
 
-	let mobileMoreOpen = $state(false);
 	let mobileTaskComposerOpen = $state(false);
 	let helpOpen = $state(false);
 
@@ -82,31 +81,12 @@
 			? 'Create a project named Inbox in Vikunja to use this view.'
 			: 'Add a project in Vikunja before creating tasks.'
 	);
-	const overlayOpen = $derived(mobileMoreOpen || mobileTaskComposerOpen || helpOpen);
+	const overlayOpen = $derived(mobileTaskComposerOpen || helpOpen);
 
 	$effect(() => {
 		if (page.url.pathname) {
-			mobileMoreOpen = false;
 			mobileTaskComposerOpen = false;
 		}
-	});
-
-	$effect(() => {
-		if (!mobileMoreOpen) {
-			return;
-		}
-
-		function handleKeydown(event: KeyboardEvent) {
-			if (event.key === 'Escape') {
-				mobileMoreOpen = false;
-			}
-		}
-
-		document.addEventListener('keydown', handleKeydown);
-
-		return () => {
-			document.removeEventListener('keydown', handleKeydown);
-		};
 	});
 
 	$effect(() => {
@@ -198,7 +178,10 @@
 				: 'lg:grid-cols-[14.5rem_minmax(0,44rem)] lg:gap-8'
 		)}
 	>
-		<AppSidebar class="hidden lg:sticky lg:top-3 lg:flex lg:h-[calc(100vh-1.5rem)] lg:self-start" />
+		<AppSidebar
+			supportHref="/support"
+			class="hidden lg:sticky lg:top-3 lg:flex lg:h-[calc(100vh-1.5rem)] lg:self-start"
+		/>
 
 		<div class="flex min-w-0 flex-1 flex-col">
 			<main
@@ -211,30 +194,6 @@
 	</div>
 
 	<Toaster />
-
-	{#if mobileMoreOpen}
-		<button
-			type="button"
-			class="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] lg:hidden"
-			onclick={() => {
-				mobileMoreOpen = false;
-			}}
-			aria-label="Close navigation menu"
-		></button>
-
-		<div
-			id="mobile-more-sheet"
-			class="fixed inset-x-3 bottom-24 z-50 h-[min(70vh,38rem)] overflow-hidden overscroll-contain lg:hidden"
-		>
-			<AppSidebar
-				mobile
-				class="h-full rounded-[1.8rem] border border-border/70 bg-background/96 shadow-2xl backdrop-blur"
-				onSelect={() => {
-					mobileMoreOpen = false;
-				}}
-			/>
-		</div>
-	{/if}
 
 	{#if mobileTaskComposerOpen}
 		<button
@@ -302,17 +261,6 @@
 	>
 		Skip to main content
 	</a>
-
-	<button
-		type="button"
-		aria-label="Task input help"
-		class="fixed right-4 bottom-24 z-40 inline-flex size-10 items-center justify-center rounded-full border border-border/70 bg-background/92 text-muted-foreground shadow-lg backdrop-blur transition hover:text-foreground focus-visible:border-primary/30 focus-visible:ring-3 focus-visible:ring-primary/10 sm:right-5 sm:bottom-5"
-		onclick={() => {
-			helpOpen = true;
-		}}
-	>
-		<CircleHelp class="size-4" />
-	</button>
 
 	{#if helpOpen}
 		<button
@@ -535,8 +483,8 @@
 				</a>
 			{/each}
 
-			<button
-				type="button"
+			<a
+				href="/more"
 				class={cn(
 					'flex min-w-0 items-center justify-center rounded-[1.35rem] px-2 py-2 text-[0.68rem] font-medium transition',
 					mobileMoreActive
@@ -544,11 +492,6 @@
 						: 'text-muted-foreground hover:text-foreground'
 				)}
 				aria-label="More"
-				aria-expanded={mobileMoreOpen}
-				aria-controls="mobile-more-sheet"
-				onclick={() => {
-					mobileMoreOpen = true;
-				}}
 			>
 				<span
 					class={cn(
@@ -562,7 +505,7 @@
 						<Ellipsis class="size-4.5" />
 					{/if}
 				</span>
-			</button>
+			</a>
 		</div>
 	</nav>
 </div>

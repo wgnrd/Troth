@@ -5,6 +5,7 @@
 		ChevronDown,
 		ChevronLeft,
 		ChevronRight,
+		CircleHelp,
 		Eye,
 		EyeOff,
 		Filter,
@@ -44,10 +45,18 @@
 	let {
 		class: className,
 		mobile = false,
+		hidePrimaryRoutes = false,
+		browseSectionCollapsible = true,
+		supportHref,
+		showHeaderAction = true,
 		onSelect
 	}: {
 		class?: string;
 		mobile?: boolean;
+		hidePrimaryRoutes?: boolean;
+		browseSectionCollapsible?: boolean;
+		supportHref?: string;
+		showHeaderAction?: boolean;
 		onSelect?: () => void;
 	} = $props();
 
@@ -147,6 +156,9 @@
 			(projectsRoute && ProjectsIcon)
 		)
 	);
+	const browseSectionExpanded = $derived(
+		browseSectionCollapsible ? $projectPreferences.browseSectionExpanded : true
+	);
 
 	$effect(() => {
 		if (
@@ -183,92 +195,96 @@
 			</div>
 		</div>
 
-		{#if mobile}
-			<Button variant="ghost" size="icon-sm" onclick={onSelect} aria-label="Close navigation">
-				<X class="size-4" />
-			</Button>
-		{:else}
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				class={cn(compact ? 'mx-auto' : '')}
-				onclick={() => {
-					projectPreferences.toggleSidebarCollapsed();
-				}}
-				aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'}
-			>
-				{#if compact}
-					<ChevronRight class="size-4" />
-				{:else}
-					<ChevronLeft class="size-4" />
-				{/if}
-			</Button>
+		{#if showHeaderAction}
+			{#if mobile}
+				<Button variant="ghost" size="icon-sm" onclick={onSelect} aria-label="Close navigation">
+					<X class="size-4" />
+				</Button>
+			{:else}
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					class={cn(compact ? 'mx-auto' : '')}
+					onclick={() => {
+						projectPreferences.toggleSidebarCollapsed();
+					}}
+					aria-label={compact ? 'Expand sidebar' : 'Collapse sidebar'}
+				>
+					{#if compact}
+						<ChevronRight class="size-4" />
+					{:else}
+						<ChevronLeft class="size-4" />
+					{/if}
+				</Button>
+			{/if}
 		{/if}
 	</div>
 
 	<Separator class="my-1 opacity-50" />
 
 	<nav aria-label="Primary" class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-		{#each routeGroups as group, index (group.label)}
-			{#if !compact}
-				{#if index > 0}
-					<Separator class="my-2 opacity-40" />
-				{/if}
-				<div
-					class="flex w-full items-center gap-2 px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80"
-				>
-					<span>{group.label}</span>
-				</div>
-			{/if}
-
-			<div class="space-y-1">
-				{#each group.items as item (item.href)}
-					{@const Icon = item.icon}
-					<a
-						href={resolve(item.href)}
-						onclick={onSelect}
-						aria-label={compact ? item.label : undefined}
-						title={compact ? item.label : undefined}
-						class={cn(
-							'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
-							compact ? 'justify-center px-0' : '',
-							isActive(item.href)
-								? 'bg-primary/10 text-foreground'
-								: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
-						)}
+		{#if !hidePrimaryRoutes}
+			{#each routeGroups as group, index (group.label)}
+				{#if !compact}
+					{#if index > 0}
+						<Separator class="my-2 opacity-40" />
+					{/if}
+					<div
+						class="flex w-full items-center gap-2 px-2.5 pb-1 text-[0.72rem] font-medium text-muted-foreground/80"
 					>
-						<span
+						<span>{group.label}</span>
+					</div>
+				{/if}
+
+				<div class="space-y-1">
+					{#each group.items as item (item.href)}
+						{@const Icon = item.icon}
+						<a
+							href={resolve(item.href)}
+							onclick={onSelect}
+							aria-label={compact ? item.label : undefined}
+							title={compact ? item.label : undefined}
 							class={cn(
-								'rounded-lg p-1.5 transition-colors',
+								'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+								compact ? 'justify-center px-0' : '',
 								isActive(item.href)
-									? 'text-foreground'
-									: 'text-muted-foreground group-hover:text-foreground'
+									? 'bg-primary/10 text-foreground'
+									: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
 							)}
 						>
-							<Icon class="size-4" />
-						</span>
+							<span
+								class={cn(
+									'rounded-lg p-1.5 transition-colors',
+									isActive(item.href)
+										? 'text-foreground'
+										: 'text-muted-foreground group-hover:text-foreground'
+								)}
+							>
+								<Icon class="size-4" />
+							</span>
 
-						{#if !compact}
-							<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
-							{#if item.href === '/inbox' && inboxTaskCount > 0}
-								<span
-									class={cn(
-										'ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums',
-										isActive(item.href)
-											? 'bg-primary/12 text-foreground'
-											: 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
-									)}
-								>
-									{inboxTaskCount}
-								</span>
+							{#if !compact}
+								<span class="min-w-0 flex-1 truncate text-sm font-medium">{item.label}</span>
+								{#if item.href === '/inbox' && inboxTaskCount > 0}
+									<span
+										class={cn(
+											'ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums',
+											isActive(item.href)
+												? 'bg-primary/12 text-foreground'
+												: 'bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground'
+										)}
+									>
+										{inboxTaskCount}
+									</span>
+								{/if}
 							{/if}
-						{/if}
-					</a>
-				{/each}
-			</div>
-		{/each}
+						</a>
+					{/each}
+				</div>
+			{/each}
+		{/if}
 
-		{#if !compact && browseSectionVisible}
+		{#if !compact && browseSectionVisible && browseSectionCollapsible}
 			<Separator class="my-2 opacity-40" />
 			<button
 				type="button"
@@ -287,7 +303,7 @@
 			</button>
 		{/if}
 
-		{#if completedRoute && (compact || $projectPreferences.browseSectionExpanded)}
+		{#if completedRoute && (compact || browseSectionExpanded)}
 			{@const Icon = completedRoute.icon}
 			<a
 				href={resolve(completedRoute.href)}
@@ -319,7 +335,7 @@
 			</a>
 		{/if}
 
-		{#if !compact && (compact || $projectPreferences.browseSectionExpanded) && $connection.settings && savedFilterEntries.length > 0}
+		{#if !compact && (compact || browseSectionExpanded) && $connection.settings && savedFilterEntries.length > 0}
 			<div>
 				<div class="mt-2 space-y-1" aria-label="Saved filters">
 					{#each savedFilterEntries as entry (entry.id)}
@@ -349,7 +365,7 @@
 			</div>
 		{/if}
 
-		{#if projectsRoute && ProjectsIcon && (compact || $projectPreferences.browseSectionExpanded)}
+		{#if projectsRoute && ProjectsIcon && (compact || browseSectionExpanded)}
 			<div
 				class={cn(!compact && $connection.settings && savedFilterEntries.length > 0 ? 'pt-2' : '')}
 			>
@@ -494,6 +510,33 @@
 	{#if settingsRoute && SettingsIcon}
 		<div class="shrink-0 pt-2">
 			<Separator class="mb-2 opacity-50" />
+			{#if supportHref}
+				<a
+					href={supportHref}
+					onclick={onSelect}
+					class={cn(
+						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+						compact ? 'justify-center px-0' : '',
+						isActive(supportHref)
+							? 'bg-primary/10 text-foreground'
+							: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+					)}
+				>
+					<span
+						class={cn(
+							'rounded-lg p-1.5 transition-colors',
+							isActive(supportHref)
+								? 'bg-primary/12 text-foreground'
+								: 'text-muted-foreground group-hover:text-foreground'
+						)}
+					>
+						<CircleHelp class="size-4" />
+					</span>
+					{#if !compact}
+						<span class="min-w-0 flex-1 truncate text-sm font-medium">Support</span>
+					{/if}
+				</a>
+			{/if}
 			<a
 				href={resolve(settingsRoute.href)}
 				onclick={onSelect}
