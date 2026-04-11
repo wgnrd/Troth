@@ -45,13 +45,26 @@
 	let lastLoadKey = $state('');
 	let exitingTaskIds = $state<number[]>([]);
 	let bulkRescheduling = $state(false);
+	let taskCollectionMode = $state<'backlog' | 'active'>('backlog');
 	let loadMoreTrigger = $state<HTMLDivElement | null>(null);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
-	const taskLoadView = $derived(view === 'active' || view === 'completed' ? view : 'all');
+	const currentView = $derived(view as TaskViewKey | string);
+	const taskLoadView = $derived.by(() => {
+		if (currentView === 'completed') {
+			return 'completed';
+		}
+
+		if (currentView === 'active' || currentView === 'backlog') {
+			return 'active';
+		}
+
+		return 'all';
+	});
 	const calendarConfigured = $derived(Boolean($calendarFeed.settings));
 	const calendarVisible = $derived($calendarPreviewPreferences.calendarVisible);
+	const showBacklogSwitch = $derived(currentView === 'backlog');
 	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
 	const hiddenProjectIds = $derived(
 		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
@@ -60,14 +73,16 @@
 	const inboxList = $derived(findInboxList(activeLists));
 	const rescheduleFallbackListId = $derived(inboxList?.id ?? activeLists[0]?.id ?? null);
 	const visibleTasks = $derived.by(() => {
-		const filteredTasks = filterTasksForView(view, $tasks.items, activeLists);
+		const routeTasks =
+			currentView === 'backlog' && taskCollectionMode === 'active'
+				? filterTasksForView('active', $tasks.items, activeLists)
+				: filterTasksForView(view as TaskViewKey, $tasks.items, activeLists);
 		const exitingTasks = $tasks.items.filter(
-			(task) =>
-				exitingTaskIds.includes(task.id) && !filteredTasks.some((item) => item.id === task.id)
+			(task) => exitingTaskIds.includes(task.id) && !routeTasks.some((item) => item.id === task.id)
 		);
 
-		const nextTasks = [...filteredTasks, ...exitingTasks];
-		return view === 'today' ? sortTodayTasks(nextTasks) : sortTasks(nextTasks);
+		const nextTasks = [...routeTasks, ...exitingTasks];
+		return currentView === 'today' ? sortTodayTasks(nextTasks) : sortTasks(nextTasks);
 	});
 	const selectedTask = $derived(
 		selectedTaskId === null
@@ -92,7 +107,11 @@
 		return summaries;
 	});
 	const emptyMessage = $derived(
-		view === 'inbox' && !inboxList ? 'No project named Inbox was found in Vikunja yet.' : emptyState
+		currentView === 'inbox' && !inboxList
+			? 'No project named Inbox was found in Vikunja yet.'
+			: taskCollectionMode === 'active' && currentView === 'backlog'
+				? 'No active tasks.'
+				: emptyState
 	);
 	const loadError = $derived($tasks.error ?? $lists.error);
 	const hasVisibleTasks = $derived(visibleTasks.length > 0);
@@ -100,10 +119,14 @@
 		configured && $tasks.loading && !$tasks.loaded && !$lists.loaded
 	);
 	const showEmptyState = $derived(
-		configured && !showInitialLoading && !loadError && !hasVisibleTasks && view !== 'upcoming'
+		configured &&
+			!showInitialLoading &&
+			!loadError &&
+			!hasVisibleTasks &&
+			currentView !== 'upcoming'
 	);
 	const upcomingOverdueTasks = $derived.by(() => {
-		if (view !== 'upcoming') {
+		if (currentView !== 'upcoming') {
 			return [];
 		}
 
@@ -120,23 +143,29 @@
 		});
 	});
 	const groupedVisibleTasks = $derived(
-		view === 'upcoming' ? groupUpcomingTasksByDate(visibleTasks) : []
+		currentView === 'upcoming' ? groupUpcomingTasksByDate(visibleTasks) : []
 	);
 	const groupedVisibleCalendarDays = $derived(
-		view === 'upcoming' && calendarConfigured && calendarVisible
+		currentView === 'upcoming' && calendarConfigured && calendarVisible
 			? groupedVisibleTasks.map((group) => group.key).filter((key) => key !== 'no-date')
 			: []
 	);
 	const headerMeta = $derived.by(() => {
-		if (view !== 'upcoming') {
-			return meta;
+		if (currentView !== 'upcoming') {
+			if (currentView !== 'backlog') {
+				return meta;
+			}
+
+			return taskCollectionMode === 'backlog'
+				? `Tasks without a due date, or due outside the next ${UPCOMING_DAY_WINDOW} days.`
+				: 'Every incomplete task across your visible projects.';
 		}
 
 		return `Here you can see the next ${UPCOMING_DAY_WINDOW} days, including today.`;
 	});
-	const showDueDateBadge = $derived(view !== 'today' && view !== 'upcoming');
+	const showDueDateBadge = $derived(currentView !== 'today' && currentView !== 'upcoming');
 	const overdueTasks = $derived.by(() => {
-		if (view !== 'today') {
+		if (currentView !== 'today') {
 			return [];
 		}
 
@@ -164,7 +193,7 @@
 		});
 	});
 	const todayTasks = $derived.by(() => {
-		if (view !== 'today') {
+		if (currentView !== 'today') {
 			return visibleTasks;
 		}
 
@@ -172,7 +201,7 @@
 		return visibleTasks.filter((task) => !overdueTaskIds.has(task.id));
 	});
 	const emptyStateTitle = $derived.by(() => {
-		switch (view) {
+		switch (currentView) {
 			case 'today':
 				return 'Nothing due today';
 			case 'inbox':
@@ -181,11 +210,15 @@
 				return 'Nothing upcoming';
 			case 'active':
 				return 'No active tasks';
+			case 'backlog':
+				return taskCollectionMode === 'backlog' ? 'No backlog tasks' : 'No active tasks';
 			case 'completed':
 				return 'No completed tasks';
 		}
 	});
-	const usesInfiniteTaskPaging = $derived(view === 'active' || view === 'completed');
+	const usesInfiniteTaskPaging = $derived(
+		currentView === 'active' || currentView === 'backlog' || currentView === 'completed'
+	);
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
@@ -245,7 +278,7 @@
 		if (
 			!calendarConfigured ||
 			!calendarVisible ||
-			view !== 'upcoming' ||
+			currentView !== 'upcoming' ||
 			groupedVisibleCalendarDays.length === 0
 		) {
 			return;
@@ -280,7 +313,7 @@
 	}
 
 	async function handleToggleComplete(task: AppTask, completed: boolean) {
-		if (completed && view !== 'completed') {
+		if (completed && currentView !== 'completed') {
 			startTaskExit(task.id);
 		} else {
 			clearTaskExit(task.id);
@@ -454,6 +487,34 @@
 			{#if headerMeta}
 				<p class="text-sm text-muted-foreground">{headerMeta}</p>
 			{/if}
+			{#if showBacklogSwitch}
+				<div class="pt-2">
+					<div
+						class="inline-flex rounded-2xl border border-border/70 bg-white/65 p-1 shadow-sm dark:bg-white/8 dark:shadow-none"
+					>
+						<Button
+							variant={taskCollectionMode === 'backlog' ? 'secondary' : 'ghost'}
+							size="sm"
+							class="rounded-xl"
+							onclick={() => {
+								taskCollectionMode = 'backlog';
+							}}
+						>
+							Backlog
+						</Button>
+						<Button
+							variant={taskCollectionMode === 'active' ? 'secondary' : 'ghost'}
+							size="sm"
+							class="rounded-xl"
+							onclick={() => {
+								taskCollectionMode = 'active';
+							}}
+						>
+							All Active
+						</Button>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		{#if configured}
@@ -490,11 +551,11 @@
 			</div>
 		</div>
 	{:else}
-		{#if view === 'today'}
+		{#if currentView === 'today'}
 			<CalendarDayPreview />
 		{/if}
 
-		{#if view === 'today' && overdueTasks.length > 0}
+		{#if currentView === 'today' && overdueTasks.length > 0}
 			<section
 				class="rounded-[1.85rem] border px-4 py-4 shadow-none"
 				style="border-color: color-mix(in oklch, #e64553 72%, white); background: transparent;"
@@ -551,7 +612,7 @@
 			</section>
 		{/if}
 
-		{#if view === 'upcoming' && upcomingOverdueTasks.length > 0}
+		{#if currentView === 'upcoming' && upcomingOverdueTasks.length > 0}
 			<section
 				class="rounded-[1.85rem] border px-4 py-4 shadow-none"
 				style="border-color: color-mix(in oklch, #e64553 72%, white); background: transparent;"
@@ -623,7 +684,7 @@
 		{#if showInitialLoading}
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
-			{#if view === 'inbox'}
+			{#if currentView === 'inbox'}
 				<div
 					class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
 				>
@@ -640,7 +701,7 @@
 						</p>
 					</div>
 				</div>
-			{:else if view === 'today'}
+			{:else if currentView === 'today'}
 				<div
 					class="rounded-[1.9rem] border border-border/60 bg-white/62 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
 				>
@@ -666,8 +727,8 @@
 					</div>
 				</div>
 			{/if}
-		{:else if hasVisibleTasks || view === 'upcoming'}
-			{#if view === 'upcoming'}
+		{:else if hasVisibleTasks || currentView === 'upcoming'}
+			{#if currentView === 'upcoming'}
 				<TaskGroupedList
 					groups={groupedVisibleTasks}
 					lists={activeLists}
@@ -688,7 +749,7 @@
 					onListChange={handleListChange}
 					onRescheduleTask={handleUpcomingDrop}
 				/>
-			{:else if view === 'today'}
+			{:else if currentView === 'today'}
 				{#if todayTasks.length > 0}
 					<TaskList
 						tasks={todayTasks}

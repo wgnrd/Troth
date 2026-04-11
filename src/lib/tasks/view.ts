@@ -1,7 +1,7 @@
 import type { AppList, AppTask } from '$lib/api/vikunja';
 import { filterTopLevelTasks } from '$lib/stores/tasks';
 
-export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'completed';
+export type TaskViewKey = 'today' | 'inbox' | 'upcoming' | 'active' | 'backlog' | 'completed';
 export type RepeatUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
 export const UPCOMING_DAY_WINDOW = 7;
 
@@ -450,6 +450,8 @@ function matchesTaskView(task: AppTask, view: TaskViewKey, inboxListId: number |
 			return !task.completed && isUpcoming(task.dueDate);
 		case 'active':
 			return !task.completed;
+		case 'backlog':
+			return !task.completed && isBacklog(task.dueDate);
 		case 'completed':
 			return task.completed;
 	}
@@ -483,6 +485,15 @@ function isDueTodayOrEarlier(isoDate: string | null) {
 function isUpcoming(isoDate: string | null) {
 	const diffInDays = getDateDiffInDays(isoDate);
 	return diffInDays !== null && diffInDays >= 0 && diffInDays < UPCOMING_DAY_WINDOW;
+}
+
+export function isBacklogTask(task: AppTask) {
+	return isBacklog(task.dueDate);
+}
+
+function isBacklog(isoDate: string | null) {
+	const diffInDays = getDateDiffInDays(isoDate);
+	return diffInDays === null || diffInDays < 0 || diffInDays >= UPCOMING_DAY_WINDOW;
 }
 
 function compareCreatedAt(left: string | null, right: string | null) {
