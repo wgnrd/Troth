@@ -177,7 +177,9 @@
 		class="w-[22rem] overflow-hidden rounded-[1.75rem] border-border/70 bg-[rgba(255,252,247,0.98)] p-0 shadow-[0_24px_80px_-36px_rgba(28,22,14,0.35)] backdrop-blur-sm dark:border-white/14 dark:bg-[color-mix(in_oklch,var(--color-popover)_82%,white_18%)] dark:shadow-[0_24px_80px_-42px_rgba(0,0,0,0.46)]"
 		data-task-composer-ignore-collapse="true"
 	>
-		<div class="border-b border-border/70 bg-muted/[0.22] px-3 py-3 dark:border-white/12 dark:bg-white/10">
+		<div
+			class="border-b border-border/70 bg-muted/[0.22] px-3 py-3 dark:border-white/12 dark:bg-white/10"
+		>
 			<div
 				class="mb-2 px-1 text-[0.68rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
 			>

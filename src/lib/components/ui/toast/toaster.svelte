@@ -55,7 +55,9 @@
 	});
 </script>
 
-<div class="pointer-events-none fixed inset-x-3 bottom-24 z-[90] flex flex-col items-end gap-2 sm:inset-x-4 sm:bottom-4">
+<div
+	class="pointer-events-none fixed inset-x-3 bottom-24 z-[90] flex flex-col items-end gap-2 sm:inset-x-4 sm:bottom-4"
+>
 	{#each $toast as item (item.id)}
 		<div
 			in:fly={{ y: 12, duration: 180 }}

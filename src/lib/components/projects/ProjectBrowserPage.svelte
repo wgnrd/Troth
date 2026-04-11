@@ -122,7 +122,10 @@
 	}
 
 	function getOpenTaskCount(listId: number) {
-		return countOpenTasksForProjectTree($tasks.items, getDescendantProjectIds(allActiveLists, listId));
+		return countOpenTasksForProjectTree(
+			$tasks.items,
+			getDescendantProjectIds(allActiveLists, listId)
+		);
 	}
 
 	function getNestedEntries(node: ProjectTreeNode) {
@@ -172,7 +175,9 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -199,11 +204,15 @@
 	{:else if showInitialLoading}
 		<div class="space-y-3">
 			{#each Array.from({ length: 3 }, (_, index) => index) as index (index)}
-				<div class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55 dark:bg-white/6"></div>
+				<div
+					class="h-28 rounded-[1.7rem] border border-border/60 bg-white/55 dark:bg-white/6"
+				></div>
 			{/each}
 		</div>
 	{:else if allActiveLists.length === 0}
-		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="space-y-2 text-center sm:text-left">
 				<p class="text-sm font-medium text-foreground">No projects yet</p>
 				<p class="text-sm text-muted-foreground">

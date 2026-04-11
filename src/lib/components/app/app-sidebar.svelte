@@ -10,6 +10,7 @@
 		EyeOff,
 		Filter,
 		Hash,
+		Plus,
 		X
 	} from '@lucide/svelte';
 	import { connection } from '$lib/stores/connection';
@@ -26,6 +27,7 @@
 	import { appRoutes } from '$lib/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
+	import TaskComposer from '$lib/components/tasks/TaskComposer.svelte';
 	import { theme } from '$lib/stores/theme';
 	import { cn } from '$lib/utils';
 
@@ -59,6 +61,8 @@
 		showHeaderAction?: boolean;
 		onSelect?: () => void;
 	} = $props();
+
+	let desktopTaskComposerOpen = $state(false);
 
 	const compact = $derived(!mobile && $projectPreferences.sidebarCollapsed);
 
@@ -128,6 +132,24 @@
 	const SettingsIcon = settingsRoute?.icon;
 	const savedFilterEntries = $derived($savedFilters.items);
 	const allProjectLists = $derived($lists.items.filter((list) => !list.isArchived));
+	const currentProjectId = $derived.by(() => {
+		const match = page.url.pathname.match(/^\/projects\/(\d+)/);
+
+		if (!match) {
+			return null;
+		}
+
+		const parsedId = Number.parseInt(match[1] ?? '', 10);
+		return Number.isNaN(parsedId) ? null : parsedId;
+	});
+	const currentProject = $derived(
+		currentProjectId === null
+			? null
+			: (allProjectLists.find((list) => list.id === currentProjectId) ?? null)
+	);
+	const inboxList = $derived(
+		allProjectLists.find((list) => list.title.trim().toLowerCase() === 'inbox') ?? null
+	);
 	const hiddenProjectIds = $derived(
 		getEffectiveHiddenProjectIds(allProjectLists, $projectPreferences.hiddenProjectIds)
 	);
@@ -148,6 +170,47 @@
 	);
 	const inboxTaskCount = $derived(
 		filterTasksForView('inbox', $tasks.items, visibleProjectLists).length
+	);
+	const desktopComposerFixedListId = $derived.by(() => {
+		if (page.url.pathname === '/inbox') {
+			return inboxList?.id ?? null;
+		}
+
+		if (page.url.pathname.startsWith('/projects/')) {
+			return currentProject?.id ?? null;
+		}
+
+		return null;
+	});
+	const desktopComposerDefaultListId = $derived(
+		desktopComposerFixedListId ?? inboxList?.id ?? allProjectLists[0]?.id ?? null
+	);
+	const desktopComposerPlaceholder = $derived.by(() => {
+		if (page.url.pathname === '/inbox') {
+			return 'Add to Inbox';
+		}
+
+		if (currentProject) {
+			return `Add to ${currentProject.title}`;
+		}
+
+		return 'Add a task';
+	});
+	const desktopComposerSubtitle = $derived.by(() => {
+		if (page.url.pathname === '/inbox') {
+			return 'Add a task directly to Inbox.';
+		}
+
+		if (currentProject) {
+			return `Add a task directly to ${currentProject.title}.`;
+		}
+
+		return 'Capture a task from anywhere in the app.';
+	});
+	const desktopComposerDisabledMessage = $derived(
+		page.url.pathname === '/inbox' && !inboxList
+			? 'Create a project named Inbox in Vikunja to use this view.'
+			: 'Add a project in Vikunja before creating tasks.'
 	);
 	const browseSectionVisible = $derived(
 		Boolean(
@@ -172,6 +235,105 @@
 
 		void Promise.all([lists.load(), savedFilters.load()]);
 	});
+
+	$effect(() => {
+		if (page.url.pathname) {
+			desktopTaskComposerOpen = false;
+		}
+	});
+
+	$effect(() => {
+		if (mobile || !desktopTaskComposerOpen) {
+			return;
+		}
+
+		function handleKeydown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				desktopTaskComposerOpen = false;
+			}
+		}
+
+		document.addEventListener('keydown', handleKeydown);
+
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+		};
+	});
+
+	$effect(() => {
+		if (mobile || !desktopTaskComposerOpen) {
+			return;
+		}
+
+		const { documentElement, body } = document;
+		const previousHtmlOverflow = documentElement.style.overflow;
+		const previousBodyOverflow = body.style.overflow;
+		const previousOverscroll = body.style.overscrollBehavior;
+
+		documentElement.style.overflow = 'hidden';
+		body.style.overflow = 'hidden';
+		body.style.overscrollBehavior = 'none';
+
+		return () => {
+			documentElement.style.overflow = previousHtmlOverflow;
+			body.style.overflow = previousBodyOverflow;
+			body.style.overscrollBehavior = previousOverscroll;
+		};
+	});
+
+	$effect(() => {
+		if (mobile || desktopTaskComposerOpen) {
+			return;
+		}
+
+		function handleQuickAddShortcut(event: KeyboardEvent) {
+			if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
+				return;
+			}
+
+			if (event.key.toLowerCase() !== 'n') {
+				return;
+			}
+
+			const activeElement =
+				document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+			if (
+				activeElement &&
+				(activeElement.isContentEditable ||
+					activeElement instanceof HTMLInputElement ||
+					activeElement instanceof HTMLTextAreaElement ||
+					activeElement instanceof HTMLSelectElement)
+			) {
+				return;
+			}
+
+			event.preventDefault();
+			desktopTaskComposerOpen = true;
+		}
+
+		document.addEventListener('keydown', handleQuickAddShortcut);
+
+		return () => {
+			document.removeEventListener('keydown', handleQuickAddShortcut);
+		};
+	});
+
+	async function handleDesktopQuickAdd(input: {
+		title: string;
+		listId: number;
+		dueDate?: string | null;
+		priority?: number;
+		parentTaskId?: number | null;
+	}) {
+		const createdTask = await tasks.createTask(input);
+
+		if (createdTask) {
+			desktopTaskComposerOpen = false;
+		}
+
+		return Boolean(createdTask);
+	}
 </script>
 
 <aside
@@ -223,6 +385,46 @@
 	<Separator class="my-1 opacity-50" />
 
 	<nav aria-label="Primary" class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+		{#if !mobile}
+			<div class={cn('pb-1', compact ? 'flex justify-center' : '')}>
+				{#if compact}
+					<Button
+						variant="outline"
+						size="icon"
+						class="size-10 rounded-xl border-border/70 bg-background/80 shadow-none"
+						aria-label="Add task"
+						title="Add task"
+						onclick={() => {
+							desktopTaskComposerOpen = true;
+						}}
+					>
+						<Plus class="size-4" />
+					</Button>
+				{:else}
+					<button
+						type="button"
+						class="group flex w-full items-center gap-3 rounded-xl border border-border/65 bg-background/70 px-2.5 py-2 text-left text-foreground transition hover:bg-muted/45"
+						onclick={() => {
+							desktopTaskComposerOpen = true;
+						}}
+					>
+						<span class="rounded-lg border border-border/65 bg-background/90 p-1.5 text-foreground">
+							<Plus class="size-4" />
+						</span>
+						<div class="min-w-0 flex-1">
+							<p class="truncate text-sm font-medium">Add task</p>
+							<p class="truncate text-[0.72rem] text-muted-foreground">{desktopComposerSubtitle}</p>
+						</div>
+						<kbd
+							class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] dark:border-white/12 dark:bg-white/6 dark:shadow-none"
+						>
+							N
+						</kbd>
+					</button>
+				{/if}
+			</div>
+		{/if}
+
 		{#if !hidePrimaryRoutes}
 			{#each routeGroups as group, index (group.label)}
 				{#if !compact}
@@ -567,3 +769,64 @@
 		</div>
 	{/if}
 </aside>
+
+{#if !mobile && desktopTaskComposerOpen}
+	<button
+		type="button"
+		class="fixed inset-0 z-50 bg-stone-950/28 backdrop-blur-[3px]"
+		aria-label="Close add task dialog"
+		onclick={() => {
+			desktopTaskComposerOpen = false;
+		}}
+	></button>
+
+	<dialog
+		open
+		aria-labelledby="desktop-task-composer-title"
+		class="fixed inset-x-3 bottom-3 z-[60] max-h-[calc(100vh-1.5rem)] w-auto overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl sm:inset-x-6 lg:top-1/2 lg:right-auto lg:bottom-auto lg:left-1/2 lg:w-[calc(100vw-1.5rem)] lg:max-w-[52rem] lg:-translate-x-1/2 lg:-translate-y-1/2"
+	>
+		<div class="space-y-4">
+			<div class="flex items-center justify-between gap-3">
+				<div class="min-w-0">
+					<p
+						id="desktop-task-composer-title"
+						class="text-[1.35rem] font-semibold tracking-tight text-foreground"
+					>
+						Add task
+					</p>
+					<p class="mt-1 text-sm text-muted-foreground">{desktopComposerSubtitle}</p>
+				</div>
+
+				<Button
+					variant="ghost"
+					size="sm"
+					class="shrink-0 text-muted-foreground hover:text-foreground"
+					onclick={() => {
+						desktopTaskComposerOpen = false;
+					}}
+				>
+					<X class="size-3.5" />
+					Close
+				</Button>
+			</div>
+
+			<div class="rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3 dark:bg-white/6">
+				<TaskComposer
+					lists={allProjectLists}
+					busy={$tasks.creating}
+					error={$tasks.mutationError}
+					fixedListId={desktopComposerFixedListId}
+					defaultListId={desktopComposerDefaultListId}
+					defaultDueDate={page.url.pathname === '/inbox' ? null : undefined}
+					autoFocus
+					placeholder={desktopComposerPlaceholder}
+					disabledMessage={desktopComposerDisabledMessage}
+					onCollapse={() => {
+						desktopTaskComposerOpen = false;
+					}}
+					onSubmit={handleDesktopQuickAdd}
+				/>
+			</div>
+		</div>
+	</dialog>
+{/if}

@@ -5,7 +5,9 @@
 	const rowIndexes = $derived(Array.from({ length: rows }, (_, index) => index));
 </script>
 
-<div class="rounded-[1.75rem] border border-border/65 bg-white/56 p-2 shadow-sm dark:bg-white/7 dark:shadow-none">
+<div
+	class="rounded-[1.75rem] border border-border/65 bg-white/56 p-2 shadow-sm dark:bg-white/7 dark:shadow-none"
+>
 	{#each rowIndexes as index (index)}
 		<div class="flex items-center gap-3 rounded-[1.35rem] px-3 py-3">
 			<Skeleton class="size-6 rounded-full bg-muted/70" />

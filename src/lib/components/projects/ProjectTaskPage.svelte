@@ -15,7 +15,6 @@
 		getDescendantProjectIds,
 		getEffectiveHiddenProjectIds
 	} from '$lib/lists/tree';
-	import TaskComposer from '$lib/components/tasks/TaskComposer.svelte';
 	import TaskEditor from '$lib/components/tasks/TaskEditor.svelte';
 	import TaskGroupedList from '$lib/components/tasks/TaskGroupedList.svelte';
 	import TaskListSkeleton from '$lib/components/tasks/TaskListSkeleton.svelte';
@@ -25,7 +24,6 @@
 	let selectedTaskId = $state<number | null>(null);
 	let lastLoadKey = $state('');
 	let exitingTaskIds = $state<number[]>([]);
-	let showQuickAddComposer = $state(false);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
@@ -98,7 +96,6 @@
 		if (!browser || !$connection.settings) {
 			lastLoadKey = '';
 			selectedTaskId = null;
-			showQuickAddComposer = false;
 			return;
 		}
 
@@ -114,44 +111,6 @@
 		if (selectedTaskId !== null && !selectedTask) {
 			selectedTaskId = null;
 		}
-	});
-
-	$effect(() => {
-		if (!browser || !configured || !currentProject) {
-			return;
-		}
-
-		function handleQuickAddShortcut(event: KeyboardEvent) {
-			if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) {
-				return;
-			}
-
-			if (event.key.toLowerCase() !== 'n') {
-				return;
-			}
-
-			const activeElement =
-				document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-			if (
-				activeElement &&
-				(activeElement.isContentEditable ||
-					activeElement instanceof HTMLInputElement ||
-					activeElement instanceof HTMLTextAreaElement ||
-					activeElement instanceof HTMLSelectElement)
-			) {
-				return;
-			}
-
-			event.preventDefault();
-			showQuickAddComposer = true;
-		}
-
-		document.addEventListener('keydown', handleQuickAddShortcut);
-
-		return () => {
-			document.removeEventListener('keydown', handleQuickAddShortcut);
-		};
 	});
 
 	async function handleRefresh() {
@@ -335,7 +294,9 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -351,7 +312,9 @@
 			</div>
 		</div>
 	{:else if !currentProject && $lists.loaded}
-		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="mx-auto flex max-w-md flex-col items-center text-center">
 				<div
 					class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-white/10 dark:bg-white/6 dark:text-stone-300 dark:shadow-none"
@@ -366,51 +329,6 @@
 			</div>
 		</div>
 	{:else}
-		{#if currentProject}
-			{#if showQuickAddComposer}
-				<div class="hidden md:block">
-					<TaskComposer
-						lists={activeLists}
-						busy={$tasks.creating}
-						error={$tasks.mutationError}
-						fixedListId={currentProject.id}
-						autoFocus
-						placeholder={`Add to ${currentProject.title}`}
-						disabledMessage="Add a project in Vikunja before creating tasks."
-						onCollapse={() => {
-							showQuickAddComposer = false;
-						}}
-						onSubmit={handleQuickAdd}
-					/>
-				</div>
-			{:else}
-				<div class="hidden justify-start md:flex">
-					<Button
-						variant="outline"
-						size="sm"
-						class="group h-10 gap-2 rounded-full pr-2 pl-3"
-						aria-label={`Add to ${currentProject.title}`}
-						onclick={() => {
-							showQuickAddComposer = true;
-						}}
-					>
-						<span class="text-base leading-none">+</span>
-						<span>Add task</span>
-						<span
-							class="inline-flex items-center gap-1 opacity-65 transition group-hover:opacity-100"
-							aria-hidden="true"
-						>
-							<kbd
-								class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] dark:border-white/12 dark:bg-white/6 dark:shadow-none"
-							>
-								N
-							</kbd>
-						</span>
-					</Button>
-				</div>
-			{/if}
-		{/if}
-
 		{#if loadError}
 			<div
 				class="rounded-[1.6rem] border border-destructive/30 bg-destructive/6 px-4 py-3 text-sm text-destructive"
@@ -425,7 +343,9 @@
 		{#if showInitialLoading}
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
-			<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+			<div
+				class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+			>
 				<div class="space-y-2 text-center sm:text-left">
 					<p class="text-sm font-medium text-foreground">No active tasks</p>
 					<p class="text-sm text-muted-foreground">
