@@ -185,28 +185,8 @@
 	const desktopComposerDefaultListId = $derived(
 		desktopComposerFixedListId ?? inboxList?.id ?? allProjectLists[0]?.id ?? null
 	);
-	const desktopComposerPlaceholder = $derived.by(() => {
-		if (page.url.pathname === '/inbox') {
-			return 'Add to Inbox';
-		}
-
-		if (currentProject) {
-			return `Add to ${currentProject.title}`;
-		}
-
-		return 'Add a task';
-	});
-	const desktopComposerSubtitle = $derived.by(() => {
-		if (page.url.pathname === '/inbox') {
-			return 'Add a task directly to Inbox.';
-		}
-
-		if (currentProject) {
-			return `Add a task directly to ${currentProject.title}.`;
-		}
-
-		return 'Capture a task from anywhere in the app.';
-	});
+	const desktopComposerPlaceholder = 'Add a task';
+	const desktopComposerSubtitle = 'Capture a task from anywhere in the app.';
 	const desktopComposerDisabledMessage = $derived(
 		page.url.pathname === '/inbox' && !inboxList
 			? 'Create a project named Inbox in Vikunja to use this view.'
