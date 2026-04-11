@@ -36,8 +36,8 @@ export const appRoutes: AppRouteMeta[] = [
 	},
 	{
 		href: '/active',
-		label: 'All Active',
-		emptyState: 'No active tasks.',
+		label: 'Backlog',
+		emptyState: 'Nothing is sitting in backlog.',
 		icon: ListTodo
 	},
 	{

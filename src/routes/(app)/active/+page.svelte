@@ -1,12 +1,13 @@
 <script lang="ts">
 	import TaskPage from '$lib/components/tasks/TaskPage.svelte';
 	import { getRouteMeta } from '$lib/navigation';
+	import type { TaskViewKey } from '$lib/tasks/view';
 
 	const route = getRouteMeta('/active');
 </script>
 
 <TaskPage
-	view="active"
-	title={route?.label ?? 'All Active'}
-	emptyState={route?.emptyState ?? 'No active tasks.'}
+	view={'backlog' as TaskViewKey}
+	title={route?.label ?? 'Backlog'}
+	emptyState={route?.emptyState ?? 'Nothing is sitting in backlog.'}
 />

@@ -58,7 +58,7 @@ Connection testing also uses the project fetch path, since it requires valid aut
 - Troth also excludes Vikunja virtual or system entries with non-positive ids, such as built-in smart views like `Today`, from the project loading path.
 - Saved filters are surfaced separately from projects, using the non-positive ids Vikunja exposes through the project index.
 - Task filtering for Today, Inbox, and Upcoming still happens client-side after loading the user’s tasks.
-- The All Active and Completed views now use server-side Vikunja filters with a capped page size of 50 tasks to avoid heavy full-list requests for those broader views.
+- The Backlog route still loads incomplete tasks through the same server-side Vikunja filter used for All Active, then narrows to backlog tasks client-side when that toggle is selected. Completed keeps its own server-side filter, and both broader views use a capped page size of 50 tasks to avoid heavy full-list requests.
 - Troth still uses a Vikunja personal API token for now. The token is no longer stored in browser local storage, but this is still a session-backed token flow rather than a full Troth-managed username/password login.
 - The Inbox view assumes there is a Vikunja project named `Inbox`. If that project does not exist, the route stays functional but shows an explicit empty/instruction state.
 - Due dates are edited as date-only values in the UI and mapped back to Vikunja as noon UTC timestamps to avoid common timezone drift in this MVP step.

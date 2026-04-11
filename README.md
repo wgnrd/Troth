@@ -6,7 +6,7 @@
 
 Troth is a focused personal task client for [Vikunja](https://vikunja.io/) for people who want a calmer, faster, more opinionated daily workflow.
 
-It keeps the interface small and predictable around a few core views: Today, Inbox, Upcoming, All Active, Completed, projects, and saved filters.
+It keeps the interface small and predictable around a few core views: Today, Inbox, Upcoming, Backlog, Completed, projects, and saved filters.
 
 ## Why Troth
 

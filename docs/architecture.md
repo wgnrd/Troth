@@ -41,7 +41,7 @@ The first real task workflow lives in `src/lib/components/tasks/`.
 - `TaskEditor.svelte` is the first detail surface for editing title, notes, due date, priority, and project.
 - `TaskListSkeleton.svelte` provides the subtle loading shell used across task views.
 
-Route-specific filtering lives in `src/lib/tasks/view.ts`. That file owns the readable helpers for Today, Inbox, Upcoming, All Active, and Completed so the classification rules stay out of the route components.
+Route-specific filtering lives in `src/lib/tasks/view.ts`. That file owns the readable helpers for Today, Inbox, Upcoming, Backlog, and Completed so the classification rules stay out of the route components.
 
 Saved-filter UI lives under `src/lib/components/filters/`. The browser page and editor manage Vikunja saved-filter CRUD, while saved-filter task pages reuse the same task list/editor components and reload membership from the saved filter definition after task edits so results stay in sync.
 
@@ -52,7 +52,7 @@ Saved-filter task membership is driven by Vikunja's first-class `/filters` resou
 - `Today` shows incomplete tasks due today or earlier.
 - `Inbox` shows incomplete tasks in the project named `Inbox`.
 - `Upcoming` shows incomplete tasks due in the next 7 days, including today.
-- `All Active` shows every incomplete task.
+- `Backlog` defaults to incomplete tasks with no due date or due outside the next 7 days, and can switch to `All Active` to show every incomplete task.
 - `Completed` shows completed tasks.
 - Subtasks are stored as normal Vikunja tasks linked by a parent-task relation.
 - Main task lists stay flat and show only top-level tasks.
