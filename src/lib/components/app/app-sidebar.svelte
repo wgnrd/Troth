@@ -186,7 +186,6 @@
 		desktopComposerFixedListId ?? inboxList?.id ?? allProjectLists[0]?.id ?? null
 	);
 	const desktopComposerPlaceholder = 'Add a task';
-	const desktopComposerSubtitle = 'Capture a task from anywhere in the app.';
 	const desktopComposerDisabledMessage = $derived(
 		page.url.pathname === '/inbox' && !inboxList
 			? 'Create a project named Inbox in Vikunja to use this view.'
@@ -391,10 +390,7 @@
 						<span class="rounded-lg border border-border/65 bg-background/90 p-1.5 text-foreground">
 							<Plus class="size-4" />
 						</span>
-						<div class="min-w-0 flex-1">
-							<p class="truncate text-sm font-medium">Add task</p>
-							<p class="truncate text-[0.72rem] text-muted-foreground">{desktopComposerSubtitle}</p>
-						</div>
+						<span class="min-w-0 flex-1 truncate text-sm font-medium">Add task</span>
 						<kbd
 							class="inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-border/70 bg-background px-1.5 font-mono text-[11px] font-medium text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] dark:border-white/12 dark:bg-white/6 dark:shadow-none"
 						>
@@ -762,51 +758,25 @@
 
 	<dialog
 		open
-		aria-labelledby="desktop-task-composer-title"
+		aria-label="Add task"
 		class="fixed inset-x-3 bottom-3 z-[60] max-h-[calc(100vh-1.5rem)] w-auto overflow-y-auto rounded-[1.8rem] border border-border/70 bg-background/96 p-4 shadow-2xl sm:inset-x-6 lg:top-1/2 lg:right-auto lg:bottom-auto lg:left-1/2 lg:w-[calc(100vw-1.5rem)] lg:max-w-[52rem] lg:-translate-x-1/2 lg:-translate-y-1/2"
 	>
 		<div class="space-y-4">
-			<div class="flex items-center justify-between gap-3">
-				<div class="min-w-0">
-					<p
-						id="desktop-task-composer-title"
-						class="text-[1.35rem] font-semibold tracking-tight text-foreground"
-					>
-						Add task
-					</p>
-					<p class="mt-1 text-sm text-muted-foreground">{desktopComposerSubtitle}</p>
-				</div>
-
-				<Button
-					variant="ghost"
-					size="sm"
-					class="shrink-0 text-muted-foreground hover:text-foreground"
-					onclick={() => {
-						desktopTaskComposerOpen = false;
-					}}
-				>
-					<X class="size-3.5" />
-					Close
-				</Button>
-			</div>
-
-			<div class="rounded-[1.35rem] border border-border/60 bg-stone-50/45 p-3 dark:bg-white/6">
-				<TaskComposer
-					lists={allProjectLists}
-					busy={$tasks.creating}
-					error={$tasks.mutationError}
-					fixedListId={desktopComposerFixedListId}
-					defaultListId={desktopComposerDefaultListId}
-					defaultDueDate={page.url.pathname === '/inbox' ? null : undefined}
-					autoFocus
-					placeholder={desktopComposerPlaceholder}
-					disabledMessage={desktopComposerDisabledMessage}
-					onCollapse={() => {
-						desktopTaskComposerOpen = false;
-					}}
-					onSubmit={handleDesktopQuickAdd}
-				/>
-			</div>
+			<TaskComposer
+				lists={allProjectLists}
+				busy={$tasks.creating}
+				error={$tasks.mutationError}
+				fixedListId={desktopComposerFixedListId}
+				defaultListId={desktopComposerDefaultListId}
+				defaultDueDate={page.url.pathname === '/inbox' ? null : undefined}
+				autoFocus
+				placeholder={desktopComposerPlaceholder}
+				disabledMessage={desktopComposerDisabledMessage}
+				onCollapse={() => {
+					desktopTaskComposerOpen = false;
+				}}
+				onSubmit={handleDesktopQuickAdd}
+			/>
 		</div>
 	</dialog>
 {/if}
