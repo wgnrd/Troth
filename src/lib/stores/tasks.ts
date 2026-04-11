@@ -4,7 +4,6 @@ import {
 	createTask as createTrothTask,
 	deleteTask as deleteTrothTask,
 	fetchTasks,
-	type TaskPageResponse,
 	TrothTaskMutationError,
 	updateTask as updateTrothTask
 } from '$lib/api/troth/client';

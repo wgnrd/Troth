@@ -1,11 +1,14 @@
 import {
 	isProjectLike,
 	isSavedFilter,
+	mapCreateSavedFilterInput,
 	mapCreateProjectInput,
+	mapProjectToLegacySavedFilter,
 	mapCreateTaskInput,
 	mapProjectToList,
-	mapProjectToSavedFilter,
+	mapSavedFilterToAppFilter,
 	mapTaskToAppTask,
+	mapUpdateSavedFilterInput,
 	mapUpdateProjectInput,
 	mapUpdateTaskInput
 } from './mappers';
@@ -14,8 +17,10 @@ import type {
 	AppSavedFilter,
 	AppTask,
 	ConnectionSettings,
+	CreateSavedFilterInput,
 	CreateProjectInput,
 	CreateTaskInput,
+	UpdateSavedFilterInput,
 	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaErrorResponse,
@@ -30,6 +35,11 @@ const DEFAULT_PAGE_SIZE = 100;
 type TaskFetchOptions = {
 	pageSize?: number;
 	filter?: string;
+	filterIncludeNulls?: boolean;
+	search?: string;
+	sortBy?: string[];
+	orderBy?: string[];
+	defaultSort?: boolean;
 	pageLimit?: number;
 };
 
@@ -37,6 +47,11 @@ type TaskPageOptions = {
 	page?: number;
 	pageSize?: number;
 	filter?: string;
+	filterIncludeNulls?: boolean;
+	search?: string;
+	sortBy?: string[];
+	orderBy?: string[];
+	defaultSort?: boolean;
 };
 
 export class VikunjaClientError extends Error {
@@ -78,88 +93,142 @@ export class VikunjaClient {
 	}
 
 	async fetchProjects(options: { pageSize?: number } = {}): Promise<AppList[]> {
-		const projects = await this.fetchProjectIndexEntries(options);
+		const projects = await this.getAllPages<VikunjaProject>('/projects', {
+			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+			is_archived: 'false'
+		});
 
-		return projects
-			.filter(
-				(project): project is VikunjaProject =>
-					project.id > 0 && !isSavedFilter(project) && isProjectLike(project)
-			)
-			.map(mapProjectToList);
+		return projects.filter((project) => project.id > 0).map(mapProjectToList);
 	}
 
 	async fetchSavedFilters(options: { pageSize?: number } = {}): Promise<AppSavedFilter[]> {
-		const projects = await this.fetchProjectIndexEntries(options);
-
-		return projects
-			.filter(
-				(project): project is VikunjaProject =>
-					project.id <= 0 && !isSavedFilter(project) && isProjectLike(project)
-			)
-			.map(mapProjectToSavedFilter)
-			.sort((left, right) => {
-				if (left.position !== null && right.position !== null && left.position !== right.position) {
-					return left.position - right.position;
-				}
-
-				return left.title.localeCompare(right.title);
+		try {
+			const filters = await this.getAllPages<VikunjaSavedFilter>('/filters', {
+				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE)
 			});
+
+			return filters.map(mapSavedFilterToAppFilter).sort(sortSavedFilters);
+		} catch (error) {
+			if (!isMethodNotAllowed(error)) {
+				throw error;
+			}
+
+			return this.fetchLegacySavedFilters(options);
+		}
+	}
+
+	async getSavedFilter(id: number): Promise<AppSavedFilter> {
+		try {
+			const filter = await this.request<VikunjaSavedFilter>(`/filters/${id}`, {
+				method: 'GET'
+			});
+
+			return mapSavedFilterToAppFilter(filter);
+		} catch (error) {
+			if (!isLegacySavedFilterReadFallback(error)) {
+				throw error;
+			}
+
+			const filters = await this.fetchLegacySavedFilters();
+			const filter = filters.find((entry) => entry.id === id) ?? null;
+
+			if (!filter) {
+				throw new VikunjaClientError('Saved filter not found.', 404);
+			}
+
+			return filter;
+		}
+	}
+
+	async createSavedFilter(input: CreateSavedFilterInput): Promise<AppSavedFilter> {
+		try {
+			const filter = await this.request<VikunjaSavedFilter>('/filters', {
+				method: 'PUT',
+				body: mapCreateSavedFilterInput(input)
+			});
+
+			return mapSavedFilterToAppFilter(filter);
+		} catch (error) {
+			if (isMethodNotAllowed(error)) {
+				throw new VikunjaClientError(
+					'Your Vikunja server does not support saved-filter creation through the filters API.',
+					405
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	async updateSavedFilter(input: UpdateSavedFilterInput): Promise<AppSavedFilter> {
+		try {
+			const filter = await this.request<VikunjaSavedFilter>(`/filters/${input.id}`, {
+				method: 'POST',
+				body: mapUpdateSavedFilterInput(input)
+			});
+
+			return mapSavedFilterToAppFilter(filter);
+		} catch (error) {
+			if (isMethodNotAllowed(error)) {
+				throw new VikunjaClientError(
+					'Your Vikunja server does not support saved-filter updates through the filters API.',
+					405
+				);
+			}
+
+			throw error;
+		}
+	}
+
+	async deleteSavedFilter(id: number): Promise<void> {
+		try {
+			await this.request<void>(`/filters/${id}`, {
+				method: 'DELETE'
+			});
+		} catch (error) {
+			if (isMethodNotAllowed(error)) {
+				throw new VikunjaClientError(
+					'Your Vikunja server does not support saved-filter deletion through the filters API.',
+					405
+				);
+			}
+
+			throw error;
+		}
 	}
 
 	async fetchSavedFilterTasks(
 		filterId: number,
 		options: { pageSize?: number } = {}
 	): Promise<AppTask[]> {
-		const views = await this.request<VikunjaProjectView[]>(`/projects/${filterId}/views`, {
-			method: 'GET'
-		});
-		const selectedView =
-			[...views]
-				.sort((left, right) => {
-					const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
-					const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+		try {
+			const filter = await this.request<VikunjaSavedFilter>(`/filters/${filterId}`, {
+				method: 'GET'
+			});
+			const appFilter = mapSavedFilterToAppFilter(filter);
 
-					if (left.view_kind === 'list' && right.view_kind !== 'list') {
-						return -1;
-					}
-
-					if (left.view_kind !== 'list' && right.view_kind === 'list') {
-						return 1;
-					}
-
-					if (leftPosition !== rightPosition) {
-						return leftPosition - rightPosition;
-					}
-
-					return left.id - right.id;
-				})
-				.at(0) ?? null;
-
-		if (!selectedView) {
-			return [];
-		}
-
-		const tasks = await this.getAllPages<VikunjaTask>(
-			`/projects/${filterId}/views/${selectedView.id}/tasks`,
-			{
-				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
-				sort_by: 'due_date',
-				order_by: 'asc'
+			return this.fetchTasks({
+				pageSize: options.pageSize,
+				filter: appFilter.query.filter || undefined,
+				filterIncludeNulls: appFilter.query.filterIncludeNulls,
+				search: appFilter.query.search || undefined,
+				sortBy: appFilter.query.sortBy,
+				orderBy: appFilter.query.orderBy,
+				defaultSort: false
+			});
+		} catch (error) {
+			if (!isLegacySavedFilterReadFallback(error)) {
+				throw error;
 			}
-		);
 
-		return tasks.map(mapTaskToAppTask);
+			return this.fetchLegacySavedFilterTasks(filterId, options);
+		}
 	}
 
 	async fetchTasks(options: TaskFetchOptions = {}): Promise<AppTask[]> {
 		const tasks = await this.getAllPages<VikunjaTask>(
 			'/tasks',
-			{
-				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
-				...(options.filter ? { filter: options.filter } : {}),
-				sort_by: 'due_date',
-				order_by: 'asc'
-			},
+			buildTaskQueryParams(options),
 			options.pageLimit
 		);
 
@@ -175,11 +244,17 @@ export class VikunjaClient {
 		const response = await this.requestWithResponse<VikunjaTask[]>('/tasks', {
 			method: 'GET',
 			params: {
+				...buildTaskQueryParams({
+					pageSize,
+					filter: options.filter,
+					filterIncludeNulls: options.filterIncludeNulls,
+					search: options.search,
+					sortBy: options.sortBy,
+					orderBy: options.orderBy,
+					defaultSort: options.defaultSort
+				}),
 				page: String(page),
-				per_page: String(pageSize),
-				...(options.filter ? { filter: options.filter } : {}),
-				sort_by: 'due_date',
-				order_by: 'asc'
+				per_page: String(pageSize)
 			}
 		});
 
@@ -210,20 +285,9 @@ export class VikunjaClient {
 	}
 
 	async deleteProject(id: number): Promise<void> {
-		try {
-			await this.request<void>(`/projects/${id}`, {
-				method: 'DELETE'
-			});
-		} catch (error) {
-			if (error instanceof VikunjaClientError && error.status === 404) {
-				await this.request<void>(`/filters/${id}`, {
-					method: 'DELETE'
-				});
-				return;
-			}
-
-			throw error;
-		}
+		await this.request<void>(`/projects/${id}`, {
+			method: 'DELETE'
+		});
 	}
 
 	async createTask(input: CreateTaskInput): Promise<AppTask> {
@@ -319,13 +383,6 @@ export class VikunjaClient {
 	async deleteTask(id: number): Promise<void> {
 		await this.request<void>(`/tasks/${id}`, {
 			method: 'DELETE'
-		});
-	}
-
-	private async fetchProjectIndexEntries(options: { pageSize?: number } = {}) {
-		return this.getAllPages<VikunjaProject | VikunjaSavedFilter>('/projects', {
-			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
-			is_archived: 'false'
 		});
 	}
 
@@ -468,6 +525,122 @@ export class VikunjaClient {
 			response
 		};
 	}
+
+	private async fetchLegacySavedFilters(options: { pageSize?: number } = {}) {
+		const entries = await this.getAllPages<VikunjaProject | VikunjaSavedFilter>('/projects', {
+			per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+			is_archived: 'false'
+		});
+
+		return entries
+			.filter(
+				(entry): entry is VikunjaProject =>
+					entry.id <= 0 && !isSavedFilter(entry) && isProjectLike(entry)
+			)
+			.map(mapProjectToLegacySavedFilter)
+			.sort(sortSavedFilters);
+	}
+
+	private async fetchLegacySavedFilterTasks(
+		filterId: number,
+		options: { pageSize?: number } = {}
+	): Promise<AppTask[]> {
+		const views = await this.request<VikunjaProjectView[]>(`/projects/${filterId}/views`, {
+			method: 'GET'
+		});
+		const selectedView =
+			[...views]
+				.sort((left, right) => {
+					const leftPosition = left.position ?? Number.MAX_SAFE_INTEGER;
+					const rightPosition = right.position ?? Number.MAX_SAFE_INTEGER;
+
+					if (left.view_kind === 'list' && right.view_kind !== 'list') {
+						return -1;
+					}
+
+					if (left.view_kind !== 'list' && right.view_kind === 'list') {
+						return 1;
+					}
+
+					if (leftPosition !== rightPosition) {
+						return leftPosition - rightPosition;
+					}
+
+					return left.id - right.id;
+				})
+				.at(0) ?? null;
+
+		if (!selectedView) {
+			return [];
+		}
+
+		const tasks = await this.getAllPages<VikunjaTask>(
+			`/projects/${filterId}/views/${selectedView.id}/tasks`,
+			{
+				per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE),
+				sort_by: 'due_date',
+				order_by: 'asc'
+			}
+		);
+
+		return tasks.map(mapTaskToAppTask);
+	}
+}
+
+function buildTaskQueryParams(options: TaskFetchOptions | TaskPageOptions) {
+	const params: Record<string, string> = {
+		per_page: String(options.pageSize ?? DEFAULT_PAGE_SIZE)
+	};
+
+	if (options.filter) {
+		params.filter = options.filter;
+	}
+
+	if (options.filterIncludeNulls) {
+		params.filter_include_nulls = 'true';
+	}
+
+	if (options.search) {
+		params.s = options.search;
+	}
+
+	const sortBy = normalizeQueryArray(options.sortBy);
+	const orderBy = normalizeQueryArray(options.orderBy);
+
+	if (sortBy.length > 0) {
+		params.sort_by = sortBy.join(',');
+	}
+
+	if (orderBy.length > 0) {
+		params.order_by = orderBy.join(',');
+	}
+
+	if (options.defaultSort !== false && !params.sort_by && !params.order_by) {
+		params.sort_by = 'due_date';
+		params.order_by = 'asc';
+	}
+
+	return params;
+}
+
+function normalizeQueryArray(values: string[] | undefined) {
+	return (values ?? []).map((value) => value.trim()).filter(Boolean);
+}
+
+function sortSavedFilters(left: AppSavedFilter, right: AppSavedFilter) {
+	if (left.isFavorite !== right.isFavorite) {
+		return left.isFavorite ? -1 : 1;
+	}
+
+	return left.title.localeCompare(right.title);
+}
+
+function isMethodNotAllowed(error: unknown) {
+	return error instanceof VikunjaClientError && error.status === 405;
+}
+
+function isLegacySavedFilterReadFallback(error: unknown) {
+	return error instanceof VikunjaClientError && (error.status === 404 || error.status === 405);
 }
 
 function toTaskMutationError(error: unknown, task: AppTask, fallbackMessage: string) {

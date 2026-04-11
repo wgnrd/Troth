@@ -213,18 +213,6 @@
 		return mutatingIds.includes(taskId);
 	}
 
-	function getDensity(taskCount: number) {
-		if (taskCount >= 5) {
-			return 3;
-		}
-
-		if (taskCount >= 3) {
-			return 2;
-		}
-
-		return 1;
-	}
-
 	function getCalendarState(day: string) {
 		return calendarEventsByDay[day] ?? null;
 	}

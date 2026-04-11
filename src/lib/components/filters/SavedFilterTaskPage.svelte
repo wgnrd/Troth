@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { Filter, RefreshCcw, Settings2 } from '@lucide/svelte';
+	import { Filter, PencilLine, RefreshCcw, Settings2, Trash2 } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
-	import type { AppTask, UpdateTaskInput } from '$lib/api/vikunja';
+	import type {
+		AppSavedFilter,
+		AppTask,
+		UpdateSavedFilterInput,
+		UpdateTaskInput
+	} from '$lib/api/vikunja';
 	import { fetchSavedFilterTasks } from '$lib/api/troth/client';
 	import { connection } from '$lib/stores/connection';
 	import { lists } from '$lib/stores/lists';
@@ -15,6 +21,7 @@
 	import TaskEditor from '$lib/components/tasks/TaskEditor.svelte';
 	import TaskGroupedList from '$lib/components/tasks/TaskGroupedList.svelte';
 	import TaskListSkeleton from '$lib/components/tasks/TaskListSkeleton.svelte';
+	import SavedFilterEditor from './SavedFilterEditor.svelte';
 
 	let { filterId }: { filterId: number } = $props();
 
@@ -25,6 +32,7 @@
 	let filterTasksLoading = $state(false);
 	let filterTasksLoaded = $state(false);
 	let filterTasksError = $state<string | null>(null);
+	let filterEditorOpen = $state(false);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
 	const configured = $derived(Boolean($connection.settings));
@@ -87,6 +95,10 @@
 		configured && !showInitialLoading && !loadError && currentFilter && !hasVisibleTasks
 	);
 	const filterMeta = $derived(currentFilter?.description || 'Tasks matching this saved filter');
+	const isSavingCurrentFilter = $derived(
+		currentFilter ? $savedFilters.mutatingIds.includes(currentFilter.id) : false
+	);
+	const currentFilterWriteSupported = $derived(currentFilter?.writeSupported ?? false);
 
 	$effect(() => {
 		if (!browser || !$connection.settings) {
@@ -163,6 +175,34 @@
 			savedFilters.refresh(),
 			loadFilterTasks(true)
 		]);
+	}
+
+	async function handleUpdateFilter(input: UpdateSavedFilterInput) {
+		const updatedFilter = await savedFilters.updateSavedFilter(input);
+
+		if (!updatedFilter) {
+			return false;
+		}
+
+		await loadFilterTasks(true);
+		return true;
+	}
+
+	async function handleDeleteFilter(filter: AppSavedFilter) {
+		const confirmed = confirm(`Delete "${filter.title}"?`);
+
+		if (!confirmed) {
+			return;
+		}
+
+		const deleted = await savedFilters.deleteSavedFilter(filter.id);
+
+		if (!deleted) {
+			return;
+		}
+
+		selectedTaskId = null;
+		await goto(resolve('/saved-filters'));
 	}
 
 	async function handleSave(input: UpdateTaskInput) {
@@ -277,21 +317,60 @@
 		</div>
 
 		{#if configured}
-			<Button
-				variant="outline"
-				size="sm"
-				class="hidden self-end sm:inline-flex"
-				aria-label={filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading
-					? 'Refreshing saved filter'
-					: 'Refresh saved filter'}
-				onclick={handleRefresh}
-				disabled={filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading}
-			>
-				<RefreshCcw class="size-3.5" />
-				{filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading
-					? 'Refreshing…'
-					: 'Refresh'}
-			</Button>
+			<div class="flex items-center gap-2 self-end">
+				{#if currentFilter && currentFilterWriteSupported}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="text-muted-foreground hover:text-foreground"
+						onclick={() => {
+							savedFilters.clearMutationError();
+							filterEditorOpen = true;
+						}}
+						disabled={isSavingCurrentFilter}
+					>
+						<PencilLine class="size-3.5" />
+						Edit Filter
+					</Button>
+
+					<Button
+						variant="ghost"
+						size="sm"
+						class="text-destructive/80 hover:bg-destructive/8 hover:text-destructive"
+						onclick={() => {
+							void handleDeleteFilter(currentFilter);
+						}}
+						disabled={isSavingCurrentFilter}
+					>
+						<Trash2 class="size-3.5" />
+						Delete Filter
+					</Button>
+				{:else if currentFilter && !currentFilterWriteSupported}
+					<p class="max-w-[22rem] text-right text-xs leading-5 text-muted-foreground">
+						This saved filter is available in legacy mode, so editing and deletion are not available
+						here.
+					</p>
+				{/if}
+
+				<Button
+					variant="outline"
+					size="sm"
+					class="hidden sm:inline-flex"
+					aria-label={filterTasksLoading ||
+					$tasks.loading ||
+					$lists.loading ||
+					$savedFilters.loading
+						? 'Refreshing saved filter'
+						: 'Refresh saved filter'}
+					onclick={handleRefresh}
+					disabled={filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading}
+				>
+					<RefreshCcw class="size-3.5" />
+					{filterTasksLoading || $tasks.loading || $lists.loading || $savedFilters.loading
+						? 'Refreshing…'
+						: 'Refresh'}
+				</Button>
+			</div>
 		{/if}
 	</div>
 
@@ -400,3 +479,18 @@
 	onSave={handleSave}
 	onDelete={handleDelete}
 />
+
+{#if currentFilterWriteSupported}
+	<SavedFilterEditor
+		open={filterEditorOpen}
+		mode="edit"
+		filter={currentFilter}
+		busy={isSavingCurrentFilter}
+		error={$savedFilters.mutationError}
+		onClose={() => {
+			filterEditorOpen = false;
+			savedFilters.clearMutationError();
+		}}
+		onSubmit={handleUpdateFilter}
+	/>
+{/if}

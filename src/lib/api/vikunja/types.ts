@@ -44,10 +44,18 @@ export type VikunjaSavedFilter = {
 	id: number;
 	title: string;
 	description?: string;
-	filters?: Record<string, unknown>;
+	filters?: VikunjaTaskCollection;
 	is_favorite?: boolean;
 	created?: string;
 	updated?: string;
+};
+
+export type VikunjaTaskCollection = {
+	filter?: string;
+	filter_include_nulls?: boolean;
+	order_by?: string[];
+	s?: string;
+	sort_by?: string[];
 };
 
 export type VikunjaProjectView = {
@@ -71,7 +79,20 @@ export type AppSavedFilter = {
 	id: number;
 	title: string;
 	description: string;
-	position: number | null;
+	query: SavedFilterQuery;
+	isFavorite: boolean;
+	queryAvailable: boolean;
+	writeSupported: boolean;
+	createdAt: string | null;
+	updatedAt: string | null;
+};
+
+export type SavedFilterQuery = {
+	filter: string;
+	filterIncludeNulls: boolean;
+	orderBy: string[];
+	search: string;
+	sortBy: string[];
 };
 
 export type CreateProjectInput = {
@@ -87,6 +108,21 @@ export type UpdateProjectInput = {
 	description?: string;
 	color?: string | null;
 	parentId?: number | null;
+};
+
+export type CreateSavedFilterInput = {
+	title: string;
+	description?: string;
+	query: SavedFilterQuery;
+	isFavorite?: boolean;
+};
+
+export type UpdateSavedFilterInput = {
+	id: number;
+	title: string;
+	description?: string;
+	query: SavedFilterQuery;
+	isFavorite?: boolean;
 };
 
 export type AppTask = {
@@ -143,4 +179,11 @@ export type VikunjaProjectWrite = {
 	description?: string;
 	hex_color?: string | null;
 	parent_project_id?: number | null;
+};
+
+export type VikunjaSavedFilterWrite = {
+	title?: string;
+	description?: string;
+	filters?: VikunjaTaskCollection;
+	is_favorite?: boolean;
 };

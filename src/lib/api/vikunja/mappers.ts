@@ -2,14 +2,19 @@ import type {
 	AppList,
 	AppSavedFilter,
 	AppTask,
+	CreateSavedFilterInput,
 	CreateProjectInput,
 	CreateTaskInput,
+	SavedFilterQuery,
 	UpdateProjectInput,
+	UpdateSavedFilterInput,
 	UpdateTaskInput,
 	VikunjaProject,
 	VikunjaProjectWrite,
 	VikunjaSavedFilter,
+	VikunjaSavedFilterWrite,
 	VikunjaTask,
+	VikunjaTaskCollection,
 	VikunjaTaskWrite
 } from './types';
 
@@ -25,12 +30,37 @@ export function mapProjectToList(project: VikunjaProject): AppList {
 	};
 }
 
-export function mapProjectToSavedFilter(project: VikunjaProject): AppSavedFilter {
+export function mapSavedFilterToAppFilter(filter: VikunjaSavedFilter): AppSavedFilter {
+	return {
+		id: filter.id,
+		title: filter.title,
+		description: filter.description ?? '',
+		query: mapTaskCollectionToSavedFilterQuery(filter.filters),
+		isFavorite: filter.is_favorite ?? false,
+		queryAvailable: true,
+		writeSupported: true,
+		createdAt: filter.created ?? null,
+		updatedAt: filter.updated ?? null
+	};
+}
+
+export function mapProjectToLegacySavedFilter(project: VikunjaProject): AppSavedFilter {
 	return {
 		id: project.id,
 		title: project.title,
 		description: project.description ?? '',
-		position: typeof project.position === 'number' ? project.position : null
+		query: {
+			filter: '',
+			filterIncludeNulls: false,
+			orderBy: [],
+			search: '',
+			sortBy: []
+		},
+		isFavorite: false,
+		queryAvailable: false,
+		writeSupported: false,
+		createdAt: project.created ?? null,
+		updatedAt: project.updated ?? null
 	};
 }
 
@@ -99,6 +129,24 @@ export function mapUpdateProjectInput(input: UpdateProjectInput): VikunjaProject
 	};
 }
 
+export function mapCreateSavedFilterInput(input: CreateSavedFilterInput): VikunjaSavedFilterWrite {
+	return {
+		title: input.title.trim(),
+		description: input.description?.trim() ?? '',
+		filters: mapSavedFilterQueryToTaskCollection(input.query),
+		is_favorite: input.isFavorite ?? false
+	};
+}
+
+export function mapUpdateSavedFilterInput(input: UpdateSavedFilterInput): VikunjaSavedFilterWrite {
+	return {
+		title: input.title.trim(),
+		description: input.description?.trim() ?? '',
+		filters: mapSavedFilterQueryToTaskCollection(input.query),
+		is_favorite: input.isFavorite ?? false
+	};
+}
+
 export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 	return {
 		title: input.title.trim(),
@@ -114,6 +162,32 @@ export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 
 function getParentTaskId(task: VikunjaTask) {
 	return task.related_tasks?.parenttask?.[0]?.id ?? null;
+}
+
+function mapTaskCollectionToSavedFilterQuery(
+	collection: VikunjaTaskCollection | undefined
+): SavedFilterQuery {
+	return {
+		filter: collection?.filter?.trim() ?? '',
+		filterIncludeNulls: collection?.filter_include_nulls ?? false,
+		orderBy: normalizeStringArray(collection?.order_by),
+		search: collection?.s?.trim() ?? '',
+		sortBy: normalizeStringArray(collection?.sort_by)
+	};
+}
+
+function mapSavedFilterQueryToTaskCollection(query: SavedFilterQuery): VikunjaTaskCollection {
+	return {
+		filter: query.filter.trim(),
+		filter_include_nulls: query.filterIncludeNulls,
+		order_by: normalizeStringArray(query.orderBy),
+		s: query.search.trim(),
+		sort_by: normalizeStringArray(query.sortBy)
+	};
+}
+
+function normalizeStringArray(values: string[] | undefined) {
+	return (values ?? []).map((value) => value.trim()).filter(Boolean);
 }
 
 function normalizeProjectColor(color: string | null | undefined) {
