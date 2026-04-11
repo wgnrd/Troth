@@ -47,7 +47,8 @@
 	);
 	const mobileMoreActive = $derived.by(() => {
 		const href = activeRoute?.href;
-		return page.url.pathname.startsWith('/filters/')
+		return page.url.pathname.startsWith('/filters') ||
+			page.url.pathname.startsWith('/saved-filters')
 			? true
 			: Boolean(href && !mobilePrimaryRoutes.some((route) => route.href === href));
 	});
@@ -484,7 +485,7 @@
 			{/each}
 
 			<a
-				href="/more"
+				href={resolve('/more')}
 				class={cn(
 					'flex min-w-0 items-center justify-center rounded-[1.35rem] px-2 py-2 text-[0.68rem] font-medium transition',
 					mobileMoreActive

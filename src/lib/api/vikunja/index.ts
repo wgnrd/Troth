@@ -6,8 +6,10 @@ export {
 } from './client';
 export {
 	isSavedFilter,
+	mapCreateSavedFilterInput,
+	mapProjectToLegacySavedFilter,
 	mapProjectToList,
-	mapProjectToSavedFilter,
+	mapSavedFilterToAppFilter,
 	mapTaskToAppTask
 } from './mappers';
 export type {
@@ -15,12 +17,16 @@ export type {
 	AppSavedFilter,
 	AppTask,
 	ConnectionSettings,
+	CreateSavedFilterInput,
 	CreateProjectInput,
 	CreateTaskInput,
+	SavedFilterQuery,
+	UpdateSavedFilterInput,
 	UpdateProjectInput,
 	UpdateTaskInput,
 	VikunjaProject,
 	VikunjaProjectView,
 	VikunjaSavedFilter,
+	VikunjaSavedFilterWrite,
 	VikunjaTask
 } from './types';

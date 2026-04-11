@@ -55,7 +55,7 @@
 		mobile?: boolean;
 		hidePrimaryRoutes?: boolean;
 		browseSectionCollapsible?: boolean;
-		supportHref?: string;
+		supportHref?: '/support';
 		showHeaderAction?: boolean;
 		onSelect?: () => void;
 	} = $props();
@@ -150,14 +150,13 @@
 		filterTasksForView('inbox', $tasks.items, visibleProjectLists).length
 	);
 	const browseSectionVisible = $derived(
-		Boolean(
-			completedRoute ||
-			($connection.settings && savedFilterEntries.length > 0) ||
-			(projectsRoute && ProjectsIcon)
-		)
+		Boolean(completedRoute || $connection.settings || (projectsRoute && ProjectsIcon))
 	);
 	const browseSectionExpanded = $derived(
 		browseSectionCollapsible ? $projectPreferences.browseSectionExpanded : true
+	);
+	const savedFiltersSectionExpanded = $derived(
+		compact ? false : $projectPreferences.savedFiltersSectionExpanded
 	);
 
 	$effect(() => {
@@ -335,40 +334,93 @@
 			</a>
 		{/if}
 
-		{#if !compact && (compact || browseSectionExpanded) && $connection.settings && savedFilterEntries.length > 0}
+		{#if $connection.settings && (compact || browseSectionExpanded)}
 			<div>
-				<div class="mt-2 space-y-1" aria-label="Saved filters">
-					{#each savedFilterEntries as entry (entry.id)}
-						{@const active = isActive(`/filters/${entry.id}`)}
-						<a
-							href={resolve(`/filters/${entry.id}`)}
-							onclick={onSelect}
+				<div
+					class={cn(
+						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+						compact ? 'justify-center px-0' : '',
+						isExactActive('/saved-filters')
+							? 'bg-primary/10 text-foreground'
+							: 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+					)}
+				>
+					<a
+						href={resolve('/saved-filters')}
+						onclick={onSelect}
+						aria-label={compact ? 'Saved Filters' : undefined}
+						title={compact ? 'Saved Filters' : undefined}
+						class={cn('flex items-center gap-3', compact ? '' : 'min-w-0 flex-1')}
+					>
+						<span
 							class={cn(
-								'group flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.82rem] transition-colors',
-								active
-									? 'bg-primary/8 text-foreground'
-									: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
+								'rounded-lg p-1.5 transition-colors',
+								isExactActive('/saved-filters')
+									? 'text-foreground'
+									: 'text-muted-foreground group-hover:text-foreground'
 							)}
 						>
-							<span
+							<Filter class="size-4" />
+						</span>
+
+						{#if !compact}
+							<span class="min-w-0 flex-1 truncate text-sm font-medium">Saved Filters</span>
+						{/if}
+					</a>
+
+					{#if !compact && savedFilterEntries.length > 0}
+						<button
+							type="button"
+							class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
+							aria-label={$projectPreferences.savedFiltersSectionExpanded
+								? 'Collapse Saved Filters'
+								: 'Expand Saved Filters'}
+							onclick={(event) => {
+								stopEvent(event);
+								projectPreferences.toggleSidebarSection('saved-filters');
+							}}
+						>
+							{#if $projectPreferences.savedFiltersSectionExpanded}
+								<ChevronDown class="size-3.5" />
+							{:else}
+								<ChevronRight class="size-3.5" />
+							{/if}
+						</button>
+					{/if}
+				</div>
+
+				{#if !compact && savedFiltersSectionExpanded && savedFilterEntries.length > 0}
+					<div class="mt-2 space-y-1" aria-label="Saved filters">
+						{#each savedFilterEntries as entry (entry.id)}
+							{@const active = isActive(`/saved-filters/${entry.id}`)}
+							<a
+								href={resolve(`/saved-filters/${entry.id}`)}
+								onclick={onSelect}
 								class={cn(
-									'rounded-lg p-1.5 transition-colors',
-									active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+									'group flex items-center gap-3 rounded-xl px-2.5 py-2 text-[0.82rem] transition-colors',
+									active
+										? 'bg-primary/8 text-foreground'
+										: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
 								)}
 							>
-								<Filter class="size-3.5" />
-							</span>
-							<span class="min-w-0 flex-1 truncate font-medium">{entry.title}</span>
-						</a>
-					{/each}
-				</div>
+								<span
+									class={cn(
+										'rounded-lg p-1.5 transition-colors',
+										active ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+									)}
+								>
+									<Filter class="size-3.5" />
+								</span>
+								<span class="min-w-0 flex-1 truncate font-medium">{entry.title}</span>
+							</a>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/if}
 
 		{#if projectsRoute && ProjectsIcon && (compact || browseSectionExpanded)}
-			<div
-				class={cn(!compact && $connection.settings && savedFilterEntries.length > 0 ? 'pt-2' : '')}
-			>
+			<div class={cn(!compact && $connection.settings ? 'pt-2' : '')}>
 				<div
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
@@ -512,7 +564,7 @@
 			<Separator class="mb-2 opacity-50" />
 			{#if supportHref}
 				<a
-					href={supportHref}
+					href={resolve(supportHref)}
 					onclick={onSelect}
 					class={cn(
 						'group flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',

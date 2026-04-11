@@ -335,7 +335,9 @@
 	</div>
 
 	{#if !configured}
-		<div class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.6rem] border border-border/70 bg-white/70 p-4 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="flex items-start gap-3">
 				<span class="rounded-xl bg-muted p-2 text-muted-foreground">
 					<Settings2 class="size-4" />
@@ -351,7 +353,9 @@
 			</div>
 		</div>
 	{:else if !currentProject && $lists.loaded}
-		<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+		<div
+			class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+		>
 			<div class="mx-auto flex max-w-md flex-col items-center text-center">
 				<div
 					class="mb-4 rounded-[1.4rem] border border-border/60 bg-background/90 p-3 text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.85)_inset] dark:border-white/10 dark:bg-white/6 dark:text-stone-300 dark:shadow-none"
@@ -425,7 +429,9 @@
 		{#if showInitialLoading}
 			<TaskListSkeleton rows={5} />
 		{:else if showEmptyState}
-			<div class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none">
+			<div
+				class="rounded-[1.75rem] border border-border/65 bg-white/56 px-6 py-12 shadow-sm dark:bg-white/7 dark:shadow-none"
+			>
 				<div class="space-y-2 text-center sm:text-left">
 					<p class="text-sm font-medium text-foreground">No active tasks</p>
 					<p class="text-sm text-muted-foreground">

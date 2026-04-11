@@ -11,6 +11,7 @@ export type ProjectPreferencesState = {
 	focusSectionExpanded: boolean;
 	planSectionExpanded: boolean;
 	browseSectionExpanded: boolean;
+	savedFiltersSectionExpanded: boolean;
 	sidebarCollapsed: boolean;
 };
 
@@ -24,6 +25,7 @@ function createProjectPreferencesStore() {
 				focusSectionExpanded: true,
 				planSectionExpanded: true,
 				browseSectionExpanded: true,
+				savedFiltersSectionExpanded: false,
 				sidebarCollapsed: false
 			};
 
@@ -74,7 +76,7 @@ function createProjectPreferencesStore() {
 		});
 	}
 
-	function toggleSidebarSection(section: 'focus' | 'plan' | 'browse') {
+	function toggleSidebarSection(section: 'focus' | 'plan' | 'browse' | 'saved-filters') {
 		update((state) => {
 			const nextState = {
 				...state,
@@ -83,7 +85,11 @@ function createProjectPreferencesStore() {
 				planSectionExpanded:
 					section === 'plan' ? !state.planSectionExpanded : state.planSectionExpanded,
 				browseSectionExpanded:
-					section === 'browse' ? !state.browseSectionExpanded : state.browseSectionExpanded
+					section === 'browse' ? !state.browseSectionExpanded : state.browseSectionExpanded,
+				savedFiltersSectionExpanded:
+					section === 'saved-filters'
+						? !state.savedFiltersSectionExpanded
+						: state.savedFiltersSectionExpanded
 			};
 
 			writeStoredPreferences(nextState);
@@ -146,6 +152,7 @@ function readStoredPreferences(): ProjectPreferencesState {
 			focusSectionExpanded: true,
 			planSectionExpanded: true,
 			browseSectionExpanded: true,
+			savedFiltersSectionExpanded: false,
 			sidebarCollapsed: false
 		};
 	}
@@ -168,6 +175,10 @@ function readStoredPreferences(): ProjectPreferencesState {
 				typeof parsed.planSectionExpanded === 'boolean' ? parsed.planSectionExpanded : true,
 			browseSectionExpanded:
 				typeof parsed.browseSectionExpanded === 'boolean' ? parsed.browseSectionExpanded : true,
+			savedFiltersSectionExpanded:
+				typeof parsed.savedFiltersSectionExpanded === 'boolean'
+					? parsed.savedFiltersSectionExpanded
+					: false,
 			sidebarCollapsed:
 				typeof parsed.sidebarCollapsed === 'boolean' ? parsed.sidebarCollapsed : false
 		};
@@ -180,6 +191,7 @@ function readStoredPreferences(): ProjectPreferencesState {
 			focusSectionExpanded: true,
 			planSectionExpanded: true,
 			browseSectionExpanded: true,
+			savedFiltersSectionExpanded: false,
 			sidebarCollapsed: false
 		};
 	}

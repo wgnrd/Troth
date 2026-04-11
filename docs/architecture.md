@@ -6,7 +6,7 @@ Vikunja access is split across a server-only boundary plus a small same-origin b
 
 - `src/lib/api/vikunja/client.ts` owns base URL normalization, bearer-token headers, pagination, and the wrapped endpoint logic against Vikunja itself.
 - `types.ts` keeps the raw Vikunja response shapes and the smaller app-facing task/list types in one place.
-- `mappers.ts` converts Vikunja task and project payloads into the flatter types the UI uses.
+- `mappers.ts` converts Vikunja task, project, and saved-filter payloads into the flatter types the UI uses.
 - `index.ts` is the public entry point for the rest of the app.
 - `src/lib/server/session.ts` owns the encrypted HTTP-only session cookie that stores the normalized Vikunja base URL plus API token on the server boundary.
 - `src/lib/server/session.ts` also stores the optional encrypted HTTP-only ICS calendar feed session used for read-only event previews.
@@ -25,7 +25,7 @@ The app uses small Svelte stores instead of a larger query or state library.
 - `src/lib/stores/calendar-events.ts` loads and caches read-only day events from the saved ICS feed through Troth’s own API endpoints.
 - `src/lib/stores/calendar-preview-preferences.ts` keeps local non-secret preview preferences such as whether the calendar preview is visible.
 - `src/lib/stores/lists.ts` loads and refreshes Vikunja projects through Troth’s own API endpoints, then exposes them as app lists.
-- `src/lib/stores/saved-filters.ts` loads and refreshes Vikunja saved filters and smart views through Troth’s own API endpoints.
+- `src/lib/stores/saved-filters.ts` owns saved-filter load/create/update/delete behavior through Troth’s own API endpoints.
 - `src/lib/stores/tasks.ts` loads and refreshes tasks through Troth’s own API endpoints, and handles create, update, and complete/reopen writes with lightweight optimistic updates.
 
 Both the task and list stores reset themselves when the authenticated Troth session changes so stale data does not linger across reconnects. Refresh failures now keep the last successful data in place and surface the error inline so the MVP stays usable during temporary API issues.
@@ -43,7 +43,9 @@ The first real task workflow lives in `src/lib/components/tasks/`.
 
 Route-specific filtering lives in `src/lib/tasks/view.ts`. That file owns the readable helpers for Today, Inbox, Upcoming, All Active, and Completed so the classification rules stay out of the route components.
 
-Saved-filter task pages live under `src/lib/components/filters/` and reuse the same task list/editor components, but refresh their membership from Vikunja after task edits so filter results stay in sync.
+Saved-filter UI lives under `src/lib/components/filters/`. The browser page and editor manage Vikunja saved-filter CRUD, while saved-filter task pages reuse the same task list/editor components and reload membership from the saved filter definition after task edits so results stay in sync.
+
+Saved-filter task membership is driven by Vikunja's first-class `/filters` resource plus `/tasks` query parameters, not by treating saved filters as projects.
 
 ## MVP behavior rules
 

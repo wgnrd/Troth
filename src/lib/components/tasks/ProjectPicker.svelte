@@ -108,11 +108,7 @@
 
 <style>
 	:global(.dark [style*='--project-chip-color']) {
-		background-color: color-mix(
-			in oklch,
-			var(--project-chip-color) 16%,
-			transparent
-		) !important;
+		background-color: color-mix(in oklch, var(--project-chip-color) 16%, transparent) !important;
 		border-color: color-mix(in oklch, var(--project-chip-color) 38%, transparent) !important;
 	}
 </style>

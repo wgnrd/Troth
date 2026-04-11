@@ -3,8 +3,10 @@ import type {
 	AppList,
 	AppSavedFilter,
 	AppTask,
+	CreateSavedFilterInput,
 	CreateProjectInput,
 	CreateTaskInput,
+	UpdateSavedFilterInput,
 	UpdateProjectInput,
 	UpdateTaskInput
 } from '$lib/api/vikunja';
@@ -170,6 +172,32 @@ export function deleteTask(id: number) {
 export function fetchSavedFilters() {
 	return request<AppSavedFilter[]>('/api/saved-filters', {
 		method: 'GET'
+	});
+}
+
+export function getSavedFilter(id: number) {
+	return request<AppSavedFilter>(`/api/saved-filters/${id}`, {
+		method: 'GET'
+	});
+}
+
+export function createSavedFilter(input: CreateSavedFilterInput) {
+	return request<AppSavedFilter>('/api/saved-filters', {
+		method: 'PUT',
+		body: input
+	});
+}
+
+export function updateSavedFilter(input: UpdateSavedFilterInput) {
+	return request<AppSavedFilter>(`/api/saved-filters/${input.id}`, {
+		method: 'POST',
+		body: input
+	});
+}
+
+export function deleteSavedFilter(id: number) {
+	return request<void>(`/api/saved-filters/${id}`, {
+		method: 'DELETE'
 	});
 }
 
