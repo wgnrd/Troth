@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Button } from '$lib/components/ui/button';
 	import type { AppCalendarEvent } from '$lib/api/calendar';
 	import type { AppList, AppTask } from '$lib/api/vikunja';
 	import type { CalendarDayEventsState } from '$lib/stores/calendar-events';
@@ -24,6 +25,7 @@
 		exitingTaskIds = [],
 		mutatingIds = [],
 		enableDragAndDrop = false,
+		onToggleCalendarVisibility,
 		onOpen,
 		onToggleComplete,
 		onDueDateChange,
@@ -41,6 +43,7 @@
 		exitingTaskIds?: number[];
 		mutatingIds?: number[];
 		enableDragAndDrop?: boolean;
+		onToggleCalendarVisibility?: () => void;
 		onOpen?: (task: AppTask) => void;
 		onToggleComplete?: (task: AppTask, completed: boolean) => Promise<void> | void;
 		onDueDateChange?: (task: AppTask, dueDate: string | null) => Promise<void> | void;
@@ -270,7 +273,25 @@
 						<p class="mt-1.5 text-[0.72rem] text-muted-foreground">Loading events…</p>
 					{:else if calendarItems.length > 0}
 						<div class="mt-1.5 space-y-0.5">
-							{#each calendarItems as event (event.id)}
+							<div
+								class="flex items-start justify-between gap-2 text-[0.72rem] leading-5 text-muted-foreground"
+							>
+								<div class="flex min-w-0 items-baseline gap-2">
+									<span class="w-[7.25rem] shrink-0 whitespace-nowrap tabular-nums"
+										>{formatEventTime(calendarItems[0])}</span
+									>
+									<span class="min-w-0 truncate text-foreground/82">{calendarItems[0].title}</span>
+								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									class="h-auto shrink-0 px-2 text-[0.72rem]"
+									onclick={onToggleCalendarVisibility}
+								>
+									Hide
+								</Button>
+							</div>
+							{#each calendarItems.slice(1) as event (event.id)}
 								<div
 									class="flex items-baseline gap-2 text-[0.72rem] leading-5 text-muted-foreground"
 								>

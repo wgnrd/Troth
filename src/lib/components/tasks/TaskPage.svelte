@@ -64,6 +64,9 @@
 	});
 	const calendarConfigured = $derived(Boolean($calendarFeed.settings));
 	const calendarVisible = $derived($calendarPreviewPreferences.calendarVisible);
+	const showHeaderCalendarToggle = $derived(
+		calendarConfigured && (currentView === 'today' || currentView === 'upcoming')
+	);
 	const showBacklogSwitch = $derived(currentView === 'backlog');
 	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
 	const hiddenProjectIds = $derived(
@@ -518,17 +521,30 @@
 		</div>
 
 		{#if configured}
-			<Button
-				variant="outline"
-				size="sm"
-				class="hidden self-end sm:inline-flex"
-				aria-label={$tasks.loading || $lists.loading ? 'Refreshing tasks' : 'Refresh tasks'}
-				onclick={handleRefresh}
-				disabled={$tasks.loading || $lists.loading}
-			>
-				<RefreshCcw class="size-3.5" />
-				{$tasks.loading || $lists.loading ? 'Refreshing…' : 'Refresh'}
-			</Button>
+			<div class="hidden self-end sm:flex sm:items-center sm:gap-2">
+				{#if showHeaderCalendarToggle}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => {
+							calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
+						}}
+					>
+						{calendarVisible ? 'Hide calendar' : 'Show calendar'}
+					</Button>
+				{/if}
+
+				<Button
+					variant="outline"
+					size="sm"
+					aria-label={$tasks.loading || $lists.loading ? 'Refreshing tasks' : 'Refresh tasks'}
+					onclick={handleRefresh}
+					disabled={$tasks.loading || $lists.loading}
+				>
+					<RefreshCcw class="size-3.5" />
+					{$tasks.loading || $lists.loading ? 'Refreshing…' : 'Refresh'}
+				</Button>
+			</div>
 		{/if}
 	</div>
 
@@ -729,21 +745,6 @@
 			{/if}
 		{:else if hasVisibleTasks || currentView === 'upcoming'}
 			{#if currentView === 'upcoming'}
-				{#if calendarConfigured}
-					<div class="mb-3 flex justify-end px-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							class="h-auto px-2 text-[0.72rem]"
-							onclick={() => {
-								calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
-							}}
-						>
-							{calendarVisible ? 'Hide calendar' : 'Show calendar'}
-						</Button>
-					</div>
-				{/if}
-
 				<TaskGroupedList
 					groups={groupedVisibleTasks}
 					lists={activeLists}
@@ -755,6 +756,9 @@
 					{exitingTaskIds}
 					mutatingIds={$tasks.mutatingIds}
 					enableDragAndDrop
+					onToggleCalendarVisibility={() => {
+						calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
+					}}
 					onOpen={(task) => {
 						selectedTaskId = task.id;
 						tasks.clearMutationError();
