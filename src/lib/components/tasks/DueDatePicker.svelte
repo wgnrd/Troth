@@ -38,6 +38,11 @@
 
 	let calendarValue = $state<DateValue | undefined>(undefined);
 	let lastSyncedValue = $state<string | null>(null);
+	const compactWeekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
+	const compactDateFormatter = new Intl.DateTimeFormat('en-US', {
+		day: '2-digit',
+		month: 'short'
+	});
 
 	function getNextMondayOffset() {
 		const jsDate = today(getLocalTimeZone()).toDate(getLocalTimeZone());
@@ -45,13 +50,44 @@
 		return day === 0 ? 1 : 8 - day;
 	}
 
+	function formatQuickPickDetail(isoDate: string | null) {
+		if (!isoDate) {
+			return '';
+		}
+
+		const date = new Date(isoDate);
+
+		if (Number.isNaN(date.getTime())) {
+			return '';
+		}
+
+		const now = new Date();
+		const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+		const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+		const diffInDays = Math.round((targetDate.getTime() - todayDate.getTime()) / 86_400_000);
+
+		if (diffInDays >= 0 && diffInDays <= 6) {
+			return compactWeekdayFormatter.format(date);
+		}
+
+		return compactDateFormatter.format(date);
+	}
+
 	const label = $derived(value ? formatTaskDate(value) : emptyLabel);
 	const isToday = $derived(label === 'today');
 	const isTomorrow = $derived(label === 'tomorrow');
-	const isNextWeek = $derived(
-		value ===
-			fromDateInputValue(today(getLocalTimeZone()).add({ days: getNextMondayOffset() }).toString())
+	const todayValue = $derived(fromDateInputValue(today(getLocalTimeZone()).toString()));
+	const tomorrowValue = $derived(
+		fromDateInputValue(today(getLocalTimeZone()).add({ days: 1 }).toString())
 	);
+	const nextWeekValue = $derived(
+		fromDateInputValue(today(getLocalTimeZone()).add({ days: getNextMondayOffset() }).toString())
+	);
+	const showNextWeekQuickPick = $derived(getNextMondayOffset() > 1);
+	const todayDetail = $derived(formatQuickPickDetail(todayValue));
+	const tomorrowDetail = $derived(formatQuickPickDetail(tomorrowValue));
+	const nextWeekDetail = $derived(formatQuickPickDetail(nextWeekValue));
+	const isNextWeek = $derived(value === nextWeekValue);
 	const toneClass = $derived(getDueDateTone(value));
 	const chipToneClass = $derived(getDueDateBadgeTone(value));
 	const fieldToneClass = $derived(
@@ -71,7 +107,6 @@
 					fieldToneClass
 				)
 	);
-	const footerLabel = $derived(value ? `Selected: ${label}` : 'Pick a date or use a shortcut');
 
 	$effect(() => {
 		if (value === lastSyncedValue) {
@@ -180,85 +215,79 @@
 		<div
 			class="border-b border-border/70 bg-muted/[0.22] px-3 py-3 dark:border-white/12 dark:bg-white/10"
 		>
-			<div
-				class="mb-2 px-1 text-[0.68rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
-			>
-				Quick picks
-			</div>
-			<div class="grid grid-cols-3 gap-2">
+			<div class="space-y-1">
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-amber-800 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900 dark:text-amber-50 dark:hover:border-amber-700/70 dark:hover:bg-amber-950/24 dark:hover:text-amber-50',
+						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900 dark:text-amber-100 dark:hover:border-amber-700/70 dark:hover:bg-amber-950/24 dark:hover:text-amber-50',
 						isToday &&
 							'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/80 dark:bg-amber-900/28 dark:text-amber-50'
 					)}
 					onclick={setToday}
 				>
-					<Sun class="size-4.5" />
-					<span class="space-y-0.5">
-						<span class="block text-sm font-semibold">Today</span>
-						<span class="block text-[0.72rem] font-normal text-current/70">Stay on track</span>
+					<Sun class="size-4.5 shrink-0" />
+					<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
+						<span class="text-[0.75rem] font-medium text-current/80">today</span>
+						<span class="truncate text-[0.72rem] text-current/60">{todayDetail}</span>
 					</span>
 				</Button>
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-orange-800 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900 dark:text-orange-50 dark:hover:border-orange-700/70 dark:hover:bg-orange-950/22 dark:hover:text-orange-50',
+						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-orange-700 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900 dark:text-orange-100 dark:hover:border-orange-700/70 dark:hover:bg-orange-950/22 dark:hover:text-orange-50',
 						isTomorrow &&
 							'border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700/80 dark:bg-orange-900/26 dark:text-orange-50'
 					)}
 					onclick={setTomorrow}
 				>
-					<Sunrise class="size-4.5" />
-					<span class="space-y-0.5">
-						<span class="block text-sm font-semibold">Tomorrow</span>
-						<span class="block text-[0.72rem] font-normal text-current/70">One-day push</span>
+					<Sunrise class="size-4.5 shrink-0" />
+					<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
+						<span class="text-[0.75rem] font-medium text-current/80">tomorrow</span>
+						<span class="truncate text-[0.72rem] text-current/60">{tomorrowDetail}</span>
 					</span>
 				</Button>
+				{#if showNextWeekQuickPick}
+					<Button
+						variant="ghost"
+						class={cn(
+							'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-sky-700 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900 dark:text-sky-100 dark:hover:border-sky-700/70 dark:hover:bg-sky-950/22 dark:hover:text-sky-50',
+							isNextWeek &&
+								'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700/80 dark:bg-sky-900/24 dark:text-sky-50'
+						)}
+						onclick={setNextWeek}
+					>
+						<CalendarDays class="size-4.5 shrink-0" />
+						<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
+							<span class="text-[0.75rem] font-medium text-current/80">next week</span>
+							<span class="truncate text-[0.72rem] text-current/60">{nextWeekDetail}</span>
+						</span>
+					</Button>
+				{/if}
 				<Button
 					variant="ghost"
 					class={cn(
-						'h-auto min-h-20 flex-col items-start justify-between rounded-2xl border border-transparent px-3 py-3 text-left text-sky-800 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900 dark:text-sky-50 dark:hover:border-sky-700/70 dark:hover:bg-sky-950/22 dark:hover:text-sky-50',
-						isNextWeek &&
-							'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700/80 dark:bg-sky-900/24 dark:text-sky-50'
+						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-muted-foreground shadow-none hover:border-border/70 hover:bg-background/80 hover:text-foreground dark:hover:border-white/12 dark:hover:bg-white/8',
+						value && 'text-foreground',
+						!value && 'opacity-60'
 					)}
-					onclick={setNextWeek}
+					onclick={clearDate}
+					disabled={!value}
 				>
-					<CalendarDays class="size-4.5" />
-					<span class="space-y-0.5">
-						<span class="block text-sm font-semibold">Next week</span>
-						<span class="block text-[0.72rem] font-normal text-current/70">Monday reset</span>
-					</span>
+					<X class="size-4.5 shrink-0" />
+					<span class="text-[0.75rem] font-medium text-current/80">clear</span>
 				</Button>
 			</div>
 		</div>
 
-		<div class="p-3">
+		<div class="p-2">
 			<Calendar
-				class="rounded-[1.4rem] border border-border/60 bg-background/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+				class="rounded-[1.3rem] border border-border/60 bg-background/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
 				type="single"
 				value={calendarValue}
 				onValueChange={(nextValue: DateValue | undefined) => {
 					void applyDate(nextValue);
 				}}
 			/>
-		</div>
-
-		<div
-			class="flex items-center justify-between border-t border-border/70 bg-muted/[0.18] px-3 py-2.5 dark:border-white/12 dark:bg-white/9"
-		>
-			<div class="text-xs font-medium text-muted-foreground">{footerLabel}</div>
-			<Button
-				variant="ghost"
-				size="sm"
-				class="rounded-full px-2.5"
-				onclick={clearDate}
-				disabled={!value}
-			>
-				<X class="size-3.5" />
-				Clear
-			</Button>
 		</div>
 	</Popover.Content>
 </Popover.Root>
