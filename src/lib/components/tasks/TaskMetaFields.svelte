@@ -19,6 +19,7 @@
 		showLabels = true,
 		showRepeatField = false,
 		layout = 'grid',
+		mobileColumns = 1,
 		tintedDueDateField = false,
 		projectLabel = 'Project',
 		dueDateLabel = 'Due date',
@@ -40,6 +41,7 @@
 		showLabels?: boolean;
 		showRepeatField?: boolean;
 		layout?: 'grid' | 'surface';
+		mobileColumns?: 1 | 2 | 3;
 		tintedDueDateField?: boolean;
 		projectLabel?: string;
 		dueDateLabel?: string;
@@ -55,10 +57,21 @@
 	} = $props();
 </script>
 
-<div class={cn(layout === 'surface' ? 'grid gap-3' : 'grid gap-3 sm:grid-cols-3')}>
+<div
+	class={cn(
+		'gap-3',
+		layout === 'surface' && 'grid',
+		layout !== 'surface' && mobileColumns === 1 && 'grid sm:grid-cols-3',
+		layout !== 'surface' && mobileColumns === 2 && 'grid grid-cols-2 sm:grid-cols-3',
+		layout !== 'surface' &&
+			mobileColumns === 3 &&
+			'flex overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0'
+	)}
+>
 	<div
 		class={cn(
 			'min-w-0',
+			layout !== 'surface' && mobileColumns === 3 && 'min-w-[8.5rem] shrink-0 sm:min-w-0 sm:shrink',
 			layout === 'surface' && 'space-y-1.5',
 			showLabels && layout !== 'surface' && 'space-y-2'
 		)}
@@ -88,6 +101,7 @@
 	<div
 		class={cn(
 			'min-w-0',
+			layout !== 'surface' && mobileColumns === 3 && 'min-w-[8.5rem] shrink-0 sm:min-w-0 sm:shrink',
 			layout === 'surface' && 'space-y-1.5',
 			showLabels && layout !== 'surface' && 'space-y-2'
 		)}
@@ -117,6 +131,7 @@
 	<div
 		class={cn(
 			'min-w-0',
+			layout !== 'surface' && mobileColumns === 3 && 'min-w-[8.5rem] shrink-0 sm:min-w-0 sm:shrink',
 			layout === 'surface' && 'space-y-1.5',
 			showLabels && layout !== 'surface' && 'space-y-2'
 		)}
@@ -146,6 +161,9 @@
 		<div
 			class={cn(
 				'min-w-0',
+				layout !== 'surface' &&
+					mobileColumns === 3 &&
+					'min-w-[8.5rem] shrink-0 sm:min-w-0 sm:shrink',
 				layout === 'surface' && 'space-y-1.5',
 				showLabels && layout !== 'surface' && 'space-y-2'
 			)}

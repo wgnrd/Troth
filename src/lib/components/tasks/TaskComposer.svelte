@@ -614,6 +614,7 @@
 				disabled={busy}
 				lockProject={fixedListId !== null}
 				showLabels={false}
+				mobileColumns={3}
 				tintedDueDateField
 				onDueDateChange={(nextValue) => {
 					manualDueDate = nextValue;

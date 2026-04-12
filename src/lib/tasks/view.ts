@@ -45,10 +45,6 @@ export function sortTasks(tasks: AppTask[]) {
 		const leftDueDate = normalizeDueDate(left.dueDate);
 		const rightDueDate = normalizeDueDate(right.dueDate);
 
-		if (left.completed !== right.completed) {
-			return left.completed ? 1 : -1;
-		}
-
 		if (leftDueDate && rightDueDate) {
 			const dateOrder = leftDueDate.localeCompare(rightDueDate);
 
@@ -77,10 +73,6 @@ export function sortTodayTasks(tasks: AppTask[]) {
 	return [...tasks].sort((left, right) => {
 		const leftPriorityRank = getPrioritySortRank(left.priority);
 		const rightPriorityRank = getPrioritySortRank(right.priority);
-
-		if (left.completed !== right.completed) {
-			return left.completed ? 1 : -1;
-		}
 
 		if (leftPriorityRank !== rightPriorityRank) {
 			return leftPriorityRank - rightPriorityRank;

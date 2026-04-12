@@ -197,6 +197,9 @@
 	const browseSectionExpanded = $derived(
 		browseSectionCollapsible ? $projectPreferences.browseSectionExpanded : true
 	);
+	const projectsSectionExpanded = $derived(
+		compact ? false : $projectPreferences.projectsSectionExpanded
+	);
 	const savedFiltersSectionExpanded = $derived(
 		compact ? false : $projectPreferences.savedFiltersSectionExpanded
 	);
@@ -630,9 +633,29 @@
 							<span class="min-w-0 flex-1 truncate text-sm font-medium">{projectsRoute.label}</span>
 						{/if}
 					</a>
+
+					{#if !compact && $connection.settings && projectEntries.length > 0}
+						<button
+							type="button"
+							class="inline-flex size-6 items-center justify-center rounded-md text-stone-400 transition hover:bg-white/80 hover:text-foreground dark:hover:bg-white/8"
+							aria-label={$projectPreferences.projectsSectionExpanded
+								? 'Collapse Projects'
+								: 'Expand Projects'}
+							onclick={(event) => {
+								stopEvent(event);
+								projectPreferences.toggleProjectsSection();
+							}}
+						>
+							{#if $projectPreferences.projectsSectionExpanded}
+								<ChevronDown class="size-3.5" />
+							{:else}
+								<ChevronRight class="size-3.5" />
+							{/if}
+						</button>
+					{/if}
 				</div>
 
-				{#if !compact && $connection.settings && projectEntries.length > 0}
+				{#if !compact && $connection.settings && projectsSectionExpanded && projectEntries.length > 0}
 					<div class="mt-2 space-y-1" aria-label="Projects">
 						{#each projectEntries as entry (entry.list.id)}
 							{@const active = isActive(`/projects/${entry.list.id}`)}
@@ -702,7 +725,7 @@
 					</div>
 				{/if}
 
-				{#if !compact && hiddenProjects.length > 0}
+				{#if !compact && projectsSectionExpanded && hiddenProjects.length > 0}
 					<div class="mt-3 space-y-1" aria-label="Hidden projects">
 						<p class="pl-4 text-[0.72rem] font-medium text-muted-foreground/80">Hidden Projects</p>
 						{#each hiddenProjects as project (project.id)}
