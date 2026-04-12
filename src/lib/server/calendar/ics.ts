@@ -86,13 +86,13 @@ function parseCalendarEvents(
 	const calendar = parseCalendar(feedText);
 	const dayStart = getDayStart(day, timezoneOffsetMinutes);
 	const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-	const events: AppCalendarEvent[] = [];
+	const eventsByInstanceKey = new Map<string, AppCalendarEvent>();
 
 	for (const component of calendar.getAllSubcomponents('vevent')) {
 		const event = new ICAL.Event(component);
 
 		if (event.isRecurring()) {
-			collectRecurringEvents(events, event, dayStart, dayEnd, sourceLabel);
+			collectRecurringEvents(eventsByInstanceKey, event, dayStart, dayEnd, sourceLabel);
 			continue;
 		}
 
@@ -102,14 +102,17 @@ function parseCalendarEvents(
 			continue;
 		}
 
-		events.push(toAppEvent(event, occurrence.start, occurrence.end, sourceLabel, 0));
+		mergeEvent(
+			eventsByInstanceKey,
+			toAppEvent(event, occurrence.start, occurrence.end, sourceLabel, 0)
+		);
 	}
 
-	return events.sort(compareCalendarEvents);
+	return Array.from(eventsByInstanceKey.values()).sort(compareCalendarEvents);
 }
 
 function collectRecurringEvents(
-	events: AppCalendarEvent[],
+	eventsByInstanceKey: Map<string, AppCalendarEvent>,
 	event: InstanceType<typeof ICAL.Event>,
 	dayStart: Date,
 	dayEnd: Date,
@@ -139,7 +142,10 @@ function collectRecurringEvents(
 
 		if (overlapsDay(occurrence.start, occurrence.end, dayStart, dayEnd)) {
 			count += 1;
-			events.push(toAppEvent(event, occurrence.start, occurrence.end, sourceLabel, count));
+			mergeEvent(
+				eventsByInstanceKey,
+				toAppEvent(event, occurrence.start, occurrence.end, sourceLabel, count)
+			);
 			continue;
 		}
 
@@ -213,6 +219,16 @@ function toAppEvent(
 		allDay: Boolean(event.startDate?.isDate),
 		sourceLabel
 	};
+}
+
+function mergeEvent(eventsByInstanceKey: Map<string, AppCalendarEvent>, event: AppCalendarEvent) {
+	eventsByInstanceKey.set(getEventInstanceKey(event), event);
+}
+
+function getEventInstanceKey(event: AppCalendarEvent) {
+	return [event.title, event.start, event.end, event.allDay ? '1' : '0', event.sourceLabel].join(
+		':'
+	);
 }
 
 function compareCalendarEvents(left: AppCalendarEvent, right: AppCalendarEvent) {

@@ -46,6 +46,38 @@ describe('fetchCalendarEventsForDay', () => {
 			sourceLabel: 'Team calendar'
 		});
 	});
+
+	it('deduplicates identical events emitted twice in the feed', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(buildDuplicatedEventFeed(), {
+						status: 200,
+						headers: {
+							'Content-Type': 'text/calendar'
+						}
+					})
+			)
+		);
+
+		const events = await fetchCalendarEventsForDay(
+			{
+				url: 'https://calendar.example.com/feed.ics',
+				label: 'Team calendar',
+				sessionKey: 'session-key'
+			},
+			'2026-04-13',
+			0
+		);
+
+		expect(events).toHaveLength(1);
+		expect(events[0]).toMatchObject({
+			title: 'Weekly sync',
+			start: '2026-04-13T10:00:00.000Z',
+			end: '2026-04-13T10:30:00.000Z'
+		});
+	});
 });
 
 function buildRecurringFeed() {
@@ -60,6 +92,29 @@ function buildRecurringFeed() {
 		'DTEND:20240101T091500Z',
 		'RRULE:FREQ=DAILY',
 		'SUMMARY:Daily standup',
+		'END:VEVENT',
+		'END:VCALENDAR'
+	].join('\r\n');
+}
+
+function buildDuplicatedEventFeed() {
+	return [
+		'BEGIN:VCALENDAR',
+		'VERSION:2.0',
+		'PRODID:-//Troth//Calendar Test//EN',
+		'BEGIN:VEVENT',
+		'UID:weekly-sync',
+		'DTSTAMP:20240101T080000Z',
+		'DTSTART:20260413T100000Z',
+		'DTEND:20260413T103000Z',
+		'SUMMARY:Weekly sync',
+		'END:VEVENT',
+		'BEGIN:VEVENT',
+		'UID:weekly-sync-copy',
+		'DTSTAMP:20240101T080000Z',
+		'DTSTART:20260413T100000Z',
+		'DTEND:20260413T103000Z',
+		'SUMMARY:Weekly sync',
 		'END:VEVENT',
 		'END:VCALENDAR'
 	].join('\r\n');
