@@ -104,7 +104,7 @@
 							class="flex items-baseline justify-between gap-2 text-[0.72rem] leading-5 text-muted-foreground"
 						>
 							<div class="flex min-w-0 items-baseline gap-2">
-								<p class="w-[7.25rem] shrink-0 tabular-nums">
+								<p class="w-[7.25rem] shrink-0 whitespace-nowrap tabular-nums">
 									{formatEventTime(event.start, event.end, event.allDay)}
 								</p>
 								<p class="min-w-0 truncate text-left text-foreground/82">{event.title}</p>

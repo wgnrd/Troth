@@ -729,6 +729,21 @@
 			{/if}
 		{:else if hasVisibleTasks || currentView === 'upcoming'}
 			{#if currentView === 'upcoming'}
+				{#if calendarConfigured}
+					<div class="mb-3 flex justify-end px-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							class="h-auto px-2 text-[0.72rem]"
+							onclick={() => {
+								calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
+							}}
+						>
+							{calendarVisible ? 'Hide calendar' : 'Show calendar'}
+						</Button>
+					</div>
+				{/if}
+
 				<TaskGroupedList
 					groups={groupedVisibleTasks}
 					lists={activeLists}

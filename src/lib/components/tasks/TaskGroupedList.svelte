@@ -274,7 +274,9 @@
 								<div
 									class="flex items-baseline gap-2 text-[0.72rem] leading-5 text-muted-foreground"
 								>
-									<span class="w-[7.25rem] shrink-0 tabular-nums">{formatEventTime(event)}</span>
+									<span class="w-[7.25rem] shrink-0 whitespace-nowrap tabular-nums"
+										>{formatEventTime(event)}</span
+									>
 									<span class="min-w-0 truncate text-foreground/82">{event.title}</span>
 								</div>
 							{/each}
