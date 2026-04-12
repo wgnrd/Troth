@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppList, AppTask } from '$lib/api/vikunja';
-import { filterTasksForView, UPCOMING_DAY_WINDOW } from './view';
+import { filterTasksForView, sortTasks, sortTodayTasks, UPCOMING_DAY_WINDOW } from './view';
 
 describe('filterTasksForView backlog', () => {
 	beforeEach(() => {
@@ -28,6 +28,28 @@ describe('filterTasksForView backlog', () => {
 		];
 
 		expect(filterTasksForView('backlog', tasks, lists).map((task) => task.id)).toEqual([1, 2, 5]);
+	});
+});
+
+describe('sortTasks', () => {
+	it('does not move a task just because it became completed', () => {
+		const orderedTaskIds = sortTasks([
+			buildTask({ id: 1, title: 'First', dueDate: '2026-04-11T12:00:00.000Z' }),
+			buildTask({ id: 2, title: 'Second', dueDate: '2026-04-12T12:00:00.000Z', completed: true })
+		]).map((task) => task.id);
+
+		expect(orderedTaskIds).toEqual([1, 2]);
+	});
+});
+
+describe('sortTodayTasks', () => {
+	it('does not move a task just because it became completed', () => {
+		const orderedTaskIds = sortTodayTasks([
+			buildTask({ id: 1, title: 'High priority', priority: 5 }),
+			buildTask({ id: 2, title: 'Normal priority', priority: 0, completed: true })
+		]).map((task) => task.id);
+
+		expect(orderedTaskIds).toEqual([1, 2]);
 	});
 });
 
