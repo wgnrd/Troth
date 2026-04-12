@@ -534,6 +534,16 @@
 	animation-name: task-celebration-dot-bottom-left;
 }
 
+:root[data-theme='troth-light'] .task-accent-fill {
+	background: var(--color-success);
+	color: var(--color-success-foreground);
+	box-shadow: 0 14px 28px color-mix(in oklch, var(--color-success) 34%, transparent);
+}
+
+:root[data-theme='troth-light'] .task-accent-fill:hover {
+	background: color-mix(in oklch, var(--color-success) 92%, black 8%);
+}
+
 @keyframes task-celebration-dot-top {
 	0% {
 		transform: translate(0, 0) scale(0.4);

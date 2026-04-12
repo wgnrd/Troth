@@ -367,9 +367,9 @@
 			<div class={cn('pb-1', compact ? 'flex justify-center' : '')}>
 				{#if compact}
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="icon"
-						class="size-10 rounded-xl border-border/70 bg-background/80 shadow-none"
+						class="task-accent-fill size-10 rounded-xl bg-primary text-primary-foreground shadow-[0_14px_28px_rgba(60,93,78,0.22)] hover:bg-primary/92"
 						aria-label="Add task"
 						title="Add task"
 						onclick={() => {
@@ -381,12 +381,14 @@
 				{:else}
 					<button
 						type="button"
-						class="group flex w-full items-center gap-3 rounded-xl border border-border/65 bg-background/70 px-2.5 py-2 text-left text-foreground transition hover:bg-muted/45"
+						class="group flex w-full items-center gap-3 rounded-xl bg-background/70 px-2.5 py-2 text-left text-foreground transition hover:bg-muted/45"
 						onclick={() => {
 							desktopTaskComposerOpen = true;
 						}}
 					>
-						<span class="rounded-lg border border-border/65 bg-background/90 p-1.5 text-foreground">
+						<span
+							class="task-accent-fill rounded-lg bg-primary p-1.5 text-primary-foreground shadow-[0_10px_20px_rgba(60,93,78,0.18)] transition group-hover:scale-[1.03] group-hover:bg-primary/92"
+						>
 							<Plus class="size-4" />
 						</span>
 						<span class="min-w-0 flex-1 truncate text-sm font-medium">Add task</span>

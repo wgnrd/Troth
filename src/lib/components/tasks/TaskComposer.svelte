@@ -597,7 +597,7 @@
 
 		<button
 			type="submit"
-			class="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
+			class="task-accent-fill inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground shadow-[0_14px_28px_rgba(60,93,78,0.2)] transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none sm:self-auto"
 			disabled={!canSubmit}
 		>
 			{busy ? 'Adding…' : 'Add'}
