@@ -12,17 +12,15 @@
 </script>
 
 <div class="mx-auto flex w-full max-w-[42rem] flex-col gap-4">
-	<nav class="pb-1">
-		<div
-			class="grid grid-cols-3 gap-2 rounded-[1.35rem] border border-border/70 bg-white/70 p-1 shadow-sm dark:bg-white/7 dark:shadow-none"
-		>
+	<nav class="border-b border-border/60 pb-1">
+		<div class="flex flex-wrap gap-1.5">
 			<a
 				href={resolve('/settings')}
 				class={cn(
-					'rounded-[1rem] px-2 py-2 text-center text-sm font-medium transition sm:px-3',
+					'rounded-lg px-2 py-2 text-center text-sm font-medium transition sm:px-3',
 					isActive('/settings')
-						? 'bg-background text-foreground shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] dark:bg-white/10'
-						: 'text-muted-foreground hover:bg-background/70 hover:text-foreground dark:hover:bg-white/6'
+						? 'bg-muted/70 text-foreground'
+						: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
 				)}
 			>
 				Overview
@@ -30,10 +28,10 @@
 			<a
 				href={resolve('/settings/appearance')}
 				class={cn(
-					'rounded-[1rem] px-2 py-2 text-center text-sm font-medium transition sm:px-3',
+					'rounded-lg px-2 py-2 text-center text-sm font-medium transition sm:px-3',
 					isActive('/settings/appearance')
-						? 'bg-background text-foreground shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] dark:bg-white/10'
-						: 'text-muted-foreground hover:bg-background/70 hover:text-foreground dark:hover:bg-white/6'
+						? 'bg-muted/70 text-foreground'
+						: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
 				)}
 			>
 				Appearance
@@ -41,10 +39,10 @@
 			<a
 				href={resolve('/settings/integrations')}
 				class={cn(
-					'rounded-[1rem] px-2 py-2 text-center text-sm font-medium transition sm:px-3',
+					'rounded-lg px-2 py-2 text-center text-sm font-medium transition sm:px-3',
 					isActive('/settings/integrations')
-						? 'bg-background text-foreground shadow-[0_1px_0_rgba(255,255,255,0.8)_inset] dark:bg-white/10'
-						: 'text-muted-foreground hover:bg-background/70 hover:text-foreground dark:hover:bg-white/6'
+						? 'bg-muted/70 text-foreground'
+						: 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
 				)}
 			>
 				Integrations
