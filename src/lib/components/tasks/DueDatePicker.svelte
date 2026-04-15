@@ -5,12 +5,16 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import {
+		clearDueDateTime,
 		getDueDateBadgeTone,
 		getDueDateFieldTone,
 		formatTaskDate,
 		fromDateInputValue,
+		hasExplicitDueTime,
+		setDueDateTime,
 		getDueDateTone,
-		toDateInputValue
+		toDateInputValue,
+		toTimeInputValue
 	} from '$lib/tasks/view';
 	import { cn } from '$lib/utils';
 
@@ -38,6 +42,7 @@
 
 	let calendarValue = $state<DateValue | undefined>(undefined);
 	let lastSyncedValue = $state<string | null>(null);
+	let timeValue = $state('');
 	const compactWeekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
 	const compactDateFormatter = new Intl.DateTimeFormat('en-US', {
 		day: '2-digit',
@@ -116,11 +121,12 @@
 		lastSyncedValue = value;
 		const nextInputValue = toDateInputValue(value);
 		calendarValue = nextInputValue ? parseDate(nextInputValue) : undefined;
+		timeValue = toTimeInputValue(value);
 	});
 
 	async function applyDate(nextValue: DateValue | undefined) {
 		calendarValue = nextValue;
-		const isoValue = nextValue ? fromDateInputValue(nextValue.toString()) : null;
+		const isoValue = nextValue ? fromDateInputValue(nextValue.toString(), timeValue) : null;
 		lastSyncedValue = isoValue;
 		await onChange?.(isoValue);
 		open = false;
@@ -128,6 +134,22 @@
 
 	async function clearDate() {
 		await applyDate(undefined);
+	}
+
+	async function clearTime() {
+		if (!value) {
+			return;
+		}
+
+		const nextValue = clearDueDateTime(value);
+
+		if (!nextValue) {
+			return;
+		}
+
+		lastSyncedValue = nextValue;
+		timeValue = '';
+		await onChange?.(nextValue);
 	}
 
 	async function setToday() {
@@ -142,6 +164,26 @@
 		const current = today(getLocalTimeZone());
 		await applyDate(current.add({ days: getNextMondayOffset() }));
 	}
+
+	async function handleTimeInput(event: Event) {
+		const nextTimeValue = (event.currentTarget as HTMLInputElement).value;
+		timeValue = nextTimeValue;
+
+		if (!value) {
+			return;
+		}
+
+		const nextValue = setDueDateTime(value, nextTimeValue);
+
+		if (!nextValue) {
+			return;
+		}
+
+		lastSyncedValue = nextValue;
+		await onChange?.(nextValue);
+	}
+
+	const hasTime = $derived(hasExplicitDueTime(value));
 </script>
 
 <Popover.Root bind:open>
@@ -287,6 +329,36 @@
 				onValueChange={(nextValue: DateValue | undefined) => {
 					void applyDate(nextValue);
 				}}
+			/>
+		</div>
+
+		<div class="border-t border-border/70 px-3 py-3 dark:border-white/12">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="text-[0.72rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+						Time
+					</p>
+					<p class="mt-1 text-[0.72rem] text-muted-foreground">
+						Timed tasks appear in the calendar grid. Leave it empty for all day.
+					</p>
+				</div>
+				<Button
+					variant={hasTime ? 'outline' : 'secondary'}
+					size="sm"
+					class="rounded-xl"
+					disabled={disabled || !value || !hasTime}
+					onclick={clearTime}
+				>
+					All day
+				</Button>
+			</div>
+
+			<input
+				type="time"
+				class="mt-3 flex h-11 w-full rounded-2xl border border-border/70 bg-background px-3 text-sm transition outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/12 dark:bg-white/6"
+				value={timeValue}
+				disabled={disabled || !value}
+				oninput={handleTimeInput}
 			/>
 		</div>
 	</Popover.Content>

@@ -28,6 +28,7 @@
 	import TaskGroupedList from './TaskGroupedList.svelte';
 	import TaskList from './TaskList.svelte';
 	import TaskListSkeleton from './TaskListSkeleton.svelte';
+	import UpcomingCalendarView from './UpcomingCalendarView.svelte';
 
 	let {
 		view,
@@ -46,6 +47,7 @@
 	let exitingTaskIds = $state<number[]>([]);
 	let bulkRescheduling = $state(false);
 	let taskCollectionMode = $state<'backlog' | 'active'>('backlog');
+	let upcomingLayout = $state<'list' | 'calendar'>('list');
 	let loadMoreTrigger = $state<HTMLDivElement | null>(null);
 	const exitTimers: Record<number, ReturnType<typeof setTimeout> | undefined> = {};
 
@@ -68,6 +70,7 @@
 		calendarConfigured && (currentView === 'today' || currentView === 'upcoming')
 	);
 	const showBacklogSwitch = $derived(currentView === 'backlog');
+	const showUpcomingLayoutSwitch = $derived(currentView === 'upcoming');
 	const allActiveLists = $derived($lists.items.filter((list) => !list.isArchived));
 	const hiddenProjectIds = $derived(
 		getEffectiveHiddenProjectIds(allActiveLists, $projectPreferences.hiddenProjectIds)
@@ -518,6 +521,35 @@
 					</div>
 				</div>
 			{/if}
+
+			{#if showUpcomingLayoutSwitch}
+				<div class="pt-2">
+					<div
+						class="inline-flex rounded-2xl border border-border/70 bg-white/65 p-1 shadow-sm dark:bg-white/8 dark:shadow-none"
+					>
+						<Button
+							variant={upcomingLayout === 'list' ? 'secondary' : 'ghost'}
+							size="sm"
+							class="rounded-xl"
+							onclick={() => {
+								upcomingLayout = 'list';
+							}}
+						>
+							List
+						</Button>
+						<Button
+							variant={upcomingLayout === 'calendar' ? 'secondary' : 'ghost'}
+							size="sm"
+							class="rounded-xl"
+							onclick={() => {
+								upcomingLayout = 'calendar';
+							}}
+						>
+							Calendar
+						</Button>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		{#if configured}
@@ -745,29 +777,42 @@
 			{/if}
 		{:else if hasVisibleTasks || currentView === 'upcoming'}
 			{#if currentView === 'upcoming'}
-				<TaskGroupedList
-					groups={groupedVisibleTasks}
-					lists={activeLists}
-					{listsById}
-					calendarEventsByDay={$calendarEvents.days}
-					showCalendarEvents={calendarConfigured && calendarVisible}
-					{showDueDateBadge}
-					{subtaskSummaryByParentId}
-					{exitingTaskIds}
-					mutatingIds={$tasks.mutatingIds}
-					enableDragAndDrop
-					onToggleCalendarVisibility={() => {
-						calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
-					}}
-					onOpen={(task) => {
-						selectedTaskId = task.id;
-						tasks.clearMutationError();
-					}}
-					onToggleComplete={handleToggleComplete}
-					onDueDateChange={handleDueDateChange}
-					onListChange={handleListChange}
-					onRescheduleTask={handleUpcomingDrop}
-				/>
+				{#if upcomingLayout === 'calendar'}
+					<UpcomingCalendarView
+						groups={groupedVisibleTasks}
+						calendarEventsByDay={$calendarEvents.days}
+						showCalendarEvents={calendarConfigured && calendarVisible}
+						mutatingIds={$tasks.mutatingIds}
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+					/>
+				{:else}
+					<TaskGroupedList
+						groups={groupedVisibleTasks}
+						lists={activeLists}
+						{listsById}
+						calendarEventsByDay={$calendarEvents.days}
+						showCalendarEvents={calendarConfigured && calendarVisible}
+						{showDueDateBadge}
+						{subtaskSummaryByParentId}
+						{exitingTaskIds}
+						mutatingIds={$tasks.mutatingIds}
+						enableDragAndDrop
+						onToggleCalendarVisibility={() => {
+							calendarPreviewPreferences.setCalendarVisible(!calendarVisible);
+						}}
+						onOpen={(task) => {
+							selectedTaskId = task.id;
+							tasks.clearMutationError();
+						}}
+						onToggleComplete={handleToggleComplete}
+						onDueDateChange={handleDueDateChange}
+						onListChange={handleListChange}
+						onRescheduleTask={handleUpcomingDrop}
+					/>
+				{/if}
 			{:else if currentView === 'today'}
 				{#if todayTasks.length > 0}
 					<TaskList

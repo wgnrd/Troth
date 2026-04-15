@@ -19,6 +19,11 @@ const dueDateFormatter = new Intl.DateTimeFormat('en-US', {
 	month: 'short'
 });
 
+const dueTimeFormatter = new Intl.DateTimeFormat('en-US', {
+	hour: 'numeric',
+	minute: '2-digit'
+});
+
 const weekdayFormatter = new Intl.DateTimeFormat('en-US', {
 	weekday: 'long'
 });
@@ -148,18 +153,38 @@ export function formatTaskDate(isoDate: string | null) {
 	const diffInDays = Math.round((taskDate.getTime() - todayDate.getTime()) / 86_400_000);
 
 	if (diffInDays === 0) {
-		return 'today';
+		return appendDueTimeLabel('today', normalized);
 	}
 
 	if (diffInDays === 1) {
-		return 'tomorrow';
+		return appendDueTimeLabel('tomorrow', normalized);
 	}
 
 	if (diffInDays > 1 && diffInDays <= 5) {
-		return weekdayFormatter.format(date).toLowerCase();
+		return appendDueTimeLabel(weekdayFormatter.format(date).toLowerCase(), normalized);
 	}
 
-	return formatCalendarDate(date);
+	return appendDueTimeLabel(formatCalendarDate(date), normalized);
+}
+
+export function formatTaskTime(isoDate: string | null) {
+	const date = parseDueDate(isoDate);
+
+	if (!date || !hasExplicitDueTime(isoDate)) {
+		return null;
+	}
+
+	return dueTimeFormatter.format(date);
+}
+
+export function hasExplicitDueTime(isoDate: string | null) {
+	const normalized = normalizeDueDate(isoDate);
+
+	if (!normalized) {
+		return false;
+	}
+
+	return !normalized.endsWith('T12:00:00.000Z');
 }
 
 export function getDueDateTone(isoDate: string | null) {
@@ -281,12 +306,46 @@ export function toDateInputValue(isoDate: string | null) {
 	return `${year}-${month}-${day}`;
 }
 
-export function fromDateInputValue(value: string) {
+export function toTimeInputValue(isoDate: string | null) {
+	const date = parseDueDate(isoDate);
+
+	if (!date || !hasExplicitDueTime(isoDate)) {
+		return '';
+	}
+
+	const hours = String(date.getHours()).padStart(2, '0');
+	const minutes = String(date.getMinutes()).padStart(2, '0');
+
+	return `${hours}:${minutes}`;
+}
+
+export function fromDateInputValue(value: string, timeValue?: string | null) {
 	if (!value) {
 		return null;
 	}
 
+	if (timeValue) {
+		const [rawHours, rawMinutes] = timeValue.split(':');
+		const hours = Number.parseInt(rawHours ?? '', 10);
+		const minutes = Number.parseInt(rawMinutes ?? '', 10);
+
+		if (Number.isInteger(hours) && Number.isInteger(minutes)) {
+			const [year, month, day] = value.split('-').map((part) => Number.parseInt(part, 10));
+			return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
+		}
+	}
+
 	return `${value}T12:00:00.000Z`;
+}
+
+export function clearDueDateTime(isoDate: string | null) {
+	const dateValue = toDateInputValue(isoDate);
+	return dateValue ? fromDateInputValue(dateValue) : null;
+}
+
+export function setDueDateTime(isoDate: string | null, timeValue: string) {
+	const dateValue = toDateInputValue(isoDate);
+	return dateValue ? fromDateInputValue(dateValue, timeValue) : null;
 }
 
 export function getPriorityLabel(priority: number) {
@@ -585,6 +644,11 @@ function formatCalendarDate(date: Date) {
 	const [day, month] = formatted.replace(',', '').split(' ');
 
 	return `${day}.${month}`;
+}
+
+function appendDueTimeLabel(label: string, isoDate: string) {
+	const timeLabel = formatTaskTime(isoDate);
+	return timeLabel ? `${label}, ${timeLabel}` : label;
 }
 
 function formatHeaderDate(date: Date) {

@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppList, AppTask } from '$lib/api/vikunja';
-import { filterTasksForView, sortTasks, sortTodayTasks, UPCOMING_DAY_WINDOW } from './view';
+import {
+	filterTasksForView,
+	formatTaskDate,
+	hasExplicitDueTime,
+	sortTasks,
+	sortTodayTasks,
+	toTimeInputValue,
+	UPCOMING_DAY_WINDOW,
+	fromDateInputValue
+} from './view';
 
 describe('filterTasksForView backlog', () => {
 	beforeEach(() => {
@@ -50,6 +59,32 @@ describe('sortTodayTasks', () => {
 		]).map((task) => task.id);
 
 		expect(orderedTaskIds).toEqual([1, 2]);
+	});
+});
+
+describe('due time helpers', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-04-11T09:00:00.000Z'));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('treats the existing noon sentinel as all-day', () => {
+		expect(hasExplicitDueTime('2026-04-11T12:00:00.000Z')).toBe(false);
+		expect(toTimeInputValue('2026-04-11T12:00:00.000Z')).toBe('');
+		expect(formatTaskDate('2026-04-11T12:00:00.000Z')).toBe('today');
+	});
+
+	it('preserves explicit times for timed tasks', () => {
+		const dueDate = fromDateInputValue('2026-04-11', '14:30');
+
+		expect(dueDate).toBeTruthy();
+		expect(hasExplicitDueTime(dueDate)).toBe(true);
+		expect(toTimeInputValue(dueDate)).toBe('14:30');
+		expect(formatTaskDate(dueDate)).toContain('today, ');
 	});
 });
 
