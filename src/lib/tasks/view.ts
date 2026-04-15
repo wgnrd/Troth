@@ -178,13 +178,13 @@ export function formatTaskTime(isoDate: string | null) {
 }
 
 export function hasExplicitDueTime(isoDate: string | null) {
-	const normalized = normalizeDueDate(isoDate);
+	const date = parseDueDate(isoDate);
 
-	if (!normalized) {
+	if (!date) {
 		return false;
 	}
 
-	return !normalized.endsWith('T12:00:00.000Z');
+	return !isAllDaySentinel(date);
 }
 
 export function getDueDateTone(isoDate: string | null) {
@@ -649,6 +649,15 @@ function formatCalendarDate(date: Date) {
 function appendDueTimeLabel(label: string, isoDate: string) {
 	const timeLabel = formatTaskTime(isoDate);
 	return timeLabel ? `${label}, ${timeLabel}` : label;
+}
+
+function isAllDaySentinel(date: Date) {
+	return (
+		date.getUTCHours() === 12 &&
+		date.getUTCMinutes() === 0 &&
+		date.getUTCSeconds() === 0 &&
+		date.getUTCMilliseconds() === 0
+	);
 }
 
 function formatHeaderDate(date: Date) {
