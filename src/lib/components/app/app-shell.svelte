@@ -450,7 +450,7 @@
 			<div class="flex justify-center px-1 pb-1">
 				<button
 					type="button"
-					class="inline-flex size-14 items-center justify-center rounded-full border border-primary/20 bg-primary text-primary-foreground shadow-[0_16px_30px_rgba(60,93,78,0.28)] transition hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/15"
+					class="inline-flex size-14 items-center justify-center rounded-full border border-primary/20 bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(24,24,27,0.16)] transition hover:scale-[1.02] focus-visible:ring-4 focus-visible:ring-primary/15 dark:shadow-[0_16px_30px_rgba(0,0,0,0.28)]"
 					aria-label="Add task"
 					onclick={() => {
 						mobileTaskComposerOpen = true;

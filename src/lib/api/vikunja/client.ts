@@ -695,14 +695,14 @@ async function toClientError(response: Response): Promise<VikunjaClientError> {
 function toNetworkError(error: unknown, url: URL) {
 	if (error instanceof Error) {
 		return new VikunjaClientError(
-			`Could not reach Vikunja at ${url.origin}. Check the base URL, network connection, or CORS/proxy setup.`,
-			0
+			`The Vikunja server at ${url.origin} could not be reached. Check the base URL, that the server is running, and any network, proxy, or CORS setup.`,
+			503
 		);
 	}
 
 	return new VikunjaClientError(
-		`Could not reach Vikunja at ${url.origin}. Check the base URL and network connection.`,
-		0
+		`The Vikunja server at ${url.origin} could not be reached. Check the base URL and that the server is running.`,
+		503
 	);
 }
 
