@@ -107,6 +107,8 @@ function buildTask(overrides: Partial<AppTask> & Pick<AppTask, 'id' | 'title'>):
 		description: overrides.description ?? '',
 		completed: overrides.completed ?? false,
 		completedAt: overrides.completedAt ?? null,
+		startDate: overrides.startDate ?? null,
+		endDate: overrides.endDate ?? null,
 		dueDate: overrides.dueDate ?? null,
 		repeatAfter: overrides.repeatAfter ?? null,
 		repeatMode: overrides.repeatMode ?? null,

@@ -235,6 +235,8 @@
 			id: task.id,
 			title: task.title,
 			description: task.description,
+			startDate: task.startDate,
+			endDate: task.endDate,
 			dueDate: task.dueDate,
 			repeatAfter: task.repeatAfter,
 			repeatMode: task.repeatMode,

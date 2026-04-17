@@ -143,6 +143,8 @@
 			id: task.id,
 			title: title.trim(),
 			description: description.trim(),
+			startDate: task.startDate,
+			endDate: task.endDate,
 			dueDate,
 			repeatAfter,
 			repeatMode,
@@ -160,6 +162,8 @@
 		return JSON.stringify({
 			title: task.title,
 			description: notesToEditableMarkdown(task.description).trim(),
+			startDate: task.startDate,
+			endDate: task.endDate,
 			dueDate: task.dueDate,
 			repeatAfter: task.repeatAfter,
 			repeatMode: task.repeatMode,
@@ -174,6 +178,8 @@
 			? JSON.stringify({
 					title: savePayload.title,
 					description: savePayload.description,
+					startDate: savePayload.startDate,
+					endDate: savePayload.endDate,
 					dueDate: savePayload.dueDate,
 					repeatAfter: savePayload.repeatAfter,
 					repeatMode: savePayload.repeatMode,

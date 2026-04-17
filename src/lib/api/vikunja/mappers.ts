@@ -91,6 +91,8 @@ export function mapTaskToAppTask(task: VikunjaTask): AppTask {
 		description: task.description ?? '',
 		completed: task.done ?? false,
 		completedAt: task.done_at ?? null,
+		startDate: task.start_date ?? null,
+		endDate: task.end_date ?? null,
 		dueDate: task.due_date ?? null,
 		repeatAfter: task.repeat_after ?? null,
 		repeatMode: task.repeat_mode ?? null,
@@ -151,6 +153,8 @@ export function mapUpdateTaskInput(input: UpdateTaskInput): VikunjaTaskWrite {
 	return {
 		title: input.title.trim(),
 		description: input.description.trim(),
+		start_date: input.startDate,
+		end_date: input.endDate,
 		due_date: input.dueDate,
 		repeat_after: input.repeatAfter ?? 0,
 		repeat_mode: input.repeatMode ?? 0,

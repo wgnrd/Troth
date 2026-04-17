@@ -156,6 +156,7 @@
 			? groupedVisibleTasks.map((group) => group.key).filter((key) => key !== 'no-date')
 			: []
 	);
+	const useWideLayout = $derived(currentView === 'upcoming' && upcomingLayout === 'calendar');
 	const headerMeta = $derived.by(() => {
 		if (currentView !== 'upcoming') {
 			if (currentView !== 'backlog') {
@@ -472,6 +473,8 @@
 			id: task.id,
 			title: task.title,
 			description: task.description,
+			startDate: task.startDate,
+			endDate: task.endDate,
 			dueDate: task.dueDate,
 			repeatAfter: task.repeatAfter,
 			repeatMode: task.repeatMode,
@@ -484,7 +487,11 @@
 	}
 </script>
 
-<section class="mx-auto flex w-full max-w-[44rem] flex-col gap-4 sm:gap-5">
+<section
+	class={useWideLayout
+		? 'mx-auto flex w-full max-w-none flex-col gap-4 sm:gap-5'
+		: 'mx-auto flex w-full max-w-[44rem] flex-col gap-4 sm:gap-5'}
+>
 	<div class="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
 		<div class="space-y-0.5">
 			<h1 class="text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2rem]">
@@ -523,7 +530,7 @@
 			{/if}
 
 			{#if showUpcomingLayoutSwitch}
-				<div class="pt-2">
+				<div class="hidden pt-2 sm:block">
 					<div
 						class="inline-flex rounded-2xl border border-border/70 bg-white/65 p-1 shadow-sm dark:bg-white/8 dark:shadow-none"
 					>

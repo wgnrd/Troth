@@ -251,115 +251,117 @@
 
 	<Popover.Content
 		{align}
-		class="w-[22rem] overflow-hidden rounded-[1.75rem] border-border/70 bg-[rgba(255,252,247,0.98)] p-0 shadow-[0_24px_80px_-36px_rgba(28,22,14,0.35)] backdrop-blur-sm dark:border-white/14 dark:bg-[color-mix(in_oklch,var(--color-popover)_82%,white_18%)] dark:shadow-[0_24px_80px_-42px_rgba(0,0,0,0.46)]"
+		class="w-[20rem] overflow-hidden rounded-[1.5rem] border-border/70 bg-[rgba(255,252,247,0.98)] p-0 shadow-[0_24px_80px_-36px_rgba(28,22,14,0.35)] backdrop-blur-sm dark:border-white/14 dark:bg-[color-mix(in_oklch,var(--color-popover)_82%,white_18%)] dark:shadow-[0_24px_80px_-42px_rgba(0,0,0,0.46)]"
 		data-task-composer-ignore-collapse="true"
 	>
-		<div
-			class="border-b border-border/70 bg-muted/[0.22] px-3 py-3 dark:border-white/12 dark:bg-white/10"
-		>
-			<div class="space-y-1">
-				<Button
-					variant="ghost"
-					class={cn(
-						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900 dark:text-amber-100 dark:hover:border-amber-700/70 dark:hover:bg-amber-950/24 dark:hover:text-amber-50',
-						isToday &&
-							'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/80 dark:bg-amber-900/28 dark:text-amber-50'
-					)}
-					onclick={setToday}
-				>
-					<Sun class="size-4.5 shrink-0" />
-					<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
-						<span class="text-[0.75rem] font-medium text-current/80">today</span>
-						<span class="truncate text-[0.72rem] text-current/60">{todayDetail}</span>
-					</span>
-				</Button>
-				<Button
-					variant="ghost"
-					class={cn(
-						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-orange-700 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900 dark:text-orange-100 dark:hover:border-orange-700/70 dark:hover:bg-orange-950/22 dark:hover:text-orange-50',
-						isTomorrow &&
-							'border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700/80 dark:bg-orange-900/26 dark:text-orange-50'
-					)}
-					onclick={setTomorrow}
-				>
-					<Sunrise class="size-4.5 shrink-0" />
-					<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
-						<span class="text-[0.75rem] font-medium text-current/80">tomorrow</span>
-						<span class="truncate text-[0.72rem] text-current/60">{tomorrowDetail}</span>
-					</span>
-				</Button>
-				{#if showNextWeekQuickPick}
+		<div class="max-h-[min(34rem,80vh)] overflow-y-auto">
+			<div
+				class="border-b border-border/70 bg-muted/[0.22] px-2.5 py-2.5 dark:border-white/12 dark:bg-white/10"
+			>
+				<div class="space-y-1">
 					<Button
 						variant="ghost"
 						class={cn(
-							'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-sky-700 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900 dark:text-sky-100 dark:hover:border-sky-700/70 dark:hover:bg-sky-950/22 dark:hover:text-sky-50',
-							isNextWeek &&
-								'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700/80 dark:bg-sky-900/24 dark:text-sky-50'
+							'h-9.5 w-full items-center justify-start gap-2.5 rounded-xl border border-transparent px-2.5 py-0 text-amber-700 shadow-none hover:border-amber-200 hover:bg-amber-50/90 hover:text-amber-900 dark:text-amber-100 dark:hover:border-amber-700/70 dark:hover:bg-amber-950/24 dark:hover:text-amber-50',
+							isToday &&
+								'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/80 dark:bg-amber-900/28 dark:text-amber-50'
 						)}
-						onclick={setNextWeek}
+						onclick={setToday}
 					>
-						<CalendarDays class="size-4.5 shrink-0" />
+						<Sun class="size-4 shrink-0" />
 						<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
-							<span class="text-[0.75rem] font-medium text-current/80">next week</span>
-							<span class="truncate text-[0.72rem] text-current/60">{nextWeekDetail}</span>
+							<span class="text-[0.72rem] font-medium text-current/80">today</span>
+							<span class="truncate text-[0.72rem] text-current/60">{todayDetail}</span>
 						</span>
 					</Button>
-				{/if}
-				<Button
-					variant="ghost"
-					class={cn(
-						'h-11 w-full items-center justify-start gap-3 rounded-2xl border border-transparent px-3 py-0 text-muted-foreground shadow-none hover:border-border/70 hover:bg-background/80 hover:text-foreground dark:hover:border-white/12 dark:hover:bg-white/8',
-						value && 'text-foreground',
-						!value && 'opacity-60'
-					)}
-					onclick={clearDate}
-					disabled={!value}
-				>
-					<X class="size-4.5 shrink-0" />
-					<span class="text-[0.75rem] font-medium text-current/80">clear</span>
-				</Button>
-			</div>
-		</div>
-
-		<div class="p-2">
-			<Calendar
-				class="rounded-[1.3rem] border border-border/60 bg-background/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-				type="single"
-				value={calendarValue}
-				onValueChange={(nextValue: DateValue | undefined) => {
-					void applyDate(nextValue);
-				}}
-			/>
-		</div>
-
-		<div class="border-t border-border/70 px-3 py-3 dark:border-white/12">
-			<div class="flex items-center justify-between gap-3">
-				<div>
-					<p class="text-[0.72rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-						Time
-					</p>
-					<p class="mt-1 text-[0.72rem] text-muted-foreground">
-						Timed tasks appear in the calendar grid. Leave it empty for all day.
-					</p>
+					<Button
+						variant="ghost"
+						class={cn(
+							'h-9.5 w-full items-center justify-start gap-2.5 rounded-xl border border-transparent px-2.5 py-0 text-orange-700 shadow-none hover:border-orange-200 hover:bg-orange-50/90 hover:text-orange-900 dark:text-orange-100 dark:hover:border-orange-700/70 dark:hover:bg-orange-950/22 dark:hover:text-orange-50',
+							isTomorrow &&
+								'border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700/80 dark:bg-orange-900/26 dark:text-orange-50'
+						)}
+						onclick={setTomorrow}
+					>
+						<Sunrise class="size-4 shrink-0" />
+						<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
+							<span class="text-[0.72rem] font-medium text-current/80">tomorrow</span>
+							<span class="truncate text-[0.72rem] text-current/60">{tomorrowDetail}</span>
+						</span>
+					</Button>
+					{#if showNextWeekQuickPick}
+						<Button
+							variant="ghost"
+							class={cn(
+								'h-9.5 w-full items-center justify-start gap-2.5 rounded-xl border border-transparent px-2.5 py-0 text-sky-700 shadow-none hover:border-sky-200 hover:bg-sky-50/90 hover:text-sky-900 dark:text-sky-100 dark:hover:border-sky-700/70 dark:hover:bg-sky-950/22 dark:hover:text-sky-50',
+								isNextWeek &&
+									'border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700/80 dark:bg-sky-900/24 dark:text-sky-50'
+							)}
+							onclick={setNextWeek}
+						>
+							<CalendarDays class="size-4 shrink-0" />
+							<span class="flex min-w-0 flex-1 items-center justify-between gap-3">
+								<span class="text-[0.72rem] font-medium text-current/80">next week</span>
+								<span class="truncate text-[0.72rem] text-current/60">{nextWeekDetail}</span>
+							</span>
+						</Button>
+					{/if}
+					<Button
+						variant="ghost"
+						class={cn(
+							'h-9.5 w-full items-center justify-start gap-2.5 rounded-xl border border-transparent px-2.5 py-0 text-muted-foreground shadow-none hover:border-border/70 hover:bg-background/80 hover:text-foreground dark:hover:border-white/12 dark:hover:bg-white/8',
+							value && 'text-foreground',
+							!value && 'opacity-60'
+						)}
+						onclick={clearDate}
+						disabled={!value}
+					>
+						<X class="size-4 shrink-0" />
+						<span class="text-[0.72rem] font-medium text-current/80">clear</span>
+					</Button>
 				</div>
-				<Button
-					variant={hasTime ? 'outline' : 'secondary'}
-					size="sm"
-					class="rounded-xl"
-					disabled={disabled || !value || !hasTime}
-					onclick={clearTime}
-				>
-					All day
-				</Button>
 			</div>
 
-			<input
-				type="time"
-				class="mt-3 flex h-11 w-full rounded-2xl border border-border/70 bg-background px-3 text-sm transition outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/12 dark:bg-white/6"
-				value={timeValue}
-				disabled={disabled || !value}
-				oninput={handleTimeInput}
-			/>
+			<div class="p-2">
+				<Calendar
+					class="rounded-[1.15rem] border border-border/60 bg-background/90 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-white/12 dark:bg-white/12 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+					type="single"
+					value={calendarValue}
+					onValueChange={(nextValue: DateValue | undefined) => {
+						void applyDate(nextValue);
+					}}
+				/>
+			</div>
+
+			<div class="border-t border-border/70 px-2.5 py-2.5 dark:border-white/12">
+				<div class="flex items-center justify-between gap-3">
+					<div>
+						<p class="text-[0.72rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
+							Time
+						</p>
+						<p class="mt-1 text-[0.72rem] text-muted-foreground">
+							Timed tasks appear in the calendar grid. Leave it empty for all day.
+						</p>
+					</div>
+					<Button
+						variant={hasTime ? 'outline' : 'secondary'}
+						size="sm"
+						class="h-8 rounded-lg px-2.5"
+						disabled={disabled || !value || !hasTime}
+						onclick={clearTime}
+					>
+						All day
+					</Button>
+				</div>
+
+				<input
+					type="time"
+					class="mt-2 flex h-9.5 w-full rounded-xl border border-border/70 bg-background px-3 text-sm transition outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/12 dark:bg-white/6"
+					value={timeValue}
+					disabled={disabled || !value}
+					oninput={handleTimeInput}
+				/>
+			</div>
 		</div>
 	</Popover.Content>
 </Popover.Root>

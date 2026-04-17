@@ -14,6 +14,8 @@ export type VikunjaTask = {
 	description?: string;
 	done?: boolean;
 	done_at?: string;
+	start_date?: string;
+	end_date?: string;
 	due_date?: string;
 	repeat_after?: number;
 	repeat_mode?: number;
@@ -131,6 +133,8 @@ export type AppTask = {
 	description: string;
 	completed: boolean;
 	completedAt: string | null;
+	startDate: string | null;
+	endDate: string | null;
 	dueDate: string | null;
 	repeatAfter: number | null;
 	repeatMode: number | null;
@@ -154,6 +158,8 @@ export type UpdateTaskInput = {
 	id: number;
 	title: string;
 	description: string;
+	startDate: string | null;
+	endDate: string | null;
 	dueDate: string | null;
 	repeatAfter: number | null;
 	repeatMode: number | null;
@@ -167,6 +173,8 @@ export type VikunjaTaskWrite = {
 	title?: string;
 	description?: string;
 	done?: boolean;
+	start_date?: string | null;
+	end_date?: string | null;
 	due_date?: string | null;
 	repeat_after?: number;
 	repeat_mode?: number;
